@@ -10,7 +10,7 @@ const config: QuartzConfig = {
     analytics: null,
     locale: "en-US",
     baseUrl: "changjin-li.github.io/Paper_Reading",
-    ignorePatterns: ["Templates/**", ".obsidian/**", "docs/**", "website/**", "Private/**", "private", "*.canvas", "CLAUDE.md", "AGENTS.md", "README.md", "skills/**", "scripts/**", "references/**", "Workbench/**", "Meetings/**"],
+    ignorePatterns: ["Templates/**", ".obsidian/**", "docs/**", "website/**", "Private/**", "private", "*.canvas", "CLAUDE.md", "AGENTS.md", "README.md", "skills/**", "scripts/**", "references/**", "Workbench/**", "Meetings/**", "Topics/**", "DomainMaps/**", "Ideas/**", "Projects/**", "Reports/**", "News/**", "Experiments/**"],
     defaultDateType: "published",
     theme: {
       fontOrigin: "googleFonts",
