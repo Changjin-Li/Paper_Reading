@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+    <channel>
+      <title>ReadPaperMachine</title>
+      <link>https://changjin-li.github.io/Paper_Reading</link>
+      <description>Last 10 notes on ReadPaperMachine</description>
+      <generator>Quartz -- quartz.jzhao.xyz</generator>
+      <item>
+    <title>ReadPaperMachine</title>
+    <link>https://changjin-li.github.io/Paper_Reading/</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/</guid>
+    <description><![CDATA[ A research knowledge management system for AI-assisted paper reading, note-taking, and research ideation. Inspired by MindFlow. ]]></description>
+    <pubDate>Tue, 13 Oct 2026 17:47:26 GMT</pubDate>
+  </item><item>
+    <title>Papers</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/</guid>
+    <description><![CDATA[ 论文笔记 Papers/ 存放单篇论文的阅读笔记，文件名格式为 YYMM-ShortTitle.md，每篇笔记遵循统一的论文模板结构，通过 tags、cite_key 等 frontmatter 字段参与检索与引用。 当前为空，等待录入。. ]]></description>
+    <pubDate>Tue, 13 Oct 2026 17:47:26 GMT</pubDate>
+  </item>
+    </channel>
+  </rss>
