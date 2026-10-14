@@ -10,19 +10,19 @@
     <link>https://changjin-li.github.io/Paper_Reading/</link>
     <guid>https://changjin-li.github.io/Paper_Reading/</guid>
     <description><![CDATA[ A research knowledge management system for AI-assisted paper reading, note-taking, and research ideation. Inspired by MindFlow. ]]></description>
-    <pubDate>Wed, 14 Oct 2026 15:10:46 GMT</pubDate>
+    <pubDate>Wed, 14 Oct 2026 15:18:58 GMT</pubDate>
   </item><item>
     <title>Papers</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/</guid>
     <description><![CDATA[ 论文笔记 Papers/ 存放单篇论文的阅读笔记，文件名格式为 YYMM-ShortTitle.md，每篇笔记遵循统一的论文模板结构，通过 tags、cite_key 等 frontmatter 字段参与检索与引用。 当前为空，等待录入。. ]]></description>
-    <pubDate>Wed, 14 Oct 2026 15:10:46 GMT</pubDate>
+    <pubDate>Wed, 14 Oct 2026 15:18:58 GMT</pubDate>
   </item><item>
     <title>SpanVLA: Learning from Negative-Recovery Samples with Fast Action Bridging for Vision-Language-Action Model</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-SpanVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2604-SpanVLA</guid>
     <description><![CDATA[ Summary 针对驾驶 VLA 的两个痛点——autoregressive action decoding 延迟高、且仅用正样本监督导致长尾鲁棒性不足——SpanVLA 提出 efficient action bridge（稀疏 KV-cache 条件 + 历史轨迹初始化的 flow-matching action expert）与 NR-RFT（基于 GRPO 的负样本惩罚 / 恢复奖励后训练），并发布首个同时含 negative 与 expert recovery 样本的真实世界驾驶数据集与 benchmark nuReasoning-NR。方法在 NAVSIM v1/v2、nuReas... ]]></description>
-    <pubDate>Wed, 14 Oct 2026 15:10:46 GMT</pubDate>
+    <pubDate>Wed, 14 Oct 2026 15:18:58 GMT</pubDate>
   </item>
     </channel>
   </rss>
