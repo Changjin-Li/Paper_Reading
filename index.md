@@ -1,5 +1,5 @@
 ---
-title: ReadPaperMachine
+title: Paper Reading
 tags: []
 ---
 
