@@ -7,7 +7,6 @@ export const sharedPageComponents: SharedLayout = {
   afterBody: [
     Component.HomepageStats(),
     Component.HomepageRecent(),
-    Component.HomepageTags(),
   ],
   footer: Component.Footer({
     links: {
