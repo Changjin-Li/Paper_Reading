@@ -47,6 +47,12 @@ date_added: 2026-10-14
 
 **数据集 nuReasoning-NR**：36K = 30K positive reasoning + 3K negative + 3K recovery；采集自 Las Vegas/Boston/Pittsburgh/Singapore 真实驾驶，negative/recovery 来自早期探索性测试的事件级配对（负片段 = 次优 ego 行为，recovery = 其后的专家纠正）。positive subset 的 reasoning 标注由基于 **Gemini-3-Pro** 的自动流水线生成，再经人工质量审核。
 
+## Pipeline
+
+![SpanVLA 整体架构（论文 Figure 2）](https://arxiv.org/html/2604.19710v2/Framework.png)
+
+*Figure 2：SpanVLA 整体架构。SFT 对齐 reasoning 与 planning；NR-RFT 用真实 negative / recovery 样本惩罚不良行为、奖励专家纠正，并以修正后的 group-relative advantage 更新策略；高效推理时由轻量 action bridge 基于稀疏层 KV cache、以历史轨迹初始化，通过 flow matching 生成连续轨迹。*
+
 ## Key Results
 
 - **nuReasoning-NR benchmark**（Table 1，PDMS）：negative 65.1→74.1、recovery 56.1→65.1、平均 60.6→69.6（+14.9%）加入 NR 监督后全面提升；同一 NR 训练把 AutoVLA 平均 PDMS 从 59.1 提到 64.2，说明收益不局限于 SpanVLA 架构。
