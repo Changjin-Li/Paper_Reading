@@ -49,9 +49,9 @@ date_added: 2026-10-14
 
 ## Pipeline
 
-![SpanVLA 整体架构（论文 Figure 2）](https://arxiv.org/html/2604.19710v2/Framework.png)
+![SpanVLA 整体架构](https://arxiv.org/html/2604.19710v2/Framework.png)
 
-*Figure 2：SpanVLA 整体架构。SFT 对齐 reasoning 与 planning；NR-RFT 用真实 negative / recovery 样本惩罚不良行为、奖励专家纠正，并以修正后的 group-relative advantage 更新策略；高效推理时由轻量 action bridge 基于稀疏层 KV cache、以历史轨迹初始化，通过 flow matching 生成连续轨迹。*
+*SpanVLA 整体架构。SFT 对齐 reasoning 与 planning；NR-RFT 用真实 negative / recovery 样本惩罚不良行为、奖励专家纠正，并以修正后的 group-relative advantage 更新策略；高效推理时由轻量 action bridge 基于稀疏层 KV cache、以历史轨迹初始化，通过 flow matching 生成连续轨迹。*
 
 ## Key Results
 
