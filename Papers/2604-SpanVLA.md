@@ -12,7 +12,6 @@ cite_key: zhou2026spanvla
 code: https://github.com/motional/SpanVLA
 rating: 4
 content_scope: full-text
-verification_status: source-checked
 date_added: 2026-10-14
 ---
 ## Summary
@@ -55,23 +54,6 @@ date_added: 2026-10-14
 - **nuReasoning**（Table 2）：SpanVLA(post-RFT) NPS 73.3、ADE 1.4，略优于 nuVLA（73.1 / 1.6）。
 - **效率**（Table 4）：50-waypoint 下 bridge 相对 autoregressive decoding 的 action generation 加速 **21.5×**，总延迟约 **−74%**（AutoVLA 2.57s → SpanVLA FM 0.67s）；waypoint 从 10 增到 50，bridge 生成时间基本不变。
 - **Action bridge ablation**（Table 5）：interval-2 + historical init = **90.8 PDMS / 0.08s**；interval-2 无 HI 86.4；interval-4 82.2；仅 last-layer 79.3；full caching 88.1 / 0.18s。
-
-## Evidence Ledger
-
-| Claim ID | Claim | Type | Source locator | Evidence excerpt | Status |
-|:--|:--|:--|:--|:--|:--|
-| C1 | nuReasoning-NR 是首个含 negative 与 recovery 样本的真实世界驾驶数据集与 benchmark | sota-novelty | §3 / 贡献列表 / Fig.1 caption | "the first real-world driving dataset and benchmark containing both negative and expert recovery samples" | source-verified |
-| C2 | nuReasoning-NR 含 36K 样本 = 30K positive + 3K negative + 3K recovery；benchmark 用 300 negative + 300 recovery 场景 | benchmark-setting | §3 / §5.1 / Table 1 | "contains 36K samples: 30K positive reasoning samples, 3K negative samples, and 3K recovery samples" | source-verified |
-| C3 | SpanVLA 在 NAVSIM v1、v2 与 nuReasoning 上均达 state-of-the-art | sota-novelty | 贡献列表 / §5.2 | "achieves state-of-the-art performance across the NAVSIM v1, v2, and nuReasoning benchmarks" | source-verified |
-| C4 | SpanVLA(best-of-N, N=6)：NAVSIM v1 PDMS 93.3、v2 EPDMS 90.5、v2 navhard EPDMS 47.9 | number | Table 3 及表注 | "SpanVLA * ... 93.3 ... 90.5"; navhard "47.9"; "* denotes best-of-N selection with N = 6" | source-verified |
-| C5 | Efficient Action Bridge 使 50-waypoint 的 action generation 加速 21.5×，总延迟约 −74% | number | §5.2 / Table 4 | "achieving a 21.5× speedup. The reported total latency has a reduction of approximately 74%." | source-verified |
-| C6 | NR-RFT 把 nuReasoning-NR 上平均 PDMS 从 60.6 提升到 69.6（+14.9%） | number | §5.2 / Table 1 | "Incorporating NR supervision increases the average PDMS of SpanVLA by 14.9%." | source-verified |
-| C7 | Historical-trajectory initialization 在相同 interval-2 配置下把 PDMS 从 86.4 提到 90.8，latency 保持 0.08s | causal-mechanism | §5.4 / Table 5 | "Historical initialization improves PDMS from 86.4 to 90.8 while maintaining a trajectory-generation latency of 0.08 s." | source-verified |
-| C8 | positive subset 的 reasoning 标注由 Gemini-3-Pro 自动 pipeline 生成并人工审核 | benchmark-setting | §3 / §B.3 | "We use Gemini-3-Pro ... to generate structured annotations"; 人工复核 250 个随机样本 | source-verified |
-| C9 | 代码在 github.com/motional/SpanVLA；数据集标注 "Coming Soon"（未发布） | license-code | 项目页 / §6 | 项目页 "Data (Coming Soon)"；"The dataset and benchmark code will be released" | source-verified |
-| C10 | 数据集名在 v2 为 "nuReasoning-NR"，而 v1 摘要页与项目页用 "mReasoning" | naming-consistency | v1 abs/§3、项目页、v2 正文 | v1: "We introduce a mReasoning"; 项目页: "mReasoning includes 30k complex interaction scenarios"; v2 通篇 "nuReasoning-NR" | source-verified |
-
-> Source consistency only — all rows verified against primary source (arXiv v2 HTML/PDF + v1 abs + project page); this does not imply independent reproduction.
 
 ## Strengths & Weaknesses
 
