@@ -54,7 +54,6 @@ export const defaultContentPageLayout: PageLayout = {
         return a.displayName.localeCompare(b.displayName)
       },
     }),
-    Component.SidebarTags(),
   ],
   right: [
     Component.DesktopOnly(Component.TableOfContents()),
@@ -97,7 +96,6 @@ export const defaultListPageLayout: PageLayout = {
         return a.displayName.localeCompare(b.displayName)
       },
     }),
-    Component.SidebarTags(),
   ],
   right: [],
 }
