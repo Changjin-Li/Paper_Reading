@@ -10,7 +10,7 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-HybridDriveVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-HybridDriveVLA</guid>
     <description><![CDATA[ Summary 针对传统驾驶 VLA 的两个痛点——① 用 image-to-text + 文本 CoT 推理，把连续高维的视觉场景离散成文本符号，损失空间信息（modality gap）；② 只预测单条 waypoint 序列、同时兼顾多维度，缺乏逐维度的 deliberation——HybridDriveVLA 把推理整体搬到视觉域：用 Visual Chain-of-Thought（V-CoT）自回归预测未来场景图作为 goal，再用 Tree-of-Thought-inspired 的 waypoint 评估（ToT-Evaluation）生成并逐点打分 N 条候选序列，按 safet... ]]></description>
-    <pubDate>Thu, 15 Oct 2026 05:22:35 GMT</pubDate>
+    <pubDate>Thu, 15 Oct 2026 05:32:30 GMT</pubDate>
   </item><item>
     <title>ColaVLA: Leveraging Cognitive Latent Reasoning for Hierarchical Parallel Trajectory Planning in Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2512-ColaVLA</link>
