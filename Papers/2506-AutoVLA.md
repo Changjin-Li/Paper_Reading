@@ -47,7 +47,7 @@ date_added: 2026-10-15
 
 ## Pipeline
 
-![AutoVLA 整体框架](../images/AutoVLA-architecture.png)
+![AutoVLA 整体框架](https://arxiv.org/html/2506.13757v2/fig3.png)
 
 *`AutoVLA` 模型与训练流程总览。预训练小 VLM（`Qwen2.5-VL-3B`）作为 backbone，接收多视角相机流、system prompt、驾驶指令与车辆状态作为输入，直接输出文本 reasoning 与 physical action token（K-disk codebook）。`SFT` 阶段用大 VLM（`Qwen2.5-VL-72B`）采集 reasoning 数据，与轨迹数据一起监督训练；`RFT` 阶段用 `GRPO` 结合可验证的驾驶奖励对齐策略，并通过惩罚过长推理实现 fast/slow thinking 的自适应切换。*
 
