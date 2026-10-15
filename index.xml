@@ -10,7 +10,13 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2402-DriveVLM</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2402-DriveVLM</guid>
     <description><![CDATA[ Summary 针对城市自动驾驶最难的一环——理解复杂与长尾场景（恶劣天气、复杂道路布局、细微的人类行为），DriveVLM 把一个 VLM（默认 Qwen-VL）改造成带 Chain-of-Thought 的三模块驾驶系统：Scene Description（环境 + 关键物体）→ Scene Analysis（关键物体的静态属性 / 运动状态 / 特殊行为 + 对 ego 的影响）→ Hierarchical Planning（17 类 meta-action → decision description → waypoints）。针对 VLM 空间 grounding 弱、算力大两点局限... ]]></description>
-    <pubDate>Thu, 15 Oct 2026 13:10:26 GMT</pubDate>
+    <pubDate>Thu, 15 Oct 2026 13:17:28 GMT</pubDate>
+  </item><item>
+    <title>AutoVLA: A Vision-Language-Action Model for End-to-End Autonomous Driving with Adaptive Reasoning and Reinforcement Fine-Tuning</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2506-AutoVLA</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2506-AutoVLA</guid>
+    <description><![CDATA[ Summary AutoVLA 提出一个面向端到端自动驾驶的 VLA 模型，试图用单一自回归模型同时解决两个此前割裂的问题：①物理动作生成（连续轨迹难以直接放入语言模型的输出空间）与 ②自适应推理（何时需要长 CoT、何时只需快速出动作）。核心做法是把动作离散化为一个由 K-disk 聚类得到的 action codebook（K=2048 个 token，每个 token =(\Delta x,\Delta y,\Delta\theta) 覆盖 0.5 s），从而让”推理文本 + 动作 token”统一在同一个自回归序列里；再用两阶段训练——SFT 学推理与动作，GRPO-based Rei... ]]></description>
+    <pubDate>Thu, 15 Oct 2026 13:10:46 GMT</pubDate>
   </item><item>
     <title>Judge, Then Drive: A Critic-Centric Vision Language Action Framework for Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-CriticVLA</link>
