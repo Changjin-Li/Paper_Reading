@@ -26,26 +26,34 @@ date_added: 2026-10-15
 
 **0) Backbone**
 - 基于预训练 **Qwen2-VL-2B**，由 vision encoder + projector + text tokenizer + text detokenizer 构成。
-- 输入（时刻 t）：同步多视角图像 `I_t = {i_t^1, …, i_t^h}`、ego state `l_t`、导航命令 `c_t`（LEFT / RIGHT / FORWARD）、指令 `o_t`、评估维度 `E = {e_safety, e_progress, e_comfort}`。
+- 输入（时刻 $t$）：同步多视角图像 $I_t = \{i_t^1, \dots, i_t^h\}$、ego state $l_t$、导航命令 $c_t$（LEFT / RIGHT / FORWARD）、指令 $o_t$、评估维度 $E = \{e_{\text{safety}}, e_{\text{progress}}, e_{\text{comfort}}\}$。
 
 **1) Visual Chain-of-Thought (V-CoT, §3.2)**
-- 在动作生成前，先自回归预测 **t + 6α（≈3 s）后的未来场景图** 作为 goal image：`Î_{t+6α} = M(I_t, E, l_t, c_t, o_t)`。
-- 未来场景经预训练 **MoVQGAN encoder** 离散化为 `σ = 512` 个 visual token；V-CoT 目标即自回归重建这些 token：`L_V-CoT = −Σ_{d=1}^{σ} log P_θ(q_d | q_{<σ}, I_t, E, l_t, c_t, o_t)`，训练时最小化预测 `Î_{t+6α}` 与 GT `I_{t+6α}` 的差异（Eq. 1–2）。
+- 在动作生成前，先自回归预测 **$t + 6\alpha$（≈3 s）后的未来场景图** 作为 goal image：$\hat{I}_{t+6\alpha} = M(I_t, E, l_t, c_t, o_t)$。
+- 未来场景经预训练 **MoVQGAN encoder** 离散化为 $\sigma = 512$ 个 visual token；V-CoT 目标即自回归重建这些 token：$\mathcal{L}_{\text{V-CoT}} = -\sum_{d=1}^{\sigma} \log P_\theta(q_d \mid q_{<\sigma}, I_t, E, l_t, c_t, o_t)$，训练时最小化预测 $\hat{I}_{t+6\alpha}$ 与 GT $I_{t+6\alpha}$ 的差异（Eq. 1–2）。
 - 与文本 CoT 不同，V-CoT 完全在视觉域展开，生成结构化的视觉预测，保留空间细节与时序连续性——论文视其为"世界模型式"的下一场景预判。
 
 **2) Tree-of-Thought-Evaluation (ToT-Evaluation, §3.3)**
-- 以 V-CoT 的目标图为条件，生成 `N` 条候选 waypoint 序列，每条序列的每个 waypoint 同时带三轴分数：`{(a^n_{t+kα}, S^n_{t+kα})}_{n=1}^N = M(I_t, Î_{t+6α}, E, l_t, c_t, o_t)`（Eq. 3），其中序列 `A^n = {a^n_{t+α}, …, a^n_{t+6α}}`、`n ∈ {1,…,N}`、`k` 为预测步、`α` 为相邻 waypoint 的时间间隔。
-- waypoint 总分 `T^n_{t+kα} = Σ_j s^{n,j}_{t+kα}`（`j ∈ {safety, progress, comfort}`，Eq. 4），最优索引 `n* = argmax_{n} T^n_{t+kα}`（Eq. 5）。该 deliberation 是一种 **reasoning-based beam search**（每个节点是一个 waypoint），超越单路径、可按维度自适应评估与选择。
-- 训练目标 `L_ToT-Eval` 最大化生成 GT 序列及其逐点分数的自回归对数似然（Eq. 6）：`L_ToT-Eval = −Σ_{n=1}^N Σ_{k=1}^6 Σ_j log P_θ(a^n_{t+kα}, s^{n,j}_{t+kα} | a^n_{<t+kα}, s^{n,j}_{<t+kα}, I_t, Î_{t+6α}, E, l_t, c_t, o_t)`，保证预测 waypoints 与其评估在时间上一致。
-- 总目标：`L_HybridDriveVLA = L_V-CoT + L_ToT-Eval`（Eq. 7），联合优化视觉预测与评估式规划，使"预判的 goal"与"waypoint 序列"保持一致。
+- 以 V-CoT 的目标图为条件，生成 $N$ 条候选 waypoint 序列，每条序列的每个 waypoint 同时带三轴分数：$\{(a^n_{t+k\alpha}, S^n_{t+k\alpha})\}_{n=1}^{N} = M(I_t, \hat{I}_{t+6\alpha}, E, l_t, c_t, o_t)$（Eq. 3），其中序列 $A^n = \{a^n_{t+\alpha}, \dots, a^n_{t+6\alpha}\}$、$n \in \{1, \dots, N\}$、$k$ 为预测步、$\alpha$ 为相邻 waypoint 的时间间隔。
+- waypoint 总分 $T^n_{t+k\alpha} = \sum_j s^{n,j}_{t+k\alpha}$（$j \in \{\text{safety}, \text{progress}, \text{comfort}\}$，Eq. 4），最优索引 $n^* = \arg\max_{n} T^n_{t+k\alpha}$（Eq. 5）。该 deliberation 是一种 **reasoning-based beam search**（每个节点是一个 waypoint），超越单路径、可按维度自适应评估与选择。
+- 训练目标 $\mathcal{L}_{\text{ToT-Eval}}$ 最大化生成 GT 序列及其逐点分数的自回归对数似然（Eq. 6），保证预测 waypoints 与其评估在时间上一致：
+
+  $$
+  \begin{aligned}
+  \mathcal{L}_{\text{ToT-Eval}} &= -\sum_{n=1}^{N}\sum_{k=1}^{6}\sum_{j} \log P_\theta(a^n_{t+k\alpha},\, s^{n,j}_{t+k\alpha} \\
+  &\quad \mid a^n_{<t+k\alpha},\, s^{n,j}_{<t+k\alpha},\, I_t,\, \hat{I}_{t+6\alpha},\, E,\, l_t,\, c_t,\, o_t)
+  \end{aligned}
+  $$
+
+- 总目标：$\mathcal{L}_{\text{HybridDriveVLA}} = \mathcal{L}_{\text{V-CoT}} + \mathcal{L}_{\text{ToT-Eval}}$（Eq. 7），联合优化视觉预测与评估式规划，使"预判的 goal"与"waypoint 序列"保持一致。
 
 **3) 两阶段训练（§3.4–3.5）**
-- **SFT**：从大规模 VLA 初始化，在"多视角输入 + 场景标注 + 对应下一场景图"的成对样本上微调，联合优化下一场景预测与多序列 waypoint；用于对齐视觉与语言 token 空间，建立视觉因果与时空一致性。20 epochs，lr `1.0×10⁻⁴`，batch size 8/device，16 gradient accumulation steps。
-- **Instruction Tuning**：在 nuScenes 派生的 visual-instruction 语料上训练（每条样本 = 视觉上下文 + 引导多步推理与评估的自然语言 prompt），强化 ToT-Evaluation 的 deliberative 能力与跨时间的推理一致性；20 epochs，使用 **LoRA**，`α = 0.5 s`，cosine LR 调度，**vision tower 冻结**，仅更新 language model 与 LoRA adapter。
+- **SFT**：从大规模 VLA 初始化，在"多视角输入 + 场景标注 + 对应下一场景图"的成对样本上微调，联合优化下一场景预测与多序列 waypoint；用于对齐视觉与语言 token 空间，建立视觉因果与时空一致性。20 epochs，lr $1.0 \times 10^{-4}$，batch size 8/device，16 gradient accumulation steps。
+- **Instruction Tuning**：在 nuScenes 派生的 visual-instruction 语料上训练（每条样本 = 视觉上下文 + 引导多步推理与评估的自然语言 prompt），强化 ToT-Evaluation 的 deliberative 能力与跨时间的推理一致性；20 epochs，使用 **LoRA**，$\alpha = 0.5$ s，cosine LR 调度，**vision tower 冻结**，仅更新 language model 与 LoRA adapter。
 
 **4) 数据构造与三轴 GT 分数（§3.6）**
-- 基于 **nuScenes**（1000 条约 20 s 序列；28,130 训练 / 6,019 验证样本），构造两套互补数据：SFT 视觉生成集（取 `(t, t+6α)` 多视角帧对，future frame 经 MoVQGAN 编码为离散 visual token，prompt 形如 "Generate the next scene view 3 s ahead"）与 IT 推理集（模板化 visual-language 对，含当前视角 `I_t`、近期 ego 轨迹、导航命令、维度 `E` 与预测未来场景 `Î_{t+6α}`，响应为 N 条 GT waypoint 序列 + 三轴分数）。
-- GT 分数按 nuScenes 统计做线性归一化（经 σ(·)，Eq. 8–10）：**Safety** 基于 ego 到其他物体的最小欧氏距离 `d`（越大越安全）；**Comfort** 基于 steering rate `c`（越小越舒适）；**Progress** 基于速度 `v`（越大越前进）。
+- 基于 **nuScenes**（1000 条约 20 s 序列；28,130 训练 / 6,019 验证样本），构造两套互补数据：SFT 视觉生成集（取 $(t, t+6\alpha)$ 多视角帧对，future frame 经 MoVQGAN 编码为离散 visual token，prompt 形如 "Generate the next scene view 3 s ahead"）与 IT 推理集（模板化 visual-language 对，含当前视角 $I_t$、近期 ego 轨迹、导航命令、维度 $E$ 与预测未来场景 $\hat{I}_{t+6\alpha}$，响应为 N 条 GT waypoint 序列 + 三轴分数）。
+- GT 分数按 nuScenes 统计做线性归一化（经 $\sigma(\cdot)$，Eq. 8–10）：**Safety** 基于 ego 到其他物体的最小欧氏距离 $d$（越大越安全）；**Comfort** 基于 steering rate $c$（越小越舒适）；**Progress** 基于速度 $v$（越大越前进）。
 
 ## Pipeline
 
@@ -73,7 +81,7 @@ date_added: 2026-10-15
 **Weaknesses / 边界**
 - **仅开环 / 非反应式评测**：主结果全部基于 nuScenes open-loop（L2 + collision）与 NAVSIM（非反应式仿真），缺少 CARLA / Bench2Drive 等闭环与真实路测验证；规划精度与闭环鲁棒性之间的 gap 未被检验。
 - **ToT 的候选生成与监督细节不足**：候选序列数 N、如何生成 N 条（采样 / 解码策略）以及"最优"如何被监督说明不充分；所选"最优"依赖三轴分数作为代理指标，代理目标与真实驾驶质量的一致性未深入分析。
-- **V-CoT 的开销未量化**：自回归生成未来场景的 visual token（σ = 512）会带来显著推理延迟 / 算力开销，但论文未报告与 baseline 的延迟 / 吞吐对比，"用生成式未来场景换来的增益是否划算"缺乏成本视角。
+- **V-CoT 的开销未量化**：自回归生成未来场景的 visual token（$\sigma = 512$）会带来显著推理延迟 / 算力开销，但论文未报告与 baseline 的延迟 / 吞吐对比，"用生成式未来场景换来的增益是否划算"缺乏成本视角。
 - **与 7B 级 baseline 的可比性**：Table 1 中基于 LLaVA-7B / GPT-3.5 的 baseline 与本文 2B 模型的对比受模型规模与训练数据差异影响，归因不完全干净；且 V-CoT 与既有视觉域 CoT（如 CoT-VLA）思路接近，novelty 主要落在 ToT-Evaluation 与其与 V-CoT 的耦合。
 - **实验规模有限**：仅 nuScenes + NAVSIM 两个数据集，未在更长预测时域或多个 benchmark 上验证泛化。
 
