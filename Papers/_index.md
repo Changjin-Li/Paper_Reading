@@ -1,6 +1,6 @@
 ---
 title: Papers
-last_updated: "2026-10-14"
+last_updated: "2026-10-15"
 ---
 
 ## 论文笔记
