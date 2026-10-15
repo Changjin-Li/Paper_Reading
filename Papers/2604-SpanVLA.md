@@ -72,7 +72,6 @@ date_added: 2026-10-14
 
 **Weaknesses / 边界**
 - **SOTA 依赖 best-of-N(N=6) 选择**：主结果 SpanVLA* 用 6 候选选最高分，与单次推理的 positive-only 结果（90.8）不可直接比较；论文亦未与同样开 best-of-N 的 baseline 对齐。
-- **数字口径不一致（见 Notes）**：项目页的 "4× faster"、"10% PDMS improvement on NAVSIM v1" 与论文 v2 的 21.5×/−74%、nuReasoning-NR 上 14.9% 对不上，削弱对二次传播数据的信任。
 - **数据未发布**：数据集标注 "Coming Soon"，benchmark/数据的可复现性与"first real-world" novelty 目前无法由外部核验。
 - **对比基准偏窄**：efficiency（Table 4）对比对象基本是 AutoVLA 与本方法的 L1-head 变体；未系统对比其他 continuous action expert 的延迟-精度帕累托。
 - **负/恢复样本规模小**（各 3K，benchmark 各 300）：在真实长尾分布上的泛化能力仍需更大规模验证；positive 标注依赖 Gemini-3-Pro 自动生成，存在标注偏差风险（虽有 250 样本人工抽查）。
@@ -113,11 +112,6 @@ mindmap
 
 ## Notes
 
-- **版本命名冲突（重要）**：本笔记正文按 arXiv **v2**（2026-10-07，标题 "Learning from Negative-Recovery Samples with Fast Action Bridging..."，数据集名 `nuReasoning-NR`）整理；而 arXiv **v1**（2026-04-21，标题 "Efficient Action Bridging and Learning from Negative-Recovery Samples..."）与项目页 spanvla.github.io 仍使用旧名 **`mReasoning`** 与旧标题。引用时请注意版本差异（frontmatter `title` 取 v2）。v1 的 `authors` 顺序/机构亦略有不同（v1 中 Ruining Yang 同时署名 Motional 与 Northeastern）。
-- **项目页与论文数字不一致**（独立 verifier 复核确认）：
-  - 项目页 "4× faster inference" vs 论文 21.5×（action generation）/ −74%（total latency）——项目页的 4× 更接近总延迟口径的 ~3.8×。
-  - 项目页 "10% improvement in PDMS on the NAVSIM v1 benchmark with positive, negative, and recovery samples" vs 论文该 14.9% 提升实际报告在 **nuReasoning-NR**（Table 1），并非 NAVSIM v1。
-  - 摘要写 "competitive performance"，正文 §5.2 主张 "best overall performance / state-of-the-art"——论文自身措辞强弱不一。
 - **方法与既有工作的关系**：直接对标 ReCogDrive（末层 feature + diffusion）与 Alpamayo（dense 全层 KV + flow matching）；借鉴 AutoVLA 的 action codebook 与 adaptive reasoning；RFT 上以 GRPO + 非对称奖励区别于 takeover + DPO 路线。
 - **可迁移点**：①"稀疏层 KV cache 条件"是省算力的多粒度特征聚合思路，可能可迁移到其他 VLM→action 的 bridge；②"历史初始化取代纯噪声"对任何 flow-matching / diffusion policy 都值得一试；③advantage correction（去 std 归一化 + 零 reward 组的虚拟参考）是通用 GRPO 技巧。
 - **待跟进**：数据集/benchmark code 发布后应复核；best-of-N 口径下的公平比较值得关注；该文与本 vault GUI/Embodied 方向的连接点主要在 VLA + agentic-RL 范式。

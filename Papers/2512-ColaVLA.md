@@ -72,7 +72,6 @@ date_added: 2026-10-15
 - **latent reasoning 的范式意义**：对"VLM reasoning 不必落到文本"这一方向提供了驾驶域的可复现证据，可外推到其他具身 VLA。
 
 **Weaknesses / 边界**
-- **正文与表格数字不一致（见 Notes）**：§4.2 正文引用的 NeuroNCAP 数字（3.16 / 65.1%→42.5% / 54.8→15.0）与 Table 2 实际值对不上，削弱叙事可信度，需以表格为准。
 - **感知前端依赖既成组件**：VLM 底座（LLaVA v1.5 / LLaMA-7B）与检测器（StreamPETR）均为既有工作，novelty 集中在 reasoner + planner 两端；对感知 backbone 的替换鲁棒性未做消融。
 - **Top-K 与尺度数 S 敏感**：K 的精度-噪声权衡强依赖 256 这一经验值（Table 6 中 320 已开始掉点），超参调优空间较大。
 - **对比基准偏窄**：efficiency 只对比 OmniDrive / SOLVE-VLM，未系统覆盖其他 latent-reasoning 或并行 planner 方案的延迟-精度帕累托。
@@ -122,9 +121,5 @@ mindmap
 
 ## Notes
 
-- **正文与表格数字不一致（重要）**：§4.2 正文声称 "NeuroNCAP score of 3.16"、"collision 65.1%→42.5%"、"static 54.8%→15.0%"，但 **Table 2** 实际为 ColaVLA score 平均 **3.48**（Static 3.54 / Frontal 3.16 / Side 3.75）、collision 平均 **36.8%**（32.3 / 51.6 / 26.4）；其中 ImpromptuVLA† score 2.06、collision 65.1%。经验算表格自洽（3.48 = (3.54+3.16+3.75)/3，36.8 = (32.3+51.6+26.4)/3，65.1 = (54.8+72.8+67.6)/3），可知正文的 3.16 实为 Frontal 子分、54.8 实为 ImpromptuVLA 的 static 子分，而 42.5% / 15.0% 在表中不存在。**该矛盾在 arXiv v1 与 v3 中均存在**，应视为正文旧版残留，引用以表格为准。
-- **"两次 VLM 前向" 与 "three forward passes"**：Abstract 与正文强调 **only two VLM forward passes**（scene comprehension 一次 + latent rethinking 一次）；Figure 1 图注中的 "three forward passes" 指 scene understanding、latent rethink、parallel action decoding 三个阶段，其中第三次是 planner 前向而非 VLM 前向，两者不冲突。
-- **版本与 venue**：arXiv v1（2025-12-28）、v2（2025-12-31）、v3（2026-02-27）；arXiv Comments 标注 "CVPR2026 (Main Conference)"，故 frontmatter `venue` 取 CVPR 2026，`date_publish` 取 2025-12（v1）。
 - **与既有工作的关系**：感知侧直接复用 LLaVA v1.5 + StreamPETR；latent reasoning 思路与"把 CoT 迁到连续空间"的相关工作同源；planner 侧以因果混合注意力 + 并行多尺度解码区别于逐尺度自回归回归方案；maneuver 预测（focal loss）借鉴驾驶规划常见做法。
 - **可迁移点**：①用可学习 meta-query（由轨迹聚类初始化）注入任务的"高层模式先验"值得迁移到其他具身任务的 latent reasoning；②causality-preserving 掩码设计是"并行解码 + 防未来泄漏"的通用方案；③Top-K + Gumbel-Softmax 的稀疏实体选择可用于任何需要从长序列中挑关键 token 的场景。
-- **待跟进**：官方代码/权重发布后应复核延迟口径（H20、无 flash-attn）与 K 的敏感性；正文-表格数字矛盾是否在后续版本修正值得关注；该文与本 vault GUI / Embodied 方向的连接点主要在 latent reasoning + VLA 范式。

@@ -6,5 +6,3 @@ last_updated: "2026-10-14"
 ## 论文笔记
 
 `Papers/` 存放单篇论文的阅读笔记，文件名格式为 `YYMM-ShortTitle.md`，每篇笔记遵循统一的论文模板结构，通过 `tags`、`cite_key` 等 frontmatter 字段参与检索与引用。
-
-当前为空，等待录入。
