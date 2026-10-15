@@ -11,7 +11,7 @@ const config: QuartzConfig = {
     locale: "en-US",
     baseUrl: "changjin-li.github.io/Paper_Reading",
     ignorePatterns: ["Templates/**", ".obsidian/**", "docs/**", "website/**", "Private/**", "private", "*.canvas", "CLAUDE.md", "AGENTS.md", "README.md", "skills/**", "scripts/**", "references/**", "Workbench/**", "Meetings/**", "Topics/**", "DomainMaps/**", "Ideas/**", "Projects/**", "Reports/**", "News/**", "Experiments/**"],
-    defaultDateType: "published",
+    defaultDateType: "modified",
     theme: {
       fontOrigin: "googleFonts",
       cdnCaching: true,
@@ -50,7 +50,7 @@ const config: QuartzConfig = {
     transformers: [
       Plugin.FrontMatter(),
       Plugin.CreatedModifiedDate({
-        priority: ["frontmatter", "filesystem"],
+        priority: ["frontmatter", "git", "filesystem"],
       }),
       Plugin.SyntaxHighlighting({
         theme: {
