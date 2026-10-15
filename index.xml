@@ -6,17 +6,17 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>ColaVLA: Leveraging Cognitive Latent Reasoning for Hierarchical Parallel Trajectory Planning in Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2512-ColaVLA</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2512-ColaVLA</guid>
+    <description><![CDATA[ Summary 针对驾驶 VLA 的三个痛点——离散文本 reasoning 与连续控制不匹配、autoregressive CoT 解码带来高延迟、以及规划器非因果 / 解码低效——ColaVLA 把 reasoning 从文本 CoT 迁移到统一的 latent 空间，并用 hierarchical parallel decoding 一次性并行产出多尺度轨迹。方法由两部分构成：Cognitive Latent Reasoner（仅需 2 次 VLM 前向即可完成 scene comprehension → critical entity recognition → latent reth... ]]></description>
+    <pubDate>Thu, 15 Oct 2026 05:48:52 GMT</pubDate>
+  </item><item>
     <title>HybridDriveVLA: Vision-Language-Action Model with Visual CoT reasoning and ToT Evaluation for Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-HybridDriveVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-HybridDriveVLA</guid>
     <description><![CDATA[ Summary 针对传统驾驶 VLA 的两个痛点——① 用 image-to-text + 文本 CoT 推理，把连续高维的视觉场景离散成文本符号，损失空间信息（modality gap）；② 只预测单条 waypoint 序列、同时兼顾多维度，缺乏逐维度的 deliberation——HybridDriveVLA 把推理整体搬到视觉域：用 Visual Chain-of-Thought（V-CoT）自回归预测未来场景图作为 goal，再用 Tree-of-Thought-inspired 的 waypoint 评估（ToT-Evaluation）生成并逐点打分 N 条候选序列，按 safet... ]]></description>
     <pubDate>Thu, 15 Oct 2026 05:40:04 GMT</pubDate>
-  </item><item>
-    <title>ColaVLA: Leveraging Cognitive Latent Reasoning for Hierarchical Parallel Trajectory Planning in Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2512-ColaVLA</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2512-ColaVLA</guid>
-    <description><![CDATA[ Summary 针对驾驶 VLA 的三个痛点——离散文本 reasoning 与连续控制不匹配、autoregressive CoT 解码带来高延迟、以及规划器非因果 / 解码低效——ColaVLA 把 reasoning 从文本 CoT 迁移到统一的 latent 空间，并用 hierarchical parallel decoding 一次性并行产出多尺度轨迹。方法由两部分构成：Cognitive Latent Reasoner（仅需 2 次 VLM 前向即可完成 scene comprehension → critical entity recognition → latent reth... ]]></description>
-    <pubDate>Thu, 15 Oct 2026 03:23:58 GMT</pubDate>
   </item><item>
     <title>SpanVLA: Learning from Negative-Recovery Samples with Fast Action Bridging for Vision-Language-Action Model</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-SpanVLA</link>
