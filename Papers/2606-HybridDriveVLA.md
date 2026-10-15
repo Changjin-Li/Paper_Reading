@@ -49,7 +49,7 @@ date_added: 2026-10-15
 
 ## Pipeline
 
-![HybridDriveVLA 整体架构](HybridDriveVLA-architecture.png)
+![HybridDriveVLA 整体架构](../images/HybridDriveVLA-architecture.png)
 
 *HybridDriveVLA 整体架构。底部多视角图像经 MoVQGAN encoder 与 vision encoder / projector 编码后，与 instructions、ego states、aspects、command 等文本输入一并进入 Language Model；模型先以 V-CoT 自回归生成未来场景的 visual token，经 MoVQGAN decoder 还原为 next scene 多视角图作为 goal；再以该 goal 为条件生成多条候选 waypoint 序列并逐点给出 safety / progress / comfort 分数，经 Selection 选出累计分最高的 Optimal 序列作为 Actions。右侧为两阶段训练：Stage-1 SFT 用 nuScenes 1M 图像学习下一场景生成；Stage-2 Instruction Tuning 用 nuScenes 多视角图像与 300K QA 学习多序列评估与 deliberative 规划。*
 
