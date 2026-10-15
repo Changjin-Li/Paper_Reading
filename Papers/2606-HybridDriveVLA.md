@@ -39,10 +39,7 @@ date_added: 2026-10-15
 - 训练目标 $\mathcal{L}_{\text{ToT-Eval}}$ 最大化生成 GT 序列及其逐点分数的自回归对数似然（Eq. 6），保证预测 waypoints 与其评估在时间上一致：
 
   $$
-  \begin{aligned}
-  \mathcal{L}_{\text{ToT-Eval}} &= -\sum_{n=1}^{N}\sum_{k=1}^{6}\sum_{j} \log P_\theta(a^n_{t+k\alpha},\, s^{n,j}_{t+k\alpha} \\
-  &\quad \mid a^n_{<t+k\alpha},\, s^{n,j}_{<t+k\alpha},\, I_t,\, \hat{I}_{t+6\alpha},\, E,\, l_t,\, c_t,\, o_t)
-  \end{aligned}
+  \mathcal{L}_{\text{ToT-Eval}} = -\sum_{n=1}^{N}\sum_{k=1}^{6}\sum_{j} \log P_\theta(a^n_{t+k\alpha},\, s^{n,j}_{t+k\alpha} \mid a^n_{<t+k\alpha},\, s^{n,j}_{<t+k\alpha},\, I_t,\, \hat{I}_{t+6\alpha},\, E,\, l_t,\, c_t,\, o_t)
   $$
 
 - 总目标：$\mathcal{L}_{\text{HybridDriveVLA}} = \mathcal{L}_{\text{V-CoT}} + \mathcal{L}_{\text{ToT-Eval}}$（Eq. 7），联合优化视觉预测与评估式规划，使"预判的 goal"与"waypoint 序列"保持一致。
