@@ -51,7 +51,7 @@ date_added: 2026-10-15
 
 ## Pipeline
 
-![DriveVLM 整体框架](../images/DriveVLM-architecture.png)
+![DriveVLM 整体框架](https://arxiv.org/html/2402.12289v1/pipeline.png)
 
 *`DriveVLM` 与 `DriveVLM-Dual` 整体框架。`DriveVLM` 以图像序列为输入，经 Chain-of-Thought（CoT）机制依次输出 Scene Description、Scene Analysis 与 Hierarchical Planning（meta-action → decision description → waypoints）三层结果；`DriveVLM-Dual` 在此基础上进一步接入传统 3D 感知与（高频）轨迹规划模块，以获得空间 grounding 能力与实时轨迹规划。*
 
