@@ -8,6 +8,12 @@ on:
 permissions:
   contents: write
 
+# 串行化部署：连续 push 会触发多个 workflow run，
+# 若并发向 gh-pages 推送会产生 git 冲突（exit code 1）。
+concurrency:
+  group: "pages-deploy"
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
