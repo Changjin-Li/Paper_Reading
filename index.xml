@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>DriveVLM: The Convergence of Autonomous Driving and Large Vision-Language Models</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2402-DriveVLM</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2402-DriveVLM</guid>
+    <description><![CDATA[ Summary 针对城市自动驾驶最难的一环——理解复杂与长尾场景（恶劣天气、复杂道路布局、细微的人类行为），DriveVLM 把一个 VLM（默认 Qwen-VL）改造成带 Chain-of-Thought 的三模块驾驶系统：Scene Description（环境 + 关键物体）→ Scene Analysis（关键物体的静态属性 / 运动状态 / 特殊行为 + 对 ego 的影响）→ Hierarchical Planning（17 类 meta-action → decision description → waypoints）。针对 VLM 空间 grounding 弱、算力大两点局限... ]]></description>
+    <pubDate>Thu, 15 Oct 2026 13:10:26 GMT</pubDate>
+  </item><item>
     <title>Judge, Then Drive: A Critic-Centric Vision Language Action Framework for Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-CriticVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2604-CriticVLA</guid>
