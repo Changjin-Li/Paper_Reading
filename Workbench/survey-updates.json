@@ -120,6 +120,36 @@
       "survey": "VLA-Survey",
       "paper": "Papers/2604-SpanVLA.md",
       "added_at": "2026-10-14"
+    },
+    {
+      "survey": "EmbodiedAI-Survey",
+      "paper": "Papers\\2402-DriveVLM.md",
+      "added_at": "2026-10-15"
+    },
+    {
+      "survey": "VLA-Survey",
+      "paper": "Papers\\2402-DriveVLM.md",
+      "added_at": "2026-10-15"
+    },
+    {
+      "survey": "VLM-Survey",
+      "paper": "Papers\\2402-DriveVLM.md",
+      "added_at": "2026-10-15"
+    },
+    {
+      "survey": "EmbodiedAI-Survey",
+      "paper": "Papers\\2506-AutoVLA.md",
+      "added_at": "2026-10-15"
+    },
+    {
+      "survey": "VLA-Survey",
+      "paper": "Papers\\2506-AutoVLA.md",
+      "added_at": "2026-10-15"
+    },
+    {
+      "survey": "WorldModel-Survey",
+      "paper": "Papers\\2608-SimWAM.md",
+      "added_at": "2026-10-17"
     }
   ],
   "unrouted": [
