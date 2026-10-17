@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>SimWAM: A Simple World Action Model for End-to-End Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2608-SimWAM</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2608-SimWAM</guid>
+    <description><![CDATA[ Summary SimWAM 把未来视频预测从”推理时必须生成”降级为仅训练期的监督信号：用 joint flow matching 联合训练一个预训练 video expert（Wan2.2-5B）和一个轻量 action expert，并用 isolated attention mask 让 action token 与 future-frame token 彼此不可见、只共同 attend 当前帧表示 z(o_t)，因此推理与 RL 都不需要 rollout 未来帧。方法还通过把确定性 flow ODE 改写成 SDE、只在最后 3 步注入噪声并用 GRPO 优化组合式驾驶 reward... ]]></description>
+    <pubDate>Sat, 17 Oct 2026 15:09:50 GMT</pubDate>
+  </item><item>
     <title>DriveVLM: The Convergence of Autonomous Driving and Large Vision-Language Models</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2402-DriveVLM</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2402-DriveVLM</guid>
