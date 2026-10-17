@@ -28,12 +28,12 @@ date_added: 2026-10-15
 
 **0) Backbone**
 - 默认 `Qwen-VL`，共 9.6B 参数：visual encoder 1.9B + vision-language adapter 0.08B + LLM（`Qwen`）7.7B；图像 resize 到 448×448。
-- 输入为图像序列；训练时随机取 $T_s,\ T-1\text{s},\ T-2\text{s},\ T-3\text{s}$ 四帧（含当前帧、时间升序）。
+- 输入为图像序列；训练时随机取 $T_s$、$T-1\,\text{s}$、$T-2\,\text{s}$、$T-3\,\text{s}$ 四帧（含当前帧、时间升序）。
 - 采用 co-tuning（`Talk2Car` / `BDDX` / `Drama` / `SUTD` / `LLAVA`，各按 1:1 采样）以在微调中保留 LLM 的泛化能力。
 
 **1) Scene Description（§3.2）**
 - **Environment Description**：语言化描述环境 $E = \{E_{\text{weather}}, E_{\text{time}}, E_{\text{road}}, E_{\text{lane}}\}$。
-- **Critical Object Identification**：只标注最可能影响当前场景的 critical objects，每个物体 $O_c = (c,\ b(x_1,y_1,x_2,y_2))$（类别 + 图像上近似框），类目与坐标映射为 language token；借助预训练 vision encoder，可识别 3D 检测器察觉不到的 long-tail 物体（路障、异常动物等）。
+- **Critical Object Identification**：只标注最可能影响当前场景的 critical objects，每个物体 $O_c = (c, b(x_1, y_1, x_2, y_2))$（类别 + 图像上近似框），类目与坐标映射为 language token；借助预训练 vision encoder，可识别 3D 检测器察觉不到的 long-tail 物体（路障、异常动物等）。
 
 **2) Scene Analysis（§3.3）**
 - **Critical Object Analysis**：对每个 critical object 从三方面刻画——静态属性 $C_s$、运动状态 $C_m$、特殊行为 $C_b$（实践中每个物体通常只适用一到两项），并预测该物体对 ego 的潜在**影响 $I$**。
@@ -42,11 +42,11 @@ date_added: 2026-10-15
 **3) Hierarchical Planning（§3.4）**
 - **Meta-actions $A$**：短时驾驶策略决策，共 **17 类**（加速、减速、左转、变道、微调位置、等待等），组成 meta-action 序列。
 - **Decision Description $D$**：三元组 $(\text{Action}, \text{Subject}, \text{Duration})$——动作、交互对象、持续时间。
-- **Trajectory Waypoints $W$**：$W = \{w_1,\dots,w_n\},\ w_i=(x_i,y_i)$，固定间隔 $\Delta t$，映射为 language token 自回归生成。
+- **Trajectory Waypoints $W$**：$W = \{w_1, \dots, w_n\}$，$w_i = (x_i, y_i)$，固定间隔 $\Delta t$，映射为 language token 自回归生成。
 
 **4) DriveVLM-Dual（§3.5）**
-- **Integrating 3D Perception**：3D 检测框 $O_{3D}=\{c^i_{3D}, b^i_{3D}\}$ 反投影到 2D 得 $b^i_{2D}$，与关键物体框 $b^j_c$ 做 approximate IoU 匹配；匹配上（$c^j_c = c^i_{2D}$ 且 $\text{aIoU}(b^j_c, b^i_{2D}) > \tau$）的关键物体，用其 3D 中心、朝向与历史轨迹作为 language prompt 辅助分析；未匹配者仍只依赖图像 token。
-- **High-frequency Trajectory Refinement**：`DriveVLM` 低频给出 $W_{slow}$，作为传统 planner 的参考——优化式 planner 用其作初值，网络式 planner 用 $W_{fast} = \text{Planner}([W_{slow}, f])$ 解码新轨迹。两分支异步 slow-fast 运行，传统分支可选择性地接收 VLM 轨迹作为额外输入。
+- **Integrating 3D Perception**：3D 检测框 $O_{\text{3D}} = \{c^i_{\text{3D}}, b^i_{\text{3D}}\}$ 反投影到 2D 得 $b^i_{\text{2D}}$，与关键物体框 $b^j_c$ 做 approximate IoU 匹配；匹配上（$c^j_c = c^i_{\text{2D}}$ 且 $\text{aIoU}(b^j_c, b^i_{\text{2D}}) > \tau$）的关键物体，用其 3D 中心、朝向与历史轨迹作为 language prompt 辅助分析；未匹配者仍只依赖图像 token。
+- **High-frequency Trajectory Refinement**：`DriveVLM` 低频给出 $W_{\text{slow}}$，作为传统 planner 的参考——优化式 planner 用其作初值，网络式 planner 用 $W_{\text{fast}} = \text{Planner}([W_{\text{slow}}, f])$ 解码新轨迹。两分支异步 slow-fast 运行，传统分支可选择性地接收 VLM 轨迹作为额外输入。
 - **部署**：量产车用两片 `OrinX`（一片跑高频端到端、一片跑 `DriveVLM`），平均推理约 410 ms。
 
 ## Pipeline
