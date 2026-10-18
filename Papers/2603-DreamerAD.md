@@ -38,38 +38,41 @@ date_added: 2026-10-18
 
 以 `Epona` 为 backbone（autoregressive flow-matching diffusion，统一视频生成与轨迹规划）。给定历史观测 $O$ 与动作 $A$：
 
-```latex
+$$
 Z = \text{DCAE-encoder}(O), \quad a = \text{MLP}(A)
-```
+$$
 
 $Z$ 经 temporal projection 得 $Z_{proj}$，与 action embedding 在空间维拼接为 $E \in \mathbb{R}^{B \times P \times (L+3) \times C}$，取最后一帧作为条件 $F$，预测下一帧 latent $\hat{z}_{next}$ 与未来轨迹 $\tau_{pred}$。原始模型在 nuPlan 上以 10 Hz 训练，而 NavSim 以 2 Hz 运行，因此先在 NavSim 上微调，再做步数蒸馏。
 
 **Shortcut Forcing World Model（SF-WM）**：在 rectified flow 下定义
 
-```latex
+$$
 x_t = t x_1 + (1-t) x_0, \quad v = \frac{dx_t}{dt} = x_1 - x_0
-```
+$$
 
 训练时采样步长与信号水平：
 
-```latex
+$$
 d \sim 1/\mathcal{U}(\{1,2,4,8,\dots,K_{max}\}), \quad t \sim \mathcal{U}(\{0,d,2d,\dots,1-d\})
-```
+$$
 
 模型同时以 $t$ 与 $d$ 为条件（step embedding）。$d=d_{min}$ 时用标准 flow matching 目标；$d>d_{min}$ 时用两个 teacher 半步：
 
-```latex
+$$
 v_1 = \phi_\theta(x_t, t, d/2), \quad x_{mid} = x_t + v_1 d/2
+$$
+
+$$
 v_2 = \phi_\theta(x_{mid}, t+d/2, d/2)
-```
+$$
 
-```latex
+$$
 v_{target} = \begin{cases} x_1 - x_0, & d = d_{min} \\ \text{sg}((v_1+v_2)/2), & \text{otherwise} \end{cases}
-```
+$$
 
-```latex
+$$
 \mathcal{L}(\theta) = \mathbb{E}_{x_0,x_1,t,d}\left[\omega(t)\|\phi_\theta(x_t,t,d) - v_{target}\|^2\right], \quad \omega(t) = 0.9t + 0.1
-```
+$$
 
 推理时可指定 $d$，用 1–4 步生成；论文称相比 100 步最多 80× 加速，1 步时视觉清晰度仍能维持（Fig. 4）。
 
@@ -77,73 +80,73 @@ v_{target} = \begin{cases} x_1 - x_0, & d = d_{min} \\ \text{sg}((v_1+v_2)/2), &
 
 **词表构造**：从 8192 条轨迹中，按终点状态过滤到人类轨迹邻域：
 
-```latex
+$$
 |\Delta y| \le 5\,\text{m}, \quad |\Delta x| \le 10\,\text{m}, \quad \Delta\theta \le 20^\circ
-```
+$$
 
 再按 $|\Delta y|$ 排序、等距采样，得到 $K=256$ 的轨迹词表 $\Gamma$。每条轨迹在 NavSim PDM 仿真器中打分，得到 8 个维度 $\{r_{nc}, r_{dac}, r_{ddc}, r_{tlc}, r_{ep}, r_{ttc}, r_{lk}, r_{hc}\}$；与以往只算整条轨迹分数不同，这里在 $[0, 4.0]$ s 内每 0.5 s 打一次分，形成 8 个 horizon 的监督信号。
 
 **奖励模型**：冻结 world model，自回归预测 $\{\hat{z}_1,\dots,\hat{z}_t\}$，历史编码为
 
-```latex
+$$
 \text{his}_{-3:t} = \text{his\_enc}(\text{concat}[z_{-3},z_{-2},z_{-1},z_0,\hat{z}_1,\dots,\hat{z}_t])
-```
+$$
 
 latent 维 $L=512$ 经 learnable query 压到 $l=32$；8 个奖励维度各有可学习 base $Q_{base} \in \mathbb{R}^{8 \times D}$，动态条件为
 
-```latex
+$$
 C_{dyn} = \text{MLP}_{traj}(\text{traj}_{0:t}) + \text{Emb}_{step}(t), \quad Q_r = Q_{base} + C_{dyn}
-```
+$$
 
-```latex
+$$
 r_{pred}^t = \text{MLP}(\text{Cross-Attention}(Q_r, \text{his}_{-3:t}))
-```
+$$
 
 监督用 BCE：
 
-```latex
+$$
 \mathcal{L}_{sup} = \sum_{k=1}^{8} \omega_k \cdot \gamma(t) \cdot \text{BCEWithLogits}(r_{pred}, r)
-```
+$$
 
 ### 3. RL：奖励设计与词表采样
 
 **奖励融合**：安全项 $r_{safe}=\{r_{nc}, r_{dac}, r_{ddc}, r_{tlc}\}$，任务项 $r_{task}=\{r_{ep}, r_{ttc}, r_{lk}, r_{hc}\}$。安全项用 log-sigmoid 聚合，任务项用加权和再取 log：
 
-```latex
+$$
 L = \sum_{i \in safe} w_i \log(\text{sigmoid}(r_i)), \quad S = \log\left(\sum_{j \in task} w_j r_j\right)
-```
+$$
 
-```latex
+$$
 r_{total}^t = L + S = \log\left(\prod_i r_i^{w_i} \times \sum_j w_j r_j\right)
-```
+$$
 
-```latex
+$$
 r_{final} = \sum_{t=1}^{8} w_t \cdot r_{total}^t
-```
+$$
 
 log 融合使碰撞类事件把安全项压向 0、$r_{total}$ 趋向 $-\infty$，从而让安全约束主导奖励；逐 horizon 求和则提供 temporal credit assignment。
 
 **Gaussian 词表采样**：以策略输出 $\tau_{act}$ 为均值、固定方差构造 $\tau \sim \mathcal{N}(\tau_{act}, \sigma^2)$，按 Mahalanobis 距离对词表轨迹排序：
 
-```latex
+$$
 d(x, \tau_{act}) = \sum_{t=1}^{T}\sum_{i=1}^{3} \frac{(x_{t,i} - \tau_{act_{t,i}})^2}{\sigma_{t,i}^2}
-```
+$$
 
 混合两种采样：$g_1$ 条按 softmax 概率做判别性选择，$g_2$ 条从 Gaussian 邻域做局部探索，$G = g_1 + g_2$。
 
 **策略优化**：组内归一化优势与 PPO 式裁剪：
 
-```latex
+$$
 A_i = \frac{r_{final}^i - \text{mean}(r_{final}^{1..G})}{\sqrt{\text{var}(r_{final}^{1..G})}}, \quad \rho = \exp(\log\pi_\theta - \log\pi_{old})
-```
+$$
 
-```latex
+$$
 L_{actor} = \mathbb{E}\left[\max(-A_i\rho, -A_i\text{clip}(\rho, 1-\epsilon, 1+\epsilon))\right]
-```
+$$
 
-```latex
+$$
 L_{total} = L_{actor} + L_{bc} + L_{kl}, \quad L_{bc} = \|\tau_{act} - \tau_{gt}\|_1, \quad L_{kl} = D_{KL}(\pi_\theta \| \pi_{ref})
-```
+$$
 
 ### 4. 实现细节
 
