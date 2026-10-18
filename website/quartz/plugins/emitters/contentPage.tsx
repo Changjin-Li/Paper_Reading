@@ -15,6 +15,15 @@ import { Node } from "unist"
 import { StaticResources } from "../../util/resources"
 import { QuartzPluginData } from "../vfile"
 
+function latestSiteModified(allFiles: QuartzPluginData[]): Date | undefined {
+  let latest: Date | undefined
+  for (const f of allFiles) {
+    const modified = f.dates?.modified
+    if (modified && (!latest || modified > latest)) latest = modified
+  }
+  return latest
+}
+
 async function processContent(
   ctx: BuildCtx,
   tree: Node,
@@ -26,9 +35,15 @@ async function processContent(
   const slug = fileData.slug!
   const cfg = ctx.cfg.configuration
   const externalResources = pageResources(pathToRoot(slug), resources)
+  // The home page shows the most recent modified date across the whole site
+  const latest = slug === "index" ? latestSiteModified(allFiles) : undefined
+  const pageData =
+    latest && fileData.dates
+      ? { ...fileData, dates: { ...fileData.dates, modified: latest } }
+      : fileData
   const componentData: QuartzComponentProps = {
     ctx,
-    fileData,
+    fileData: pageData,
     externalResources,
     cfg,
     children: [],
@@ -107,6 +122,11 @@ export const ContentPage: QuartzEmitterPlugin<Partial<FullPageLayout>> = (userOp
         if (changeEvent.type === "add" || changeEvent.type === "change") {
           changedSlugs.add(changeEvent.file.data.slug!)
         }
+      }
+
+      // the home page date aggregates all files, so rebuild it on any change
+      if (changedSlugs.size > 0) {
+        changedSlugs.add("index")
       }
 
       for (const [tree, file] of content) {

@@ -24,6 +24,20 @@ interface FolderPageOptions extends FullPageLayout {
   sort?: (f1: QuartzPluginData, f2: QuartzPluginData) => number
 }
 
+function latestModifiedInFolder(
+  allFiles: QuartzPluginData[],
+  folder: SimpleSlug,
+): Date | undefined {
+  const prefix = `${folder}/`
+  let latest: Date | undefined
+  for (const f of allFiles) {
+    if (!f.slug?.startsWith(prefix)) continue
+    const modified = f.dates?.modified
+    if (modified && (!latest || modified > latest)) latest = modified
+  }
+  return latest
+}
+
 async function* processFolderInfo(
   ctx: BuildCtx,
   folderInfo: Record<SimpleSlug, ProcessedContent>,
@@ -39,9 +53,15 @@ async function* processFolderInfo(
     const [tree, file] = folderContent
     const cfg = ctx.cfg.configuration
     const externalResources = pageResources(pathToRoot(slug), resources)
+    // Folder pages show the most recent modified date of their contents
+    const latest = latestModifiedInFolder(allFiles, folder)
+    const fileData =
+      latest && file.data.dates
+        ? { ...file.data, dates: { ...file.data.dates, modified: latest } }
+        : file.data
     const componentData: QuartzComponentProps = {
       ctx,
-      fileData: file.data,
+      fileData,
       externalResources,
       cfg,
       children: [],
