@@ -77,39 +77,6 @@ date_added: 2026-10-14
 - **负/恢复样本规模小**（各 3K，benchmark 各 300）：在真实长尾分布上的泛化能力仍需更大规模验证；positive 标注依赖 `Gemini-3-Pro` 自动生成，存在标注偏差风险（虽有 250 样本人工抽查）。
 - **领域偏驾驶**：作为 VLA + agentic-RL 的方法范式对通用具身/机器人有借鉴价值，但结论外推需谨慎。
 
-## Mind Map
-
-```mermaid
-mindmap
-  root((SpanVLA))
-    Problem
-      驾驶VLA仅学正样本_鲁棒性差
-      autoregressive解码延迟随轨迹线性增长
-      真实negative_recovery数据稀缺
-      困难场景rollout组advantage同质
-    Method
-      VLM_Backbone_Qwen2.5-VL-3B
-        adaptive_reasoning_fast_slow
-        action_codebook离散token
-      Efficient_Action_Bridge
-        sparse_KV_cache多粒度条件
-        historical_trajectory初始化_flow_matching
-      NR-RFT
-        GRPO非对称奖励
-        负样本惩罚_恢复奖励
-        advantage_correction
-      Dataset
-        nuReasoning-NR_36K
-        Gemini-3-Pro自动标注
-    Results
-      NAVSIM_v1_PDMS_93.3_best-of-N
-      NAVSIM_v2_EPDMS_90.5
-      navhard_EPDMS_47.9
-      nuReasoning_NPS_73.3
-      action_gen_21.5x_总延迟-74%
-      bridge_ablation_interval2+HI_90.8
-```
-
 ## Notes
 
 - **方法与既有工作的关系**：直接对标 `ReCogDrive`（末层 feature + diffusion）与 `Alpamayo`（dense 全层 KV + flow matching）；借鉴 `AutoVLA` 的 action codebook 与 adaptive reasoning；RFT 上以 `GRPO` + 非对称奖励区别于 takeover + `DPO` 路线。
