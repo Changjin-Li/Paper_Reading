@@ -10,7 +10,7 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</guid>
     <description><![CDATA[ Summary WorldDrive 试图消除”生成未来”和”决定未来”之间的表征割裂：先训练一个 Trajectory-aware Driving World Model (TA-DWM)，以轨迹词表作为运动条件生成可控未来视频；再把冻结的视觉与轨迹编码器继承给多模态 planner；最后用 Future-aware Rewarder (FAR) 在训练期从冻结世界模型蒸馏未来 latent，推理期无需生成视频即可对候选轨迹重新打分。在 NAVSIM navtest 上以单前视相机取得 88.1 PDMS（非 † 设置下 camera-only 方法中最高，与多视角 DiffusionDri... ]]></description>
-    <pubDate>Sun, 18 Oct 2026 03:45:32 GMT</pubDate>
+    <pubDate>Sun, 18 Oct 2026 03:53:17 GMT</pubDate>
   </item><item>
     <title>LWDrive: Layer-Wise World-Model-Guided Vision-Language Model Planning for Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-LWDrive</link>
