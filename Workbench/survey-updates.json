@@ -165,6 +165,11 @@
       "survey": "WorldModel-Survey",
       "paper": "Papers\\2603-WorldDrive.md",
       "added_at": "2026-10-18"
+    },
+    {
+      "survey": "WorldModel-Survey",
+      "paper": "Papers\\2603-DreamerAD.md",
+      "added_at": "2026-10-18"
     }
   ],
   "unrouted": [
