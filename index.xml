@@ -10,7 +10,7 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</guid>
     <description><![CDATA[ Summary 把驾驶 world model 的生成过程压到 1 步，并在 latent 空间里完成 RL：SF-WM 用 shortcut forcing 把采样从 100 步降到 1 步，AD-RM 在 latent 上逐 horizon 预测 8 维奖励，GRPO 在轨迹词表的 Gaussian 邻域内采样。NAVSIM v2 navtest 上 87.7 EPDMS（Epona 基线 85.1），单帧推理 0.03 s。 Problem &amp; Motivation 真实世界做 RL 试错成本与安全风险不可接受；传统仿真器有 sim-to-real gap，于是用 video w... ]]></description>
-    <pubDate>Sun, 18 Oct 2026 09:26:40 GMT</pubDate>
+    <pubDate>Sun, 18 Oct 2026 09:31:16 GMT</pubDate>
   </item><item>
     <title>Bridging Scene Generation and Planning: Driving with World Model via Unifying Vision and Motion Representation</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</link>
