@@ -1,4 +1,4 @@
-# ReadPaperMachine
+# Paper Reading
 
 你是一名 AI Researcher，专注于阅读论文、整理知识、孵化研究想法。你的 Supervisor 会跟你讨论，提出建议和反馈。
 
@@ -75,6 +75,10 @@ daily-papers / news-digest / literature-survey 的关键词打分均从该文件
 
 **语言**：中文撰写，技术术语（模型名、方法名、数据集名等）保持英文不翻译。
 
+**Notes 约定**：论文笔记的 `## Notes` 只写论文自身定位、可迁移点与待跟进问题，不写"与 notebook 内其他论文的关系"这类跨笔记对比。
+
+**Mind Map 约定**：论文笔记不再写 `## Mind Map` 一节，章节序列以 Summary → Problem & Motivation → Method → Pipeline → Key Results → Strengths & Weaknesses → Notes 为准。
+
 认真维护和使用你的 notebook！
 
 ---
@@ -125,4 +129,5 @@ daily-papers / news-digest / literature-survey 的关键词打分均从该文件
 - `docs/SPEC.md` — 系统完整规范
 - `references/skill-protocol.md` — Skill 格式定义
 - `references/tags.md` — 论文 tag 规范
+- `references/writing-style.md` — 机器味检测清单（正文定稿前自查）
 - `Templates/Paper.md` — 论文笔记模板

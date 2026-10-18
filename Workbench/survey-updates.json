@@ -150,6 +150,16 @@
       "survey": "WorldModel-Survey",
       "paper": "Papers\\2608-SimWAM.md",
       "added_at": "2026-10-17"
+    },
+    {
+      "survey": "VLM-Survey",
+      "paper": "Papers\\2606-LWDrive.md",
+      "added_at": "2026-10-18"
+    },
+    {
+      "survey": "WorldModel-Survey",
+      "paper": "Papers\\2606-LWDrive.md",
+      "added_at": "2026-10-18"
     }
   ],
   "unrouted": [
