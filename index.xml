@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>Bridging Scene Generation and Planning: Driving with World Model via Unifying Vision and Motion Representation</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</guid>
+    <description><![CDATA[ Summary WorldDrive 试图消除”生成未来”和”决定未来”之间的表征割裂：先训练一个 Trajectory-aware Driving World Model (TA-DWM)，以轨迹词表作为运动条件生成可控未来视频；再把冻结的视觉与轨迹编码器继承给多模态 planner；最后用 Future-aware Rewarder (FAR) 在训练期从冻结世界模型蒸馏未来 latent，推理期无需生成视频即可对候选轨迹重新打分。在 NAVSIM navtest 上以单前视相机取得 88.1 PDMS（非 † 设置下 camera-only 方法中最高，与多视角 DiffusionDri... ]]></description>
+    <pubDate>Sun, 18 Oct 2026 03:45:32 GMT</pubDate>
+  </item><item>
     <title>LWDrive: Layer-Wise World-Model-Guided Vision-Language Model Planning for Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-LWDrive</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-LWDrive</guid>
@@ -59,12 +65,6 @@
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/</guid>
     <description><![CDATA[ 论文笔记 Papers/ 存放单篇论文的阅读笔记，文件名格式为 YYMM-ShortTitle.md，每篇笔记遵循统一的论文模板结构，通过 tags、cite_key 等 frontmatter 字段参与检索与引用。. ]]></description>
     <pubDate>Thu, 15 Oct 2026 13:17:55 GMT</pubDate>
-  </item><item>
-    <title>Paper Reading</title>
-    <link>https://changjin-li.github.io/Paper_Reading/</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/</guid>
-    <description><![CDATA[ A research knowledge management system for AI-assisted paper reading, note-taking, and research ideation. Inspired by MindFlow. ]]></description>
-    <pubDate>Wed, 14 Oct 2026 03:29:52 GMT</pubDate>
   </item>
     </channel>
   </rss>
