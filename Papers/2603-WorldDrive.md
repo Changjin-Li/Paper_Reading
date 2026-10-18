@@ -119,6 +119,8 @@ date_added: 2026-10-18
 
 ## Pipeline
 
+![WorldDrive 整体框架](https://arxiv.org/html/2603.14948v1/main_fig_v29.png)
+
 1. **离线 Phase 1-a**：在 nuPlan 上以 8 帧历史预测 17 帧未来，训练 TA-DWM 的 visual adapter、trajectory encoder 与 TA-DiT；3D VAE 保持冻结。
 2. **离线 Phase 1-b**：在 nuScenes 上继续微调 100k iters，得到论文报告生成指标所用的模型。
 3. **NAVSIM 适配**：提高分辨率到 512×1024，改为 2 s 历史 → 4.5 s 未来，继续训练 TA-DWM。
