@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>DreamerAD: Efficient Reinforcement Learning via Latent World Model for Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</guid>
+    <description><![CDATA[ Summary 把驾驶 world model 的生成过程压到 1 步，并在 latent 空间里完成 RL：SF-WM 用 shortcut forcing 把采样从 100 步降到 1 步，AD-RM 在 latent 上逐 horizon 预测 8 维奖励，GRPO 在轨迹词表的 Gaussian 邻域内采样。NAVSIM v2 navtest 上 87.7 EPDMS（Epona 基线 85.1），单帧推理 0.03 s。 Problem &amp; Motivation 真实世界做 RL 试错成本与安全风险不可接受；传统仿真器有 sim-to-real gap，于是用 video w... ]]></description>
+    <pubDate>Sun, 18 Oct 2026 09:26:40 GMT</pubDate>
+  </item><item>
     <title>Bridging Scene Generation and Planning: Driving with World Model via Unifying Vision and Motion Representation</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</guid>
@@ -59,12 +65,6 @@
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2608-SimWAM</guid>
     <description><![CDATA[ Summary SimWAM 把未来视频预测从”推理时必须生成”降级为仅训练期的监督信号：用 joint flow matching 联合训练一个预训练 video expert（Wan2.2-5B）和一个轻量 action expert，并用 isolated attention mask 让 action token 与 future-frame token 彼此不可见、只共同 attend 当前帧表示 z(o_t)，因此推理与 RL 都不需要 rollout 未来帧。方法还通过把确定性 flow ODE 改写成 SDE、只在最后 3 步注入噪声并用 GRPO 优化组合式驾驶 reward... ]]></description>
     <pubDate>Sun, 18 Oct 2026 03:08:16 GMT</pubDate>
-  </item><item>
-    <title>Papers</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/</guid>
-    <description><![CDATA[ 论文笔记 Papers/ 存放单篇论文的阅读笔记，文件名格式为 YYMM-ShortTitle.md，每篇笔记遵循统一的论文模板结构，通过 tags、cite_key 等 frontmatter 字段参与检索与引用。. ]]></description>
-    <pubDate>Thu, 15 Oct 2026 13:17:55 GMT</pubDate>
   </item>
     </channel>
   </rss>

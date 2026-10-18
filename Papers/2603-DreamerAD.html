@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr"><head><title>DreamerAD: Efficient Reinforcement Learning via Latent World Model for Autonomous Driving</title><meta charset="utf-8"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted Grotesk:wght@400;700&amp;family=Source Sans Pro:ital,wght@0,400;0,600;1,400;1,600&amp;family=IBM Plex Mono:wght@400;600&amp;display=swap"/><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="og:site_name" content="Paper Reading"/><meta property="og:title" content="DreamerAD: Efficient Reinforcement Learning via Latent World Model for Autonomous Driving"/><meta property="og:type" content="website"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="DreamerAD: Efficient Reinforcement Learning via Latent World Model for Autonomous Driving"/><meta name="twitter:description" content="Summary 把驾驶 world model 的生成过程压到 1 步，并在 latent 空间里完成 RL：SF-WM 用 shortcut forcing 把采样从 100 步降到 1 步，AD-RM 在 latent 上逐 horizon 预测 8 维奖励，GRPO 在轨迹词表的 Gaussian 邻域内采样。NAVSIM v2 navtest 上 87.7 EPDMS（Epona 基线 85.1），单帧推理 0.03 s。 Problem &amp; Motivation 真实世界做 RL 试错成本与安全风险不可接受；传统仿真器有 sim-to-real gap，于是用 video w..."/><meta property="og:description" content="Summary 把驾驶 world model 的生成过程压到 1 步，并在 latent 空间里完成 RL：SF-WM 用 shortcut forcing 把采样从 100 步降到 1 步，AD-RM 在 latent 上逐 horizon 预测 8 维奖励，GRPO 在轨迹词表的 Gaussian 邻域内采样。NAVSIM v2 navtest 上 87.7 EPDMS（Epona 基线 85.1），单帧推理 0.03 s。 Problem &amp; Motivation 真实世界做 RL 试错成本与安全风险不可接受；传统仿真器有 sim-to-real gap，于是用 video w..."/><meta property="og:image:alt" content="Summary 把驾驶 world model 的生成过程压到 1 步，并在 latent 空间里完成 RL：SF-WM 用 shortcut forcing 把采样从 100 步降到 1 步，AD-RM 在 latent 上逐 horizon 预测 8 维奖励，GRPO 在轨迹词表的 Gaussian 邻域内采样。NAVSIM v2 navtest 上 87.7 EPDMS（Epona 基线 85.1），单帧推理 0.03 s。 Problem &amp; Motivation 真实世界做 RL 试错成本与安全风险不可接受；传统仿真器有 sim-to-real gap，于是用 video w..."/><meta property="og:image" content="https://changjin-li.github.io/Paper_Reading/static/og-image.png"/><meta property="og:image:url" content="https://changjin-li.github.io/Paper_Reading/static/og-image.png"/><meta name="twitter:image" content="https://changjin-li.github.io/Paper_Reading/static/og-image.png"/><meta property="og:image:type" content="image/.png"/><meta property="twitter:domain" content="changjin-li.github.io/Paper_Reading"/><meta property="og:url" content="https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD"/><meta property="twitter:url" content="https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD"/><link rel="icon" href="../static/icon.png"/><meta name="description" content="Summary 把驾驶 world model 的生成过程压到 1 步，并在 latent 空间里完成 RL：SF-WM 用 shortcut forcing 把采样从 100 步降到 1 步，AD-RM 在 latent 上逐 horizon 预测 8 维奖励，GRPO 在轨迹词表的 Gaussian 邻域内采样。NAVSIM v2 navtest 上 87.7 EPDMS（Epona 基线 85.1），单帧推理 0.03 s。 Problem &amp; Motivation 真实世界做 RL 试错成本与安全风险不可接受；传统仿真器有 sim-to-real gap，于是用 video w..."/><meta name="generator" content="Quartz"/><link href="../index.css" rel="stylesheet" type="text/css" data-persist="true"/><style>.expand-button {
+  position: absolute;
+  display: flex;
+  float: right;
+  padding: 0.4rem;
+  margin: 0.3rem;
+  right: 0;
+  color: var(--gray);
+  border-color: var(--dark);
+  background-color: var(--light);
+  border: 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  transition: 0.2s;
+}
+.expand-button > svg {
+  fill: var(--light);
+  filter: contrast(0.3);
+}
+.expand-button:hover {
+  cursor: pointer;
+  border-color: var(--secondary);
+}
+.expand-button:focus {
+  outline: 0;
+}
+
+pre:hover > .expand-button {
+  opacity: 1;
+  transition: 0.2s;
+}
+
+#mermaid-container {
+  position: fixed;
+  contain: layout;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+#mermaid-container.active {
+  display: inline-block;
+}
+#mermaid-container > #mermaid-space {
+  border: 1px solid var(--lightgray);
+  background-color: var(--light);
+  border-radius: 5px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+#mermaid-container > #mermaid-space > .mermaid-content {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.1s ease;
+  overflow: visible;
+  min-height: 200px;
+  min-width: 200px;
+}
+#mermaid-container > #mermaid-space > .mermaid-content pre {
+  margin: 0;
+  border: none;
+}
+#mermaid-container > #mermaid-space > .mermaid-content svg {
+  max-width: none;
+  height: auto;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  color: var(--dark);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--bodyFont);
+  transition: all 0.2s ease;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:hover {
+  background: var(--lightgray);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:active {
+  transform: translateY(1px);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:nth-child(2) {
+  width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiL2hvbWUvcnVubmVyL3dvcmsvUGFwZXJfUmVhZGluZy9QYXBlcl9SZWFkaW5nL3dlYnNpdGUvcXVhcnR6L2NvbXBvbmVudHMvc3R5bGVzIiwic291cmNlcyI6WyJtZXJtYWlkLmlubGluZS5zY3NzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTtFQUNBOztBQUdGO0VBQ0U7RUFDQTs7QUFHRjtFQUNFOzs7QUFLRjtFQUNFO0VBQ0E7OztBQUlKO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTs7QUFFQTtFQUNFOztBQUdGO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTtFQUNBOztBQUdGO0VBQ0U7RUFDQTs7QUFJSjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7O0FBR0Y7RUFDRTs7QUFJRjtFQUNFO0VBQ0E7RUFDQSIsInNvdXJjZXNDb250ZW50IjpbIi5leHBhbmQtYnV0dG9uIHtcbiAgcG9zaXRpb246IGFic29sdXRlO1xuICBkaXNwbGF5OiBmbGV4O1xuICBmbG9hdDogcmlnaHQ7XG4gIHBhZGRpbmc6IDAuNHJlbTtcbiAgbWFyZ2luOiAwLjNyZW07XG4gIHJpZ2h0OiAwOyAvLyBOT1RFOiByaWdodCB3aWxsIGJlIHNldCBpbiBtZXJtYWlkLmlubGluZS50c1xuICBjb2xvcjogdmFyKC0tZ3JheSk7XG4gIGJvcmRlci1jb2xvcjogdmFyKC0tZGFyayk7XG4gIGJhY2tncm91bmQtY29sb3I6IHZhcigtLWxpZ2h0KTtcbiAgYm9yZGVyOiAxcHggc29saWQ7XG4gIGJvcmRlci1yYWRpdXM6IDVweDtcbiAgb3BhY2l0eTogMDtcbiAgdHJhbnNpdGlvbjogMC4ycztcblxuICAmID4gc3ZnIHtcbiAgICBmaWxsOiB2YXIoLS1saWdodCk7XG4gICAgZmlsdGVyOiBjb250cmFzdCgwLjMpO1xuICB9XG5cbiAgJjpob3ZlciB7XG4gICAgY3Vyc29yOiBwb2ludGVyO1xuICAgIGJvcmRlci1jb2xvcjogdmFyKC0tc2Vjb25kYXJ5KTtcbiAgfVxuXG4gICY6Zm9jdXMge1xuICAgIG91dGxpbmU6IDA7XG4gIH1cbn1cblxucHJlIHtcbiAgJjpob3ZlciA+IC5leHBhbmQtYnV0dG9uIHtcbiAgICBvcGFjaXR5OiAxO1xuICAgIHRyYW5zaXRpb246IDAuMnM7XG4gIH1cbn1cblxuI21lcm1haWQtY29udGFpbmVyIHtcbiAgcG9zaXRpb246IGZpeGVkO1xuICBjb250YWluOiBsYXlvdXQ7XG4gIHotaW5kZXg6IDk5OTtcbiAgbGVmdDogMDtcbiAgdG9wOiAwO1xuICB3aWR0aDogMTAwdnc7XG4gIGhlaWdodDogMTAwdmg7XG4gIG92ZXJmbG93OiBoaWRkZW47XG4gIGRpc3BsYXk6IG5vbmU7XG4gIGJhY2tkcm9wLWZpbHRlcjogYmx1cig0cHgpO1xuICBiYWNrZ3JvdW5kOiByZ2JhKDAsIDAsIDAsIDAuNSk7XG5cbiAgJi5hY3RpdmUge1xuICAgIGRpc3BsYXk6IGlubGluZS1ibG9jaztcbiAgfVxuXG4gICYgPiAjbWVybWFpZC1zcGFjZSB7XG4gICAgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tbGlnaHRncmF5KTtcbiAgICBiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS1saWdodCk7XG4gICAgYm9yZGVyLXJhZGl1czogNXB4O1xuICAgIHBvc2l0aW9uOiBmaXhlZDtcbiAgICB0b3A6IDUwJTtcbiAgICBsZWZ0OiA1MCU7XG4gICAgdHJhbnNmb3JtOiB0cmFuc2xhdGUoLTUwJSwgLTUwJSk7XG4gICAgaGVpZ2h0OiA4MHZoO1xuICAgIHdpZHRoOiA4MHZ3O1xuICAgIG92ZXJmbG93OiBoaWRkZW47XG5cbiAgICAmID4gLm1lcm1haWQtY29udGVudCB7XG4gICAgICBwb3NpdGlvbjogcmVsYXRpdmU7XG4gICAgICB0cmFuc2Zvcm0tb3JpZ2luOiAwIDA7XG4gICAgICB0cmFuc2l0aW9uOiB0cmFuc2Zvcm0gMC4xcyBlYXNlO1xuICAgICAgb3ZlcmZsb3c6IHZpc2libGU7XG4gICAgICBtaW4taGVpZ2h0OiAyMDBweDtcbiAgICAgIG1pbi13aWR0aDogMjAwcHg7XG5cbiAgICAgIHByZSB7XG4gICAgICAgIG1hcmdpbjogMDtcbiAgICAgICAgYm9yZGVyOiBub25lO1xuICAgICAgfVxuXG4gICAgICBzdmcge1xuICAgICAgICBtYXgtd2lkdGg6IG5vbmU7XG4gICAgICAgIGhlaWdodDogYXV0bztcbiAgICAgIH1cbiAgICB9XG5cbiAgICAmID4gLm1lcm1haWQtY29udHJvbHMge1xuICAgICAgcG9zaXRpb246IGFic29sdXRlO1xuICAgICAgYm90dG9tOiAyMHB4O1xuICAgICAgcmlnaHQ6IDIwcHg7XG4gICAgICBkaXNwbGF5OiBmbGV4O1xuICAgICAgZ2FwOiA4cHg7XG4gICAgICBwYWRkaW5nOiA4cHg7XG4gICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodCk7XG4gICAgICBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgYm9yZGVyLXJhZGl1czogNnB4O1xuICAgICAgYm94LXNoYWRvdzogMCAycHggNHB4IHJnYmEoMCwgMCwgMCwgMC4xKTtcbiAgICAgIHotaW5kZXg6IDI7XG5cbiAgICAgIC5tZXJtYWlkLWNvbnRyb2wtYnV0dG9uIHtcbiAgICAgICAgZGlzcGxheTogZmxleDtcbiAgICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjtcbiAgICAgICAganVzdGlmeS1jb250ZW50OiBjZW50ZXI7XG4gICAgICAgIHdpZHRoOiAzMnB4O1xuICAgICAgICBoZWlnaHQ6IDMycHg7XG4gICAgICAgIHBhZGRpbmc6IDA7XG4gICAgICAgIGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgICAgIGJhY2tncm91bmQ6IHZhcigtLWxpZ2h0KTtcbiAgICAgICAgY29sb3I6IHZhcigtLWRhcmspO1xuICAgICAgICBib3JkZXItcmFkaXVzOiA0cHg7XG4gICAgICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICAgICAgZm9udC1zaXplOiAxNnB4O1xuICAgICAgICBmb250LWZhbWlseTogdmFyKC0tYm9keUZvbnQpO1xuICAgICAgICB0cmFuc2l0aW9uOiBhbGwgMC4ycyBlYXNlO1xuXG4gICAgICAgICY6aG92ZXIge1xuICAgICAgICAgIGJhY2tncm91bmQ6IHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgICAgIH1cblxuICAgICAgICAmOmFjdGl2ZSB7XG4gICAgICAgICAgdHJhbnNmb3JtOiB0cmFuc2xhdGVZKDFweCk7XG4gICAgICAgIH1cblxuICAgICAgICAvLyBTdHlsZSB0aGUgcmVzZXQgYnV0dG9uIGRpZmZlcmVudGx5XG4gICAgICAgICY6bnRoLWNoaWxkKDIpIHtcbiAgICAgICAgICB3aWR0aDogYXV0bztcbiAgICAgICAgICBwYWRkaW5nOiAwIDEycHg7XG4gICAgICAgICAgZm9udC1zaXplOiAxNHB4O1xuICAgICAgICB9XG4gICAgICB9XG4gICAgfVxuICB9XG59XG4iXX0= */</style><link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet" type="text/css" data-persist="true"/><script src="../prescript.js" type="application/javascript" data-persist="true"></script><script type="application/javascript" data-persist="true">const fetchData = fetch("../static/contentIndex.json").then(data => data.json())</script><link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://changjin-li.github.io/Paper_Reading/index.xml"/></head><body data-slug="Papers/2603-DreamerAD"><div id="quartz-root" class="page"><div id="quartz-body"><div class="left sidebar"><h2 class="page-title"><a href="..">Paper Reading</a></h2><div class="spacer mobile-only"></div><div class="flex-component" style="flex-direction: row; flex-wrap: nowrap; gap: 1rem;"><div style="flex-grow: 1; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><div class="search"><button class="search-button"><svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title>Search</title><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"></path><circle cx="8" cy="8" r="7"></circle></g></svg><p>Search</p></button><div class="search-container"><div class="search-space"><input autocomplete="off" class="search-bar" name="search" type="text" aria-label="Search for something" placeholder="Search for something"/><div class="search-layout" data-preview="true"></div></div></div></div></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="darkmode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="dayIcon" x="0px" y="0px" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35" xml:space="preserve" aria-label="Dark mode"><title>Dark mode</title><path d="M6,17.5C6,16.672,5.328,16,4.5,16h-3C0.672,16,0,16.672,0,17.5    S0.672,19,1.5,19h3C5.328,19,6,18.328,6,17.5z M7.5,26c-0.414,0-0.789,0.168-1.061,0.439l-2,2C4.168,28.711,4,29.086,4,29.5    C4,30.328,4.671,31,5.5,31c0.414,0,0.789-0.168,1.06-0.44l2-2C8.832,28.289,9,27.914,9,27.5C9,26.672,8.329,26,7.5,26z M17.5,6    C18.329,6,19,5.328,19,4.5v-3C19,0.672,18.329,0,17.5,0S16,0.672,16,1.5v3C16,5.328,16.671,6,17.5,6z M27.5,9    c0.414,0,0.789-0.168,1.06-0.439l2-2C30.832,6.289,31,5.914,31,5.5C31,4.672,30.329,4,29.5,4c-0.414,0-0.789,0.168-1.061,0.44    l-2,2C26.168,6.711,26,7.086,26,7.5C26,8.328,26.671,9,27.5,9z M6.439,8.561C6.711,8.832,7.086,9,7.5,9C8.328,9,9,8.328,9,7.5    c0-0.414-0.168-0.789-0.439-1.061l-2-2C6.289,4.168,5.914,4,5.5,4C4.672,4,4,4.672,4,5.5c0,0.414,0.168,0.789,0.439,1.06    L6.439,8.561z M33.5,16h-3c-0.828,0-1.5,0.672-1.5,1.5s0.672,1.5,1.5,1.5h3c0.828,0,1.5-0.672,1.5-1.5S34.328,16,33.5,16z     M28.561,26.439C28.289,26.168,27.914,26,27.5,26c-0.828,0-1.5,0.672-1.5,1.5c0,0.414,0.168,0.789,0.439,1.06l2,2    C28.711,30.832,29.086,31,29.5,31c0.828,0,1.5-0.672,1.5-1.5c0-0.414-0.168-0.789-0.439-1.061L28.561,26.439z M17.5,29    c-0.829,0-1.5,0.672-1.5,1.5v3c0,0.828,0.671,1.5,1.5,1.5s1.5-0.672,1.5-1.5v-3C19,29.672,18.329,29,17.5,29z M17.5,7    C11.71,7,7,11.71,7,17.5S11.71,28,17.5,28S28,23.29,28,17.5S23.29,7,17.5,7z M17.5,25c-4.136,0-7.5-3.364-7.5-7.5    c0-4.136,3.364-7.5,7.5-7.5c4.136,0,7.5,3.364,7.5,7.5C25,21.636,21.636,25,17.5,25z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="nightIcon" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100" xml:space="preserve" aria-label="Light mode"><title>Light mode</title><path d="M96.76,66.458c-0.853-0.852-2.15-1.064-3.23-0.534c-6.063,2.991-12.858,4.571-19.655,4.571  C62.022,70.495,50.88,65.88,42.5,57.5C29.043,44.043,25.658,23.536,34.076,6.47c0.532-1.08,0.318-2.379-0.534-3.23  c-0.851-0.852-2.15-1.064-3.23-0.534c-4.918,2.427-9.375,5.619-13.246,9.491c-9.447,9.447-14.65,22.008-14.65,35.369  c0,13.36,5.203,25.921,14.65,35.368s22.008,14.65,35.368,14.65c13.361,0,25.921-5.203,35.369-14.65  c3.872-3.871,7.064-8.328,9.491-13.246C97.826,68.608,97.611,67.309,96.76,66.458z"></path></svg></button></div></div><div class="explorer" data-behavior="link" data-collapsed="collapsed" data-savestate="false" data-data-fns="{&quot;order&quot;:[&quot;filter&quot;,&quot;map&quot;,&quot;sort&quot;],&quot;sortFn&quot;:&quot;(a,b)=>{let order=[\&quot;DomainMaps\&quot;,\&quot;Papers\&quot;,\&quot;Topics\&quot;,\&quot;Ideas\&quot;,\&quot;Projects\&quot;],aIdx=order.indexOf(a.displayName),bIdx=order.indexOf(b.displayName);return aIdx!==-1&amp;&amp;bIdx!==-1?aIdx-bIdx:aIdx!==-1?-1:bIdx!==-1?1:a.slug?.startsWith(\&quot;Papers/\&quot;)&amp;&amp;b.slug?.startsWith(\&quot;Papers/\&quot;)?b.displayName.localeCompare(a.displayName):a.displayName.localeCompare(b.displayName)}&quot;,&quot;filterFn&quot;:&quot;node=>node.slugSegment!==\&quot;tags\&quot;&quot;,&quot;mapFn&quot;:&quot;node=>{node.isFolder||(node.displayName=node.slugSegment)}&quot;}"><button type="button" class="explorer-toggle mobile-explorer hide-until-loaded" data-mobile="true" aria-controls="explorer-8"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-menu"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button><button type="button" class="title-button explorer-toggle desktop-explorer" data-mobile="false" aria-expanded="true"><h2>Explorer</h2><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div id="explorer-8" class="explorer-content" aria-expanded="false" role="group"><ul class="explorer-ul overflow" id="list-0"><li class="overflow-end"></li></ul></div><template id="template-file"><li><a href="#"></a></li></template><template id="template-folder"><li><div class="folder-container"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><polyline points="6 9 12 15 18 9"></polyline></svg><div><button class="folder-button"><span class="folder-title"></span></button></div></div><div class="folder-outer"><ul class="content"></ul></div></li></template></div></div><div class="center"><div class="page-header"><div class="popover-hint"><nav class="breadcrumb-container" aria-label="breadcrumbs"><div class="breadcrumb-element"><a href="../">Home</a><p> ❯ </p></div><div class="breadcrumb-element"><a href="../Papers/">Papers</a><p> ❯ </p></div><div class="breadcrumb-element"><a href>DreamerAD: Efficient Reinforcement Learning via Latent World Model for Autonomous Driving</a></div></nav><h1 class="article-title">DreamerAD: Efficient Reinforcement Learning via Latent World Model for Autonomous Driving</h1><div class="paper-meta"><span class="paper-venue">arXiv Preprint</span><span class="paper-institute"><span class="meta-sep">·</span>Institute of Automation, CAS, Chongqing Chang'an Technology Co., Ltd, UCAS</span><span class="paper-authors"><span class="meta-sep">·</span>Pengxuan Yang <button class="et-al-btn" aria-expanded="false">et al.</button><span class="authors-full" style="display:none"><span>, Yupeng Zheng</span><span>, Zebin Xing</span><span>, Qichao Zhang</span><span>, Deheng Qian</span><span>, Linbo Wang</span><span>, Yichen Zhang</span><span>, Shaoyu Guo</span><span>, Zhongpu Xia</span><span>, Qiang Chen</span><span>, Junyu Han</span><span>, Lingyun Xu</span><span>, Yifeng Pan</span><span>, Dongbin Zhao</span></span></span></div><p show-comma="true" class="content-meta"><time datetime="2026-10-18T09:26:40.000Z">Oct 18, 2026</time></p><ul class="tags"><li><a href="../tags/world-model" class="internal tag-link">world-model</a></li><li><a href="../tags/RL" class="internal tag-link">RL</a></li></ul></div></div><article class="popover-hint"><h2 id="summary">Summary<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#summary" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>把驾驶 world model 的生成过程压到 1 步，并在 latent 空间里完成 RL：<code>SF-WM</code> 用 shortcut forcing 把采样从 100 步降到 1 步，<code>AD-RM</code> 在 latent 上逐 horizon 预测 8 维奖励，<code>GRPO</code> 在轨迹词表的 Gaussian 邻域内采样。<code>NAVSIM v2</code> navtest 上 87.7 EPDMS（Epona 基线 85.1），单帧推理 0.03 s。</p>
+<h2 id="problem--motivation">Problem &amp; Motivation<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#problem--motivation" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li>真实世界做 RL 试错成本与安全风险不可接受；传统仿真器有 sim-to-real gap，于是用 video world model 做 imagination-based training。</li>
+<li>现有 pixel-level diffusion world model 有两个瓶颈：100 步采样约 2 s/帧，无法支撑高频 RL 交互；pixel-level 目标偏向视觉保真，而非驾驶安全所需的空间与动态理解。</li>
+<li>已有 world-model RL（ReSim、WorldRFT、RAD 等）要么依赖 3D 标注、要么没有充分利用 latent 特征、要么在 OOD 动作下产生幻觉。作者的观察是：Video DiT 去噪后的 latent 已经有良好的空间结构与语义一致性（Fig. 2 的 PCA），可以直接作为 world model 的状态表示。</li>
+</ul>
+<h2 id="method">Method<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#method" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<h3 id="0-总体框架">0. 总体框架<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#0-总体框架" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>两个紧耦合组件：</p>
+<ol>
+<li><strong>World Model with Latent Reward Modeling</strong>：<code>SF-WM</code> 单步预测未来 latent，<code>AD-RM</code> 自回归地给出逐 horizon 的奖励。</li>
+<li><strong>RL with Vocabulary Sampling</strong>：策略在高质轨迹词表的 Gaussian 邻域内采样，用 <code>GRPO</code> 更新，避免 OOD 动作触发 world model 幻觉。</li>
+</ol>
+<h3 id="1-基础-world-model-与-sf-wm">1. 基础 world model 与 SF-WM<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#1-基础-world-model-与-sf-wm" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p>以 <code>Epona</code> 为 backbone（autoregressive flow-matching diffusion，统一视频生成与轨迹规划）。给定历史观测 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.02778em;">O</span></span></span></span> 与动作 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal">A</span></span></span></span>：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Z = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{DCAE-encoder}(O), </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\quad</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> a = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{MLP}(A)</span></span></code></pre></figure>
+<p><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.07153em;">Z</span></span></span></span> 经 temporal projection 得 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.07153em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">p</span><span class="mord mathnormal mtight">ro</span><span class="mord mathnormal mtight" style="margin-right:0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>，与 action embedding 在空间维拼接为 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7224em;vertical-align:-0.0391em;"></span><span class="mord mathnormal" style="margin-right:0.05764em;">E</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.888em;"></span><span class="mord"><span class="mord mathbb">R</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.05017em;">B</span><span class="mbin mtight">×</span><span class="mord mathnormal mtight" style="margin-right:0.13889em;">P</span><span class="mbin mtight">×</span><span class="mopen mtight">(</span><span class="mord mathnormal mtight">L</span><span class="mbin mtight">+</span><span class="mord mtight">3</span><span class="mclose mtight">)</span><span class="mbin mtight">×</span><span class="mord mathnormal mtight" style="margin-right:0.07153em;">C</span></span></span></span></span></span></span></span></span></span></span></span>，取最后一帧作为条件 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.13889em;">F</span></span></span></span>，预测下一帧 latent <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.04398em;">z</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.044em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mord mathnormal mtight">e</span><span class="mord mathnormal mtight">x</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 与未来轨迹 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">p</span><span class="mord mathnormal mtight">re</span><span class="mord mathnormal mtight">d</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>。原始模型在 nuPlan 上以 10 Hz 训练，而 NavSim 以 2 Hz 运行，因此先在 NavSim 上微调，再做步数蒸馏。</p>
+<p><strong>Shortcut Forcing World Model（SF-WM）</strong>：在 rectified flow 下定义</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">x_t = t x_1 + (1-t) x_0, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\quad</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> v = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\frac</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{dx_t}{dt} = x_1 - x_0</span></span></code></pre></figure>
+<p>训练时采样步长与信号水平：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">d </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\sim</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> 1/</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\mathcal</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{U}(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\{</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">1,2,4,8,</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\dots</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,K_{max}</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\}</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">), </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\quad</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> t </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\sim</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \mathcal</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{U}(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\{</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">0,d,2d,</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\dots</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,1-d</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\}</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span></code></pre></figure>
+<p>模型同时以 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6151em;"></span><span class="mord mathnormal">t</span></span></span></span> 与 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">d</span></span></span></span> 为条件（step embedding）。<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">min</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 时用标准 flow matching 目标；<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7335em;vertical-align:-0.0391em;"></span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">></span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">min</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 时用两个 teacher 半步：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">v_1 = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\phi</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\theta</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(x_t, t, d/2), </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\quad</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> x_{mid} = x_t + v_1 d/2</span></span>
+<span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">v_2 = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\phi</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\theta</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(x_{mid}, t+d/2, d/2)</span></span></code></pre></figure>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">v_{target} = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\begin</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{cases}</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> x_1 - x_0, </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&amp;</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> d = d_{min} </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">\\</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \text{sg}((v_1+v_2)/2), </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&amp;</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \text{otherwise}</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \end</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{cases}</span></span></code></pre></figure>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\mathcal</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{L}(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\theta</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">) = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\mathbb</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{E}_{x_0,x_1,t,d}</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\left</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\omega</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(t)</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\|\phi</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\theta</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(x_t,t,d) - v_{target}</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\|</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">^2</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\right</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">], </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\quad</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \omega</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(t) = 0.9t + 0.1</span></span></code></pre></figure>
+<p>推理时可指定 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">d</span></span></span></span>，用 1–4 步生成；论文称相比 100 步最多 80× 加速，1 步时视觉清晰度仍能维持（Fig. 4）。</p>
+<h3 id="2-autoregressive-dense-reward-modelad-rm">2. Autoregressive Dense Reward Model（AD-RM）<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#2-autoregressive-dense-reward-modelad-rm" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><strong>词表构造</strong>：从 8192 条轨迹中，按终点状态过滤到人类轨迹邻域：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">|</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\Delta</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> y| </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\le</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> 5</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\,\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{m}, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\quad</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> |</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\Delta</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> x| </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\le</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> 10</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\,\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{m}, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\quad</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \Delta\theta</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \le</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> 20^</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\circ</span></span></code></pre></figure>
+<p>再按 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">∣Δ</span><span class="mord mathnormal" style="margin-right:0.03588em;">y</span><span class="mord">∣</span></span></span></span> 排序、等距采样，得到 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.07153em;">K</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">256</span></span></span></span> 的轨迹词表 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord">Γ</span></span></span></span>。每条轨迹在 NavSim PDM 仿真器中打分，得到 8 个维度 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mord mathnormal mtight">c</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">d</span><span class="mord mathnormal mtight">a</span><span class="mord mathnormal mtight">c</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">dd</span><span class="mord mathnormal mtight">c</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.01968em;">tl</span><span class="mord mathnormal mtight">c</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">e</span><span class="mord mathnormal mtight">p</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">tt</span><span class="mord mathnormal mtight">c</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.01968em;">l</span><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">h</span><span class="mord mathnormal mtight">c</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">}</span></span></span></span>；与以往只算整条轨迹分数不同，这里在 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord">0</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">4.0</span><span class="mclose">]</span></span></span></span> s 内每 0.5 s 打一次分，形成 8 个 horizon 的监督信号。</p>
+<p><strong>奖励模型</strong>：冻结 world model，自回归预测 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord"><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.04398em;">z</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.044em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.04398em;">z</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.044em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">}</span></span></span></span>，历史编码为</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{his}_{-3:t} = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{his</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\_</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">enc}(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{concat}[z_{-3},z_{-2},z_{-1},z_0,</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\hat</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{z}_1,</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\dots</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\hat</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{z}_t])</span></span></code></pre></figure>
+<p>latent 维 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">512</span></span></span></span> 经 learnable query 压到 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">32</span></span></span></span>；8 个奖励维度各有可学习 base <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8778em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal">Q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">ba</span><span class="mord mathnormal mtight">se</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8413em;"></span><span class="mord"><span class="mord mathbb">R</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">8</span><span class="mbin mtight">×</span><span class="mord mathnormal mtight" style="margin-right:0.02778em;">D</span></span></span></span></span></span></span></span></span></span></span></span>，动态条件为</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">C_{dyn} = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{MLP}_{traj}(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{traj}_{0:t}) + </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{Emb}_{step}(t), </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\quad</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> Q_r = Q_{base} + C_{dyn}</span></span></code></pre></figure>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">r_{pred}^t = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{MLP}(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{Cross-Attention}(Q_r, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{his}_{-3:t}))</span></span></code></pre></figure>
+<p>监督用 BCE：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\mathcal</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{L}_{sup} = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\sum</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_{k=1}^{8} </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\omega</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_k </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\cdot</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \gamma</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(t) </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\cdot</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{BCEWithLogits}(r_{pred}, r)</span></span></code></pre></figure>
+<h3 id="3-rl奖励设计与词表采样">3. RL：奖励设计与词表采样<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#3-rl奖励设计与词表采样" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+<p><strong>奖励融合</strong>：安全项 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">s</span><span class="mord mathnormal mtight">a</span><span class="mord mathnormal mtight" style="margin-right:0.10764em;">f</span><span class="mord mathnormal mtight">e</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mord mathnormal mtight">c</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">d</span><span class="mord mathnormal mtight">a</span><span class="mord mathnormal mtight">c</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">dd</span><span class="mord mathnormal mtight">c</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.01968em;">tl</span><span class="mord mathnormal mtight">c</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">}</span></span></span></span>，任务项 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mord mathnormal mtight">a</span><span class="mord mathnormal mtight">s</span><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">e</span><span class="mord mathnormal mtight">p</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">tt</span><span class="mord mathnormal mtight">c</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.01968em;">l</span><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">h</span><span class="mord mathnormal mtight">c</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">}</span></span></span></span>。安全项用 log-sigmoid 聚合，任务项用加权和再取 log：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">L = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\sum</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_{i </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\in</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> safe} w_i </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\log</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{sigmoid}(r_i)), </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\quad</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> S = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\log\left</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\sum</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_{j </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\in</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> task} w_j r_j</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\right</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span></code></pre></figure>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">r_{total}^t = L + S = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\log\left</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\prod</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_i r_i^{w_i} </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\times</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \sum</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_j w_j r_j</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\right</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span></code></pre></figure>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">r_{final} = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\sum</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_{t=1}^{8} w_t </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\cdot</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> r_{total}^t</span></span></code></pre></figure>
+<p>log 融合使碰撞类事件把安全项压向 0、<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mord mathnormal mtight">o</span><span class="mord mathnormal mtight">t</span><span class="mord mathnormal mtight">a</span><span class="mord mathnormal mtight" style="margin-right:0.01968em;">l</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 趋向 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6667em;vertical-align:-0.0833em;"></span><span class="mord">−</span><span class="mord">∞</span></span></span></span>，从而让安全约束主导奖励；逐 horizon 求和则提供 temporal credit assignment。</p>
+<p><strong>Gaussian 词表采样</strong>：以策略输出 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">a</span><span class="mord mathnormal mtight">c</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 为均值、固定方差构造 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∼</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.0641em;vertical-align:-0.25em;"></span><span class="mord mathcal" style="margin-right:0.14736em;">N</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">a</span><span class="mord mathnormal mtight">c</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">σ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>，按 Mahalanobis 距离对词表轨迹排序：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">d(x, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\tau</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_{act}) = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\sum</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_{t=1}^{T}</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\sum</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_{i=1}^{3} </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\frac</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{(x_{t,i} - </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\tau</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_{act_{t,i}})^2}{</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\sigma</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_{t,i}^2}</span></span></code></pre></figure>
+<p>混合两种采样：<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 条按 softmax 概率做判别性选择，<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 条从 Gaussian 邻域做局部探索，<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal">G</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.7778em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>。</p>
+<p><strong>策略优化</strong>：组内归一化优势与 PPO 式裁剪：</p>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">A_i = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\frac</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{r_{final}^i - </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{mean}(r_{final}^{1..G})}{</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\sqrt</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{var}(r_{final}^{1..G})}}, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\quad</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \rho</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\exp</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\log\pi</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\theta</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> - </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\log\pi</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_{old})</span></span></code></pre></figure>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">L_{actor} = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\mathbb</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{E}</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\left</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\max</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(-A_i</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\rho</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, -A_i</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\text</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{clip}(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\rho</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, 1-</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\epsilon</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, 1+</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\epsilon</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">))</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\right</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">]</span></span></code></pre></figure>
+<figure data-rehype-pretty-code-figure><pre tabindex="0" data-language="latex" data-theme="github-light github-dark"><code data-language="latex" data-theme="github-light github-dark" style="display:grid;"><span data-line><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">L_{total} = L_{actor} + L_{bc} + L_{kl}, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\quad</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> L_{bc} = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\|\tau</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_{act} - </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\tau</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_{gt}</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\|</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_1, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\quad</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> L_{kl} = D_{KL}(</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\pi</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">\theta</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \|</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> \pi</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">_{ref})</span></span></code></pre></figure>
+<h3 id="4-实现细节">4. 实现细节<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#4-实现细节" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">项目</th><th style="text-align:left;">设置</th></tr></thead><tbody><tr><td style="text-align:left;">基础模型</td><td style="text-align:left;">Epona，nuPlan + nuScenes 从零训练；图像 512×1024</td></tr><tr><td style="text-align:left;">硬件</td><td style="text-align:left;">32 × NVIDIA H20</td></tr><tr><td style="text-align:left;">NavSim 微调</td><td style="text-align:left;">AdamW，batch 128，lr <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">3</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></span>，weight decay <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">5</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span>，5 epochs，约 1 天</td></tr><tr><td style="text-align:left;">SF-WM 训练</td><td style="text-align:left;">12 epochs，约 3 天，其余超参同上</td></tr><tr><td style="text-align:left;">奖励模型</td><td style="text-align:left;">batch 320，lr <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">3</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">4</span></span></span></span></span></span></span></span></span></span></span></span>，12 epochs，约 1 周</td></tr><tr><td style="text-align:left;">RL</td><td style="text-align:left;">batch 196，lr <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">4</span></span></span></span></span></span></span></span></span></span></span></span>，2 epochs，约 8 h</td></tr><tr><td style="text-align:left;">采样步数</td><td style="text-align:left;">VisDiT 1 步，TrajDiT 20 步</td></tr><tr><td style="text-align:left;">推理硬件</td><td style="text-align:left;">单张 H20</td></tr></tbody></table></div>
+<h2 id="pipeline">Pipeline<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#pipeline" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p><img src="https://arxiv.org/html/2603.24587v2/main.png" alt="DreamerAD 整体框架"/></p>
+<ol>
+<li><strong>World model 适配</strong>：Epona 在 NavSim 上以 2 Hz 微调，对齐生成间隔。</li>
+<li><strong>步数蒸馏</strong>：用 shortcut forcing 训练 SF-WM，使其支持 1–4 步采样。</li>
+<li><strong>词表与奖励监督</strong>：过滤 8192 条轨迹得到 256 条词表，在 PDM 仿真器中按 8 个 horizon 打 8 维分数。</li>
+<li><strong>奖励模型训练</strong>：冻结 SF-WM，对词表轨迹做 latent rollout，自回归预测逐 horizon 奖励（BCE）。</li>
+<li><strong>RL 训练</strong>：策略输出 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">a</span><span class="mord mathnormal mtight">c</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> → Gaussian 词表采样 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal">G</span></span></span></span> 条候选 → SF-WM latent rollout → AD-RM 打 dense reward → 组内归一化优势 → GRPO + BC + KL 更新。</li>
+<li><strong>推理</strong>：策略直接输出轨迹；需要可视化或事故分析时，才把 latent 解码成 RGB，训练时不解码。</li>
+</ol>
+<h2 id="key-results">Key Results<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#key-results" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p><strong>1) NAVSIM v2 navtest（Table 1）</strong></p>
+<p>测试集为 136 个场景，指标为 EPDMS（NC / DAC / DDC / TLC / EP / TTC / LK / HC / EC 聚合）。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Method</th><th style="text-align:right;">NC</th><th style="text-align:right;">DAC</th><th style="text-align:right;">DDC</th><th style="text-align:right;">TLC</th><th style="text-align:right;">EP</th><th style="text-align:right;">TTC</th><th style="text-align:right;">LK</th><th style="text-align:right;">HC</th><th style="text-align:right;">EC</th><th style="text-align:right;">EPDMS</th></tr></thead><tbody><tr><td style="text-align:left;">TransFuser</td><td style="text-align:right;">96.9</td><td style="text-align:right;">89.9</td><td style="text-align:right;">97.8</td><td style="text-align:right;">99.7</td><td style="text-align:right;">87.1</td><td style="text-align:right;">95.4</td><td style="text-align:right;">92.7</td><td style="text-align:right;">98.3</td><td style="text-align:right;">87.2</td><td style="text-align:right;">76.7</td></tr><tr><td style="text-align:left;">Hydra-MDP++</td><td style="text-align:right;">97.2</td><td style="text-align:right;">97.5</td><td style="text-align:right;">99.4</td><td style="text-align:right;">99.6</td><td style="text-align:right;">83.1</td><td style="text-align:right;">96.5</td><td style="text-align:right;">94.4</td><td style="text-align:right;">98.2</td><td style="text-align:right;">70.9</td><td style="text-align:right;">81.4</td></tr><tr><td style="text-align:left;">DriveSuprim</td><td style="text-align:right;">97.5</td><td style="text-align:right;">96.5</td><td style="text-align:right;">99.4</td><td style="text-align:right;">99.6</td><td style="text-align:right;">88.4</td><td style="text-align:right;">96.6</td><td style="text-align:right;">95.5</td><td style="text-align:right;">98.3</td><td style="text-align:right;">77.0</td><td style="text-align:right;">83.1</td></tr><tr><td style="text-align:left;">iPAD</td><td style="text-align:right;">98.7</td><td style="text-align:right;">97.8</td><td style="text-align:right;">99.1</td><td style="text-align:right;">99.8</td><td style="text-align:right;">83.5</td><td style="text-align:right;">98.0</td><td style="text-align:right;">96.2</td><td style="text-align:right;">98.1</td><td style="text-align:right;">85.6</td><td style="text-align:right;">84.1</td></tr><tr><td style="text-align:left;">ReCogDrive</td><td style="text-align:right;">98.3</td><td style="text-align:right;">95.2</td><td style="text-align:right;">99.5</td><td style="text-align:right;">99.8</td><td style="text-align:right;">87.1</td><td style="text-align:right;">97.5</td><td style="text-align:right;">96.6</td><td style="text-align:right;">98.3</td><td style="text-align:right;">86.5</td><td style="text-align:right;">83.6</td></tr><tr><td style="text-align:left;">DiffusionDrive</td><td style="text-align:right;">98.2</td><td style="text-align:right;">95.9</td><td style="text-align:right;">99.4</td><td style="text-align:right;">99.8</td><td style="text-align:right;">87.5</td><td style="text-align:right;">97.3</td><td style="text-align:right;">96.8</td><td style="text-align:right;">98.3</td><td style="text-align:right;">87.7</td><td style="text-align:right;">84.5</td></tr><tr><td style="text-align:left;">DriveVLA-W0</td><td style="text-align:right;">98.5</td><td style="text-align:right;">99.1</td><td style="text-align:right;">98.0</td><td style="text-align:right;">99.7</td><td style="text-align:right;">86.4</td><td style="text-align:right;">98.1</td><td style="text-align:right;">93.2</td><td style="text-align:right;">97.9</td><td style="text-align:right;">58.9</td><td style="text-align:right;">86.1</td></tr><tr><td style="text-align:left;">World4Drive</td><td style="text-align:right;">97.8</td><td style="text-align:right;">96.3</td><td style="text-align:right;">99.4</td><td style="text-align:right;">99.8</td><td style="text-align:right;">88.3</td><td style="text-align:right;">97.1</td><td style="text-align:right;">97.7</td><td style="text-align:right;">98.0</td><td style="text-align:right;">53.9</td><td style="text-align:right;">84.8</td></tr><tr><td style="text-align:left;">WorldRFT</td><td style="text-align:right;">97.8</td><td style="text-align:right;">96.5</td><td style="text-align:right;">99.5</td><td style="text-align:right;">99.8</td><td style="text-align:right;">88.5</td><td style="text-align:right;">97.0</td><td style="text-align:right;">97.4</td><td style="text-align:right;">98.1</td><td style="text-align:right;">69.1</td><td style="text-align:right;">86.7</td></tr><tr><td style="text-align:left;">Epona (Base)</td><td style="text-align:right;">97.1</td><td style="text-align:right;">95.7</td><td style="text-align:right;">99.3</td><td style="text-align:right;">99.7</td><td style="text-align:right;">88.6</td><td style="text-align:right;">96.3</td><td style="text-align:right;">97.0</td><td style="text-align:right;">98.0</td><td style="text-align:right;">67.8</td><td style="text-align:right;">85.1</td></tr><tr><td style="text-align:left;"><strong>DreamerAD</strong></td><td style="text-align:right;"><strong>98.0</strong></td><td style="text-align:right;"><strong>97.2</strong></td><td style="text-align:right;"><strong>99.5</strong></td><td style="text-align:right;"><strong>99.8</strong></td><td style="text-align:right;"><strong>87.8</strong></td><td style="text-align:right;"><strong>97.4</strong></td><td style="text-align:right;"><strong>97.5</strong></td><td style="text-align:right;"><strong>98.3</strong></td><td style="text-align:right;"><strong>72.4</strong></td><td style="text-align:right;"><strong>87.7</strong></td></tr></tbody></table></div>
+<p>相对 Epona：NC +0.9、DAC +1.5、TTC +1.1、LK +0.5、HC +0.3、EC +4.6，EP −0.8，EPDMS +2.6。作者把 EP 下降解释为 safety-first 的主动取舍。</p>
+<p><strong>2) NAVSIM v1 navtest（Table 2）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Method</th><th style="text-align:left;">Input</th><th style="text-align:right;">NC</th><th style="text-align:right;">DAC</th><th style="text-align:right;">TTC</th><th style="text-align:right;">Comf</th><th style="text-align:right;">EP</th><th style="text-align:right;">PDMS</th></tr></thead><tbody><tr><td style="text-align:left;">WoTE</td><td style="text-align:left;">C&amp;L</td><td style="text-align:right;">98.5</td><td style="text-align:right;">96.8</td><td style="text-align:right;">94.9</td><td style="text-align:right;">99.9</td><td style="text-align:right;">81.9</td><td style="text-align:right;">88.3</td></tr><tr><td style="text-align:left;">DriveVLA-W0</td><td style="text-align:left;">C&amp;L</td><td style="text-align:right;">98.7</td><td style="text-align:right;">96.2</td><td style="text-align:right;">95.5</td><td style="text-align:right;">100.0</td><td style="text-align:right;">82.2</td><td style="text-align:right;">88.4</td></tr><tr><td style="text-align:left;">AutoVLA</td><td style="text-align:left;">C-Only</td><td style="text-align:right;">98.4</td><td style="text-align:right;">95.6</td><td style="text-align:right;">98.0</td><td style="text-align:right;">99.9</td><td style="text-align:right;">81.9</td><td style="text-align:right;">89.1</td></tr><tr><td style="text-align:left;">RecogDrive</td><td style="text-align:left;">C-Only</td><td style="text-align:right;">97.9</td><td style="text-align:right;">97.3</td><td style="text-align:right;">94.9</td><td style="text-align:right;">100.0</td><td style="text-align:right;">87.3</td><td style="text-align:right;">90.8</td></tr><tr><td style="text-align:left;">World4Drive</td><td style="text-align:left;">C-Only</td><td style="text-align:right;">97.4</td><td style="text-align:right;">94.3</td><td style="text-align:right;">92.8</td><td style="text-align:right;">100.0</td><td style="text-align:right;">79.9</td><td style="text-align:right;">85.1</td></tr><tr><td style="text-align:left;">WorldRFT</td><td style="text-align:left;">C-Only</td><td style="text-align:right;">97.8</td><td style="text-align:right;">96.8</td><td style="text-align:right;">94.0</td><td style="text-align:right;">100.0</td><td style="text-align:right;">81.7</td><td style="text-align:right;">87.8</td></tr><tr><td style="text-align:left;">Epona (Base)</td><td style="text-align:left;">C-Only</td><td style="text-align:right;">97.9</td><td style="text-align:right;">95.1</td><td style="text-align:right;">93.8</td><td style="text-align:right;">99.9</td><td style="text-align:right;">80.4</td><td style="text-align:right;">86.2</td></tr><tr><td style="text-align:left;"><strong>DreamerAD</strong></td><td style="text-align:left;"><strong>C-Only</strong></td><td style="text-align:right;"><strong>98.0</strong></td><td style="text-align:right;"><strong>97.2</strong></td><td style="text-align:right;"><strong>94.3</strong></td><td style="text-align:right;"><strong>100.0</strong></td><td style="text-align:right;"><strong>83.1</strong></td><td style="text-align:right;"><strong>88.7</strong></td></tr></tbody></table></div>
+<p>相对 Epona：NC +0.1、DAC +2.1、TTC +0.5、Comf +0.1、EP +2.7，PDMS +2.5。论文的表述是 “state-of-the-art among all world-model-based methods”——全表最高仍是 RecogDrive 90.8 与 AutoVLA 89.1。</p>
+<p><strong>3) 组件消融（Table 3）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">ID</th><th style="text-align:center;">SF-WM</th><th style="text-align:center;">AD-RM</th><th style="text-align:left;">RL-SM</th><th style="text-align:right;">EPDMS</th></tr></thead><tbody><tr><td style="text-align:left;">1</td><td style="text-align:center;"></td><td style="text-align:center;"></td><td style="text-align:left;"></td><td style="text-align:right;">85.1</td></tr><tr><td style="text-align:left;">2</td><td style="text-align:center;"></td><td style="text-align:center;">✓</td><td style="text-align:left;">Vocab Sampling</td><td style="text-align:right;">86.4</td></tr><tr><td style="text-align:left;">3</td><td style="text-align:center;">✓</td><td style="text-align:center;"></td><td style="text-align:left;">Vocab Sampling</td><td style="text-align:right;">87.0</td></tr><tr><td style="text-align:left;">4</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td><td style="text-align:left;">Vocab Sampling</td><td style="text-align:right;">87.7</td></tr><tr><td style="text-align:left;">5</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td><td style="text-align:left;">WorldRFT</td><td style="text-align:right;">86.6</td></tr><tr><td style="text-align:left;">6</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td><td style="text-align:left;">Flow-GRPO</td><td style="text-align:right;">87.0</td></tr></tbody></table></div>
+<p>拆分来看：SF-WM 带来 +1.3（ID2 → ID4），AD-RM 带来 +0.7（ID3 → ID4），采样方式相对 Flow-GRPO +0.7、相对 WorldRFT +1.1。</p>
+<p><strong>4) 采样步数与延迟（Table 4）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:right;">Steps</th><th style="text-align:right;">Latency / frame (s)</th><th style="text-align:right;">EPDMS</th></tr></thead><tbody><tr><td style="text-align:right;">16</td><td style="text-align:right;">0.40</td><td style="text-align:right;">87.7</td></tr><tr><td style="text-align:right;">4</td><td style="text-align:right;">0.10</td><td style="text-align:right;">87.8</td></tr><tr><td style="text-align:right;">1</td><td style="text-align:right;">0.03</td><td style="text-align:right;">87.7</td></tr></tbody></table></div>
+<p>1 步与 16 步的 EPDMS 几乎相同，说明在该设置下规划性能对 world model 采样步数不敏感。</p>
+<p><strong>5) 奖励模型数据量（Table 5）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Data Scale</th><th style="text-align:right;">EPDMS</th></tr></thead><tbody><tr><td style="text-align:left;">Epona Baseline</td><td style="text-align:right;">85.1</td></tr><tr><td style="text-align:left;">20%</td><td style="text-align:right;">87.5</td></tr><tr><td style="text-align:left;">40%</td><td style="text-align:right;">87.5</td></tr><tr><td style="text-align:left;">100%</td><td style="text-align:right;">87.7</td></tr></tbody></table></div>
+<p>作者据此认为奖励模型只需少量数据即可学到好坏驾驶行为的差异。</p>
+<p><strong>Critical reading</strong></p>
+<ul>
+<li><strong>benchmark 口径是最大的问题</strong>：论文只报 136 场景的 navtest（v1 与 v2 的扩展指标版），没有 navhard。因此 87.7 EPDMS 不能与 navhard 榜单上的数值（例如 WorldDrive 的 34.9 EPDMS）直接比较；“SOTA” 也只是在 Table 1 这 11 个自行选取的方法内成立。</li>
+<li><strong>v1 的 88.7 并非全表最佳</strong>：RecogDrive 90.8、AutoVLA 89.1 更高。论文把 claim 限定在 world-model-based 方法，措辞上没有问题，但摘要与结论的 “state-of-the-art” 容易被误读为全表第一。</li>
+<li><strong>增益拆分后每一项都不大</strong>：+2.6 EPDMS 中 SF-WM +1.3、AD-RM +0.7、采样方式 +0.7；相对 Epona 的提升更像是三个工程改进的叠加，而非某个机制带来质变。</li>
+<li><strong>EP 的方向在 v1/v2 上相反</strong>：v2 上 EP −0.8 被解释为 safety-first 取舍，v1 上 EP 却 +2.7。这个不一致没有被讨论，可能说明 v2 的 EP 与安全项权重之间存在更强的拉锯。</li>
+<li><strong>奖励模型是 PDM 的代理，存在 metric overfitting 风险</strong>：监督标签直接来自 NavSim PDM 仿真器，RL 实际优化的是学到的 surrogate。论文没有报告奖励模型在 held-out 轨迹上的校准/准确率，也没有与 “用真 PDM 分数做 best-of-N” 的上界对比。</li>
+<li><strong>20% 与 100% 数据几乎无差别</strong>（87.5 vs 87.7）有两种解释：奖励信号鲁棒，或该信号本身信息量有限、很快饱和。缺少奖励模型准确率曲线，无法区分。</li>
+<li><strong>1 步与 16 步 EPDMS 相同</strong>说明最终规划对 world model 保真度不敏感；“80× 加速” 是真实的工程收益，但也削弱了 “高保真 world model 是 RL 关键” 的叙事。视觉质量只有定性图（Fig. 4），没有 FVD/FID。</li>
+<li><strong>内部口径不一致</strong>：0–4.0 s、步长 0.5 s 应得 9 个时间点，原文写 8 个；式 (18) 用 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6542em;vertical-align:-0.0391em;"></span><span class="mord mathnormal">t</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord">0</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">7</span><span class="mclose">}</span></span></span></span>，式 (19) 却从 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6151em;"></span><span class="mord mathnormal">t</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> 加到 8。属于写作疏漏，但会影响复现。</li>
+<li><strong>关键细节缺失</strong>：<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>、<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>、<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.03588em;">σ</span></span></span></span>、奖励模型参数量、每个场景过滤后剩多少条轨迹、RL 多种子方差均未给出。</li>
+<li><strong>预训练数据与测试集的关系未说明</strong>：Epona 在 nuPlan 上预训练，而 NavSim 由 nuPlan 构建。navtrain/navtest 是否与 Epona 的预训练场景重叠、重叠程度如何，论文没有交代；这会影响对 85.1 基线与最终 87.7 的解释。</li>
+<li><strong>计算成本不低</strong>：32 张 H20，奖励模型训练约一周；“efficient” 指的是推理（0.03 s/帧），不是训练。</li>
+</ul>
+<h2 id="strengths--weaknesses">Strengths &amp; Weaknesses<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#strengths--weaknesses" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p><strong>Strengths</strong></p>
+<ul>
+<li>问题切分干净：三个组件各自对应一个明确瓶颈——采样慢、奖励稀疏、OOD 探索幻觉；消融也按这个结构组织，容易读懂每个模块的边际贡献。</li>
+<li>用 latent 而非 pixel 做 RL，既避开解码开销，又保留了可解码的可解释性；0.03 s/帧使 high-frequency RL 交互真正可行。</li>
+<li>dense reward 的设计（8 维 × 8 horizon + log-sigmoid 安全融合）比只给整条轨迹一个分数更符合 credit assignment 的需求，且不需要额外 3D 标注。</li>
+<li>词表约束采样是对 world model 幻觉的直接工程回应，并在同容量下与 WorldRFT、Flow-GRPO 做了对照，不是只与自己比。</li>
+<li>1 步 SF-WM 与 16 步性能持平，说明 shortcut forcing 在这个任务上没有牺牲规划所需的信息，属于可信的效率收益。</li>
+</ul>
+<p><strong>Weaknesses</strong></p>
+<ul>
+<li>只在 navtest 上验证，缺少 navhard 与真正的 long-tail / 反应式场景；而论文的 motivation 正是 long-tail。</li>
+<li>奖励模型蒸馏 PDM，评测也用 PDM/EPDMS，闭环里存在指标自洽但外部效度未知的问题；没有真人偏好、闭环反应式或实车验证。</li>
+<li>相对基线的绝对提升有限，且部分来自 baseline 选择（Epona 微调后的 85.1 是否已包含 NavSim 适配并不完全清楚）。</li>
+<li>“first latent world model framework” 的说法偏强：Dreamer 系列与若干 latent driving world model 已经在 latent 空间做 rollout，本文更准确的定位是 “first 1-step latent WM + dense latent reward for driving RL”。</li>
+<li>复现信息不足：采样超参、奖励模型规模、数据过滤后的词表分布、随机种子方差都缺失。</li>
+<li>训练成本（32×H20、奖励模型一周）与 “efficient” 的标题形成反差，实际收益集中在推理侧。</li>
+</ul>
+<h2 id="notes">Notes<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#notes" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p><strong>论文定位</strong>：把 video world model 当作 RL 的 latent simulator，用可学习的 dense reward 替代昂贵的环境交互，并用轨迹词表把 exploration 限制在物理可行流形内。核心贡献是 “让 world model 快到可以参与 RL 循环”，而不是提出新的世界模型结构。</p>
+<p><strong>可迁移点</strong></p>
+<ul>
+<li>shortcut forcing 的 step embedding（同时以 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6151em;"></span><span class="mord mathnormal">t</span></span></span></span> 和 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">d</span></span></span></span> 为条件）可以直接套到任何 flow-matching 视频模型上，把它变成 1–4 步 sampler；对需要高频采样的 planner/RL 场景是通用加速手段。</li>
+<li>“在受限候选集上用规则/仿真器打标签 → 训练 latent reward model → RL 时替代环境” 这套流程，可以迁移到其他难以实时仿真的具身任务。</li>
+<li>以策略输出为均值、在词表上按 Mahalanobis 距离做混合采样，是一种通用的 constrained exploration 方案，比直接对连续动作加 Gaussian 噪声更不容易跳出可行域。</li>
+</ul>
+<p><strong>待跟进问题</strong></p>
+<ul>
+<li>在 navhard / 反应式闭环上，latent reward model 是否仍然有效？EP 与安全项的拉锯会如何变化？</li>
+<li>奖励模型对未见轨迹的校准误差是多少？能否用 conformal prediction 或 ensemble 给出不确定性，从而避免 reward hacking？</li>
+<li><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.03588em;">σ</span></span></span></span>、<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord">/</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的取值与敏感性；词表过滤阈值（10 m / 5 m / 20°）是否会把真正需要的避险动作排除在外？</li>
+<li>Epona 的 nuPlan 预训练与 NavSim navtest 是否存在场景重叠？若存在，基线 85.1 与最终 87.7 都需要重新解读。</li>
+<li>与 “best-of-N + 真 PDM 打分” 的选择上界相比，学习到的奖励模型还差多少？这决定了 latent reward 是否值得替代仿真器。</li>
+</ul></article><hr/><div class="page-footer"></div></div><div class="right sidebar"><div class="toc desktop-only"><button type="button" class="toc-header" aria-controls="toc-3" aria-expanded="true"><h3>Table of Contents</h3><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><ul id="list-1" class="toc-content overflow"><li class="depth-0"><a href="#summary" data-for="summary">Summary</a></li><li class="depth-0"><a href="#problem--motivation" data-for="problem--motivation">Problem &amp; Motivation</a></li><li class="depth-0"><a href="#method" data-for="method">Method</a></li><li class="depth-1"><a href="#0-总体框架" data-for="0-总体框架">0. 总体框架</a></li><li class="depth-1"><a href="#1-基础-world-model-与-sf-wm" data-for="1-基础-world-model-与-sf-wm">1. 基础 world model 与 SF-WM</a></li><li class="depth-1"><a href="#2-autoregressive-dense-reward-modelad-rm" data-for="2-autoregressive-dense-reward-modelad-rm">2. Autoregressive Dense Reward Model（AD-RM）</a></li><li class="depth-1"><a href="#3-rl奖励设计与词表采样" data-for="3-rl奖励设计与词表采样">3. RL：奖励设计与词表采样</a></li><li class="depth-1"><a href="#4-实现细节" data-for="4-实现细节">4. 实现细节</a></li><li class="depth-0"><a href="#pipeline" data-for="pipeline">Pipeline</a></li><li class="depth-0"><a href="#key-results" data-for="key-results">Key Results</a></li><li class="depth-0"><a href="#strengths--weaknesses" data-for="strengths--weaknesses">Strengths &amp; Weaknesses</a></li><li class="depth-0"><a href="#notes" data-for="notes">Notes</a></li><li class="overflow-end"></li></ul></div></div><footer class><p>Created with <a href="https://quartz.jzhao.xyz/">Quartz v4.5.2</a> © 2026</p><ul><li><a href="https://github.com/Changjin-Li/Paper_Reading">GitHub</a></li></ul></footer></div></div></body><script type="application/javascript" data-persist="true">function n(){let t=this.parentElement;t.classList.toggle("is-collapsed");let e=t.getElementsByClassName("callout-content")[0];if(!e)return;let l=t.classList.contains("is-collapsed");e.style.gridTemplateRows=l?"0fr":"1fr"}function c(){let t=document.getElementsByClassName("callout is-collapsible");for(let e of t){let l=e.getElementsByClassName("callout-title")[0],s=e.getElementsByClassName("callout-content")[0];if(!l||!s)continue;l.addEventListener("click",n),window.addCleanup(()=>l.removeEventListener("click",n));let o=e.classList.contains("is-collapsed");s.style.gridTemplateRows=o?"0fr":"1fr"}}document.addEventListener("nav",c);
+</script><script type="module" data-persist="true">function E(a,e){if(!a)return;function t(o){o.target===this&&(o.preventDefault(),o.stopPropagation(),e())}function n(o){o.key.startsWith("Esc")&&(o.preventDefault(),e())}a?.addEventListener("click",t),window.addCleanup(()=>a?.removeEventListener("click",t)),document.addEventListener("keydown",n),window.addCleanup(()=>document.removeEventListener("keydown",n))}function f(a){for(;a.firstChild;)a.removeChild(a.firstChild)}var m=class{constructor(e,t){this.container=e;this.content=t;this.setupEventListeners(),this.setupNavigationControls(),this.resetTransform()}isDragging=!1;startPan={x:0,y:0};currentPan={x:0,y:0};scale=1;MIN_SCALE=.5;MAX_SCALE=3;cleanups=[];setupEventListeners(){let e=this.onMouseDown.bind(this),t=this.onMouseMove.bind(this),n=this.onMouseUp.bind(this),o=this.onTouchStart.bind(this),r=this.onTouchMove.bind(this),i=this.onTouchEnd.bind(this),s=this.resetTransform.bind(this);this.container.addEventListener("mousedown",e),document.addEventListener("mousemove",t),document.addEventListener("mouseup",n),this.container.addEventListener("touchstart",o,{passive:!1}),document.addEventListener("touchmove",r,{passive:!1}),document.addEventListener("touchend",i),window.addEventListener("resize",s),this.cleanups.push(()=>this.container.removeEventListener("mousedown",e),()=>document.removeEventListener("mousemove",t),()=>document.removeEventListener("mouseup",n),()=>this.container.removeEventListener("touchstart",o),()=>document.removeEventListener("touchmove",r),()=>document.removeEventListener("touchend",i),()=>window.removeEventListener("resize",s))}cleanup(){for(let e of this.cleanups)e()}setupNavigationControls(){let e=document.createElement("div");e.className="mermaid-controls";let t=this.createButton("+",()=>this.zoom(.1)),n=this.createButton("-",()=>this.zoom(-.1)),o=this.createButton("Reset",()=>this.resetTransform());e.appendChild(n),e.appendChild(o),e.appendChild(t),this.container.appendChild(e)}createButton(e,t){let n=document.createElement("button");return n.textContent=e,n.className="mermaid-control-button",n.addEventListener("click",t),window.addCleanup(()=>n.removeEventListener("click",t)),n}onMouseDown(e){e.button===0&&(this.isDragging=!0,this.startPan={x:e.clientX-this.currentPan.x,y:e.clientY-this.currentPan.y},this.container.style.cursor="grabbing")}onMouseMove(e){this.isDragging&&(e.preventDefault(),this.currentPan={x:e.clientX-this.startPan.x,y:e.clientY-this.startPan.y},this.updateTransform())}onMouseUp(){this.isDragging=!1,this.container.style.cursor="grab"}onTouchStart(e){if(e.touches.length!==1)return;this.isDragging=!0;let t=e.touches[0];this.startPan={x:t.clientX-this.currentPan.x,y:t.clientY-this.currentPan.y}}onTouchMove(e){if(!this.isDragging||e.touches.length!==1)return;e.preventDefault();let t=e.touches[0];this.currentPan={x:t.clientX-this.startPan.x,y:t.clientY-this.startPan.y},this.updateTransform()}onTouchEnd(){this.isDragging=!1}zoom(e){let t=Math.min(Math.max(this.scale+e,this.MIN_SCALE),this.MAX_SCALE),n=this.content.getBoundingClientRect(),o=n.width/2,r=n.height/2,i=t-this.scale;this.currentPan.x-=o*i,this.currentPan.y-=r*i,this.scale=t,this.updateTransform()}updateTransform(){this.content.style.transform=`translate(${this.currentPan.x}px, ${this.currentPan.y}px) scale(${this.scale})`}resetTransform(){let t=this.content.querySelector("svg").getBoundingClientRect(),n=t.width/this.scale,o=t.height/this.scale;this.scale=1,this.currentPan={x:(this.container.clientWidth-n)/2,y:(this.container.clientHeight-o)/2},this.updateTransform()}},T=["--secondary","--tertiary","--gray","--light","--lightgray","--highlight","--dark","--darkgray","--codeFont"],y;document.addEventListener("nav",async()=>{let e=document.querySelector(".center").querySelectorAll("code.mermaid");if(e.length===0)return;y||=await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.esm.min.mjs");let t=y.default,n=new WeakMap;for(let r of e)n.set(r,r.innerText);async function o(){for(let s of e){s.removeAttribute("data-processed");let c=n.get(s);c&&(s.innerHTML=c)}let r=T.reduce((s,c)=>(s[c]=window.getComputedStyle(document.documentElement).getPropertyValue(c),s),{}),i=document.documentElement.getAttribute("saved-theme")==="dark";t.initialize({startOnLoad:!1,securityLevel:"loose",theme:i?"dark":"base",themeVariables:{fontFamily:r["--codeFont"],primaryColor:r["--light"],primaryTextColor:r["--darkgray"],primaryBorderColor:r["--tertiary"],lineColor:r["--darkgray"],secondaryColor:r["--secondary"],tertiaryColor:r["--tertiary"],clusterBkg:r["--light"],edgeLabelBackground:r["--highlight"]}}),await t.run({nodes:e})}await o(),document.addEventListener("themechange",o),window.addCleanup(()=>document.removeEventListener("themechange",o));for(let r=0;r<e.length;r++){let v=function(){let g=l.querySelector("#mermaid-space"),h=l.querySelector(".mermaid-content");if(!h)return;f(h);let w=i.querySelector("svg").cloneNode(!0);h.appendChild(w),l.classList.add("active"),g.style.cursor="grab",u=new m(g,h)},M=function(){l.classList.remove("active"),u?.cleanup(),u=null},i=e[r],s=i.parentElement,c=s.querySelector(".clipboard-button"),d=s.querySelector(".expand-button"),p=window.getComputedStyle(c),L=c.offsetWidth+parseFloat(p.marginLeft||"0")+parseFloat(p.marginRight||"0");d.style.right=`calc(${L}px + 0.3rem)`,s.prepend(d);let l=s.querySelector("#mermaid-container");if(!l)return;let u=null;d.addEventListener("click",v),E(l,M),window.addCleanup(()=>{u?.cleanup(),d.removeEventListener("click",v)})}});
+</script><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/copy-tex.min.js" type="application/javascript" data-persist="true"></script><script src="../postscript.js" type="module" data-persist="true"></script></html>
