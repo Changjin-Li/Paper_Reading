@@ -206,7 +206,6 @@ mindmap
 ## Notes
 
 - **与既有工作的关系**：`SimWAM` 直接建立在 `Fast-WAM`（"world action model 是否需要 test-time future imagination"）的结论上，把"训练期 WM"从具身智能迁移到驾驶。与 `DriveWAM` 共享 video expert 思路，但 `DriveWAM` 推理时仍合成未来帧；与 `DriveLaW` 的"video latent 条件化 planner"、`Epona` 的"自回归 diffusion 联合预测视频与轨迹"相比，`SimWAM` 在推理路径上删掉了整个未来生成分支。与 `DriveVLA-W0` 的 flow-matching / query-based 变体相比，`SimWAM` 的差异在于显式视频监督 + isolated mask，而非仅把 world model 当辅助 loss。
-- **与 `AutoVLA` / `HybridDriveVLA` / `ColaVLA` 的对比**：这三者把推理放在语言或视觉 CoT 上，靠语义先验与显式 reasoning 提升可解释性；`SimWAM` 完全不做语言推理，靠视频预训练带来的动力学先验 + RL。`NAVSIM` 上 91.9 高于 `AutoVLA` 89.1、`HybridDriveVLA` 94.62（注意后者是 Optimal 口径，不可直接横比），说明"动力学先验"与"语义推理"是两条可叠加的互补路线，而非替代关系。
 - **与 `DomainMaps/WorldModel` 的呼应**：地图 2026-08-11 条目已记录本文的核心结论——"监督应经共享表示塑形 policy，预测的未来不该作为 policy 的输入"；本文的 Table 6（90.3 / 90.2 / 90.1）与 Table 9（86.5 → 90.3）正是该结论的直接证据。地图 2026-09-18 条目记录的 `OpenWAM` 在 `RoboTwin` 上 "action-sees-video 92.39 vs isolated 87.41" 是**反方向证据**：在接触密集的操作任务中，未来帧可能是动作的必要条件。两者合起来给出的边界是——**未来帧的信息价值取决于任务：驾驶规划中它主要是训练期正则，操作控制中它可能是推理期必需输入**。
 - **可迁移点**：① isolated attention mask 是"训练期 WM"的通用实现模板——只要让预测分支与动作分支共享当前观测表征、彼此不可见，就能在保留联合学习收益的同时删掉推理开销；② SDE 只在最后几步加噪，是把确定性 flow policy 改造成可 RL 的随机策略的轻量做法，可迁移到其他 flow-matching policy；③ anchor loss 用"冻结 imitation policy 的 SDE 均值"做正则，比 KL 更直接、更稳定，尤其适合连续轨迹空间；④ RL 只用困难子集训练，是利用 reward 信号密度的一种数据选择策略。
 - **待跟进**：闭环（`CARLA` / `Bench2Drive`）与真实路测；多视角 / LiDAR 扩展后 isolated mask 是否仍成立；更长时域（>4 s）与交互密集场景；518 ms 能否通过量化、少步采样、模型蒸馏压到车端实时；isolated mask 在 manipulation 任务上的边界（与 `OpenWAM` 的分歧需要统一实验条件才能定论）。

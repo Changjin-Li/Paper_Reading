@@ -115,6 +115,5 @@ mindmap
 ## Notes
 
 - **在 VLA 谱系中的位置**：`DriveVLM` 是以 VLM 做**高层决策 + 语言输出**的代表作之一（与 `DriveGPT4`、`DriveLM`、`GPT-Driver` 同族），其"meta-action → decision → waypoint"的分层输出与"dual system 补 3D/实时性"的思路，被后续工作（如 `AutoVLA` 指出其双系统复杂、训练开销大）作为对比基线。
-- **与 notebook 内其他论文的关系**：与 `HybridDriveVLA` 同样采用 CoT，但 `DriveVLM` 的 CoT 在**文本域**（后续 `HybridDriveVLA` 批评文本 CoT 会丢视觉空间信息）；与 `AutoVLA` 对照明显——`AutoVLA` 明确针对 `DriveVLM` 的"双系统复杂、非完全端到端"提出单一自回归 VLA。
 - **可迁移点**：①"VLM 出高层 slow 决策 + 传统 planner 高频 fast 精修"的 slow-fast 双系统，是把大模型接进实时系统的通用范式；②用 3D 反投影 + IoU 匹配把符号化的语言关键物体与几何 3D 物体对齐，是缓解 VLM 空间弱点的低成本技巧；③meta-action（离散决策）→ decision（三元组）→ waypoint（连续）的三级粒度监督，可复用于任何"高层语义 → 低层动作"的具身任务。
 - **待跟进/疑问**：410 ms 延迟为双 `OrinX` 上的平均推理速度（§6，具体序列长度/并发条件未细述）；17 类 meta-action 的完整清单待补；`SUP-AD` 是否公开、规模数字待查；闭环与真实长尾场景下的失败模式未系统报告。
