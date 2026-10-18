@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>LWDrive: Layer-Wise World-Model-Guided Vision-Language Model Planning for Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-LWDrive</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-LWDrive</guid>
+    <description><![CDATA[ Summary LWDrive 不把 VLM 输出的轨迹当最终结果，而是当作 intent-aware coarse plan：先由 Qwen2.5-VL-3B 生成粗轨迹并输出分层 hidden states，再用 Foresight Cascade Planner (FCP) 围绕它扩展候选池，按 Qwen action layer 逐级注入分层特征、并用多视角 BEV 特征做残差修正，最后由 score head 选出最优轨迹。世界模型在训练期以未来帧 latent 去噪的方式监督 VLM hidden states（推理不需要未来图），使分层特征带上前瞻动力学。在 NAVSIM 上取得... ]]></description>
+    <pubDate>Sun, 18 Oct 2026 03:14:54 GMT</pubDate>
+  </item><item>
     <title>DriveVLM: The Convergence of Autonomous Driving and Large Vision-Language Models</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2402-DriveVLM</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2402-DriveVLM</guid>
