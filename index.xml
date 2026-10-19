@@ -10,7 +10,7 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-PriorEye</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-PriorEye</guid>
     <description><![CDATA[ Summary PriorEye 提出 geospatial visual priors：把离线采集的街景图像按行驶路线锚定成可检索的记忆，通过 model-agnostic 的 dual-memory 模块与 adaptive gate 注入现有 end-to-end planner，使模型在传感器视野之外获得视觉-空间预判。方法不改 baseline 架构、不增加额外损失，在 NAVSIM-v2 的四个 E2E baseline 上一致提升 EPDMS（navhard-two-stage 上 GTRS-Dense 44.9→48.6），并改善传感器损坏与先验损坏下的鲁棒性。 Problem... ]]></description>
-    <pubDate>Mon, 19 Oct 2026 03:23:59 GMT</pubDate>
+    <pubDate>Mon, 19 Oct 2026 03:28:34 GMT</pubDate>
   </item><item>
     <title>EponaV2: Driving World Model with Comprehensive Future Reasoning</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</link>
