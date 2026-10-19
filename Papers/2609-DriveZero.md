@@ -15,6 +15,7 @@ content_scope: full-text
 verification_status: source-checked
 date_added: 2026-10-19
 ---
+
 ## Summary
 
 把端到端驾驶拆成**动作模型**与**感知模型**分别在各自最适合的训练范式下预训练，再用蒸馏重新合并。动作侧 DriveRL 是一个 5.7M 参数的特权策略，在由真实 nuPlan 日志初始化的 mixed-agent 交互世界中从零开始用 PPO 训练，输入结构化场景状态与两点 goal，输出 jerk 与 steering-rate 的 Beta 分布；推理时用 critic 做 value-guided test-time action search（TTS）。感知侧 DriveVFM 把 DINOv3、SigLIP2、SAM、Depth Anything V2 四个冻结 foundation model 的特征蒸馏进一个 ViT backbone，不需要任何任务标注。最后 DriveZero 以 DriveVFM 为冻结 backbone（rank-32 Q/V LoRA），用 4 路相机输入预测 64 条轨迹 proposal，通过 winner-takes-all 拟合 DriveRL 的 rollout，并用 PDM 六项指标训练 proposal scoring。由于 teacher 是 goal-conditioned 的，可以对同一场景改查询不同导航意图，得到日志中不存在的多样化监督。结果：DriveRL 在 nuPlan 六个评测上均值 93.01（TTS 后 93.57），超过 Log-Replay；DriveZero 在 NAVSIMv1 navtest 上 94.8 PDMS 与人类司机持平，加 237K SimScale 仿真数据后 95.3；NAVSIMv2 navhard 51.5→57.1 EPDMS，HUGSIM 零样本 46.6 HD-Score。
@@ -45,10 +46,15 @@ date_added: 2026-10-19
 + **动作分布**：jerk 与 tire steering-angle rate 各用一个独立 Beta 分布，shape 参数用 $\operatorname{softplus}(x)+1$ 约束到 $(1,\infty)$，保证单峰并抑制极端动作。训练时采样，评测时取解析 mode $(\alpha-1)/(\alpha+\beta-2)$，再经 affine transform 映射到物理范围，由 kinematic bicycle model 执行。
 + **Mixed-agent 仿真**：每个背景 actor 通过统一的 physical state–action 接口挂载独立 behavior provider，支持 log replay、IDM、前车急刹与 learned policy（self-play）。训练配置中背景车用 batched IDM，少量车辆可被 front-vehicle braking 覆盖，行人保持 log replay。晚进入场景的 actor 只有在 ego 位姿距日志位姿 5 m / 0.35 rad 以内且不会碰撞时才被释放，避免 ego 偏离日志后出现不合理插入。
 + **奖励**：硬事件惩罚 $h_t$、一次性到达奖励 $g_t$、六项软质量分数 $q_{t,k}\in[0,1]$。每步奖励定义为
-$$\begin{aligned}
+
+$
+\begin{aligned}
 r_t &= h_t+(1-d_t)\left(g_t+\frac{1}{H}\prod_{k\in\mathcal{K}}q_{t,k}\right),\\
 \mathcal{K} &= \{\text{cross-lane},\ \text{centerline},\ \text{curb},\ \text{comfort},\ \text{TTC},\ \text{overspeed}\},
-\end{aligned}$$ PPO 直接以该 $r_t$ 为目标优化策略。其中 $H=110$ 为 rollout 长度，$d_t$ 表示硬终止。乘积形式要求六项软指标**同时**满足，防止某一项的高分掩盖另一项的严重缺陷。碰撞罚 $-1.0$，off-road 终止并按速度给 base $-2.0$ 的惩罚；1.5 m 内首次到达给一次性 $+0.5$，goal arrival 不终止 rollout。
+\end{aligned}
+$
+
+PPO 直接以该 $r_t$ 为目标优化策略。其中 $H=110$ 为 rollout 长度，$d_t$ 表示硬终止。乘积形式要求六项软指标**同时**满足，防止某一项的高分掩盖另一项的严重缺陷。碰撞罚 $-1.0$，off-road 终止并按速度给 base $-2.0$ 的惩罚；1.5 m 内首次到达给一次性 $+0.5$，goal arrival 不终止 rollout。
 + **八通道 critic**：把标量回报拆成 hard、goal 与六个 soft 通道，soft 通道按 deficit $b_{t,k}=\max(1-q_{t,k},0)$ 归一化分配，保证 $\sum_c r_{t,c}=r_t$。每个通道独立做 GAE 与 clipped value loss；actor 使用八通道 advantage 之和。由于 reward 与折扣因子一致，该分解在数学上等价于对标量回报做 GAE，只是让 critic 监督更有结构。
 + **训练规模**：从 nuPlan trainval 取 922,703 个场景，10 Hz 导出、每两帧取一帧得到 5 Hz；12 节点 96 GPU，每 rank 2,048 worlds，全局 196,608 worlds 并行，110 步 rollout。每 rank 225,280 transitions，切成 11 个 20,480 的 minibatch，跑 4 个 PPO epoch，即每次 update 44 步；共 2,400 updates，约 21 小时。优化器 Muon，$\gamma=0.99$，$\lambda=0.95$，clip 0.2/0.2，entropy 0.01，value 0.5，grad clip 0.5，lr $3\times10^{-4}$ cosine 无 warmup。
 
@@ -57,9 +63,12 @@ r_t &= h_t+(1-d_t)\left(g_t+\frac{1}{H}\prod_{k\in\mathcal{K}}q_{t,k}\right),\\
 + 每个 planner step 保留 Beta mode 作为候选 0，再从同一策略采样 $N-1$ 个首动作；每个候选做 $L$ 步短 rollout，后续动作取同策略在候选诱导状态上的 mode，背景 actor 用 constant-turn-rate-and-acceleration 外推。
 + 候选打分复用训练奖励、折扣因子与 critic：
 
-$$\begin{aligned}
-S^{(i)} &= \sum_{\ell=0}^{L-1}\gamma^\ell\prod_{u<\ell}(1-d_u)\,r_\ell+\gamma^L\prod_{u<L}(1-d_u)\,V(O_L).
-\end{aligned}$$
+$
+\begin{aligned}
+S^{(i)} &= \sum_{\ell=0}^{L-1}\gamma^\ell\prod_{u<\ell}(1-d_u)\,r_\ell\\
+&\quad +\gamma^L\prod_{u<L}(1-d_u)\,V(O_L).
+\end{aligned}
+$
 
 + 只有最高分候选超过 modal action 的分数一个 margin $\delta$ 时才替换，否则执行 modal action。所有候选并行 rollout，因此增大 $N$ 主要增加并行计算，增大 $L$ 才增加串行深度。默认 $L=5$、$\delta=0.03$。
 
@@ -68,7 +77,9 @@ S^{(i)} &= \sum_{\ell=0}^{L-1}\gamma^\ell\prod_{u<\ell}(1-d_u)\,r_\ell+\gamma^L\
 + 共享 ViT 对每张图输出每个 foundation model 一个 summary token，以及一组共享 spatial patch token；每个冻结教师配一个轻量 adaptor，分别投影 summary 与 patch 表示。
 + **非对称监督**：DINOv3 同时监督 summary 与 patch；SigLIP2 只监督 summary；SAM 只监督 patch；Depth Anything V2 蒸馏其**视觉特征**而非 depth 预测（作者称 feature distillation 更好）。summary 用 cosine distance，patch 用 MSE：
 
-$$\begin{align}\mathcal{L}_{\mathrm{DriveVFM}}=\sum_{k\in\mathcal{T}}\left(\lambda_k^{\mathrm{sum}}\mathcal{L}_k^{\mathrm{sum}}+\lambda_k^{\mathrm{patch}}\mathcal{L}_k^{\mathrm{patch}}\right)\end{align}$$
+$
+\mathcal{L}_{\mathrm{DriveVFM}}=\sum_{k\in\mathcal{T}}\left(\lambda_k^{\mathrm{sum}}\mathcal{L}_k^{\mathrm{sum}}+\lambda_k^{\mathrm{patch}}\mathcal{L}_k^{\mathrm{patch}}\right)
+$
 
 + **PHI-S 标准化**：不同教师特征的尺度、方差与各向异性差异很大，逐模型 loss 权重无法修正模型内部维度间的不平衡。PHI-S 用离线统计量中心化 patch 特征，做 PCA–Hadamard rotation 把方差均匀分配到各维，再用统一标量缩放，使每个教师成为条件相近的回归目标。
 + **QK-Clip**：训练中部分 attention head 的 QK 点积会快速增长，导致 loss spike。每次 optimizer update 后监测每个 head 的最大 pre-softmax logit，超过阈值 1,000 时对 query/key 投影权重做同比例平方根缩放，不改变 attention 形式。该约束同时让 FP16 部署近似无损（Table A14：mean abs 0.109→0.004，cosine 0.893→0.999）。
@@ -77,7 +88,12 @@ $$\begin{align}\mathcal{L}_{\mathrm{DriveVFM}}=\sum_{k\in\mathcal{T}}\left(\lamb
 **4. DriveZero：把 RL teacher 蒸馏成 camera-only planner**
 
 + **输入与架构**：当前帧 4 路相机（CAM_F0/B0/L0/R0）、ego kinematics、由 teacher goal 导出的导航 command。DriveVFM 共享权重编码每路图像，视觉 token 加 3D positional embedding，再用 16 个 learnable register token 压缩成 scene token；ego kinematics 与 command 编码成一个 ego token，加到 $M$ 个 learnable trajectory query 上；4 层 trajectory decoder 通过 cross-attention 输出轨迹。独立的 scoring decoder 把每条候选轨迹编码成 score query，attend 视觉 token，预测 PDM 六项分量。
-+ **Teacher rollout 监督**：每个 logged frame 上，冻结 teacher 接收结构化状态与 goal，在所有背景 actor 按日志运动的条件下 rollout 出 20 步轨迹 $\tau^T$，表示为 ego-relative $(x,y,\mathrm{yaw})$ 序列。student 的 64 条 proposal 中只有最近的一条参与回归：$$\begin{aligned}\mathcal{L}_{\mathrm{traj}}=\min_m\operatorname{dist}\left(\hat{\tau}_m,\tau^T\right)\end{aligned}$$
++ **Teacher rollout 监督**：每个 logged frame 上，冻结 teacher 接收结构化状态与 goal，在所有背景 actor 按日志运动的条件下 rollout 出 20 步轨迹 $\tau^T$，表示为 ego-relative $(x,y,\mathrm{yaw})$ 序列。student 的 64 条 proposal 中只有最近的一条参与回归：
+
+$
+\mathcal{L}_{\mathrm{traj}}=\min_m\operatorname{dist}\left(\hat{\tau}_m,\tau^T\right)
+$
+
 $\operatorname{dist}$ 为逐点 $L_1$ 平均。该 WTA 分配让不同 query 捕获不同驾驶模式，选择交给 scoring branch。
 + **Proposal scoring**：六项分量用 PDM 目标做 BCE，候选轨迹在进入 scoring 前 detach，使生成与排序解耦：
 
