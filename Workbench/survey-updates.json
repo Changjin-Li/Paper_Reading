@@ -190,6 +190,11 @@
       "survey": "WorldModel-Survey",
       "paper": "Papers\\2605-CoPhy.md",
       "added_at": "2026-10-19"
+    },
+    {
+      "survey": "WorldModel-Survey",
+      "paper": "Papers\\2411-DiffusionDrive.md",
+      "added_at": "2026-10-19"
     }
   ],
   "unrouted": [
