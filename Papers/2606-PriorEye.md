@@ -107,7 +107,7 @@ gate 的 bias 初始化为接近关闭状态，使训练初期模型主要依赖
 
 ## Pipeline
 
-![PriorEye memory augmentation module](https://arxiv.org/html/2606.31830v1/2606.31830v1/memory_mechanism.png)
+![PriorEye memory augmentation module](../images/PriorEye-architecture.png)
 
 1. **离线建库**：沿 lane centerline 每 5 m 采街景，SigLIP2 编码后与位置一起写入 memory bank。
 2. **路线检索**：从当前车道做 DFS 生成候选序列，按导航意图选一条，取回 $N$ 个 $(\mathbf{v}_i,\mathbf{x}_i)$。
