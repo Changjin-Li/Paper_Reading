@@ -200,6 +200,11 @@
       "survey": "WorldModel-Survey",
       "paper": "Papers\\2505-DiffE2E.md",
       "added_at": "2026-10-19"
+    },
+    {
+      "survey": "WorldModel-Survey",
+      "paper": "Papers\\2604-ExploreVLA.md",
+      "added_at": "2026-10-19"
     }
   ],
   "unrouted": [
