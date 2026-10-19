@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>Distill to Think, Foresee to Act: Cognitive-Physical Reinforcement Learning for Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2605-CoPhy</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2605-CoPhy</guid>
+    <description><![CDATA[ Summary CoPhy 把 VLM 的语义认知蒸馏进 BEV encoder，训练后丢弃 VLM，实现零推理开销的 cognitive channel；同时用 auto-regressive BEV world model 在候选轨迹条件下 rollout 未来语义地图，作为可解释的物理沙盒。策略用 GRPO 优化，奖励由 world model rollout 导出的物理安全项与 language-aligned cognitive scorer 组成。NAVSIM v1 navtest 91.4 PDMS、v2 navtest 86.1 EPDMS，均为表中最高，并支持用自然语言命令做... ]]></description>
+    <pubDate>Mon, 19 Oct 2026 03:34:45 GMT</pubDate>
+  </item><item>
     <title>PriorEye: Geospatial Visual Priors for End-to-End Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-PriorEye</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-PriorEye</guid>
@@ -58,12 +64,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-SpanVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2604-SpanVLA</guid>
     <description><![CDATA[ Summary 针对驾驶 VLA 的两个痛点——autoregressive action decoding 延迟高、且仅用正样本监督导致长尾鲁棒性不足——SpanVLA 提出 efficient action bridge（稀疏 KV-cache 条件 + 历史轨迹初始化的 flow-matching action expert）与 NR-RFT（基于 GRPO 的负样本惩罚 / 恢复奖励后训练），并发布首个同时含 negative 与 expert recovery 样本的真实世界驾驶数据集与 benchmark nuReasoning-NR。方法在 NAVSIM v1/v2、nuReas... ]]></description>
-    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
-  </item><item>
-    <title>HybridDriveVLA: Vision-Language-Action Model with Visual CoT reasoning and ToT Evaluation for Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-HybridDriveVLA</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-HybridDriveVLA</guid>
-    <description><![CDATA[ Summary 针对传统驾驶 VLA 的两个痛点——① 用 image-to-text + 文本 CoT 推理，把连续高维的视觉场景离散成文本符号，损失空间信息（modality gap）；② 只预测单条 waypoint 序列、同时兼顾多维度，缺乏逐维度的 deliberation——HybridDriveVLA 把推理整体搬到视觉域：用 Visual Chain-of-Thought（V-CoT）自回归预测未来场景图作为 goal，再用 Tree-of-Thought-inspired 的 waypoint 评估（ToT-Evaluation）生成并逐点打分 N 条候选序列，按 safet... ]]></description>
     <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
   </item>
     </channel>
