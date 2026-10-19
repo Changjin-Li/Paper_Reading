@@ -6,17 +6,23 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>DreamerAD: Efficient Reinforcement Learning via Latent World Model for Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</guid>
+    <description><![CDATA[ Summary 把驾驶 world model 的生成过程压到 1 步，并在 latent 空间里完成 RL：SF-WM 用 shortcut forcing 把采样从 100 步降到 1 步，AD-RM 在 latent 上逐 horizon 预测 8 维奖励，GRPO 在轨迹词表的 Gaussian 邻域内采样。NAVSIM v2 navtest 上 87.7 EPDMS（Epona 基线 85.1），单帧推理 0.03 s。 Problem &amp; Motivation 真实世界做 RL 试错成本与安全风险不可接受；传统仿真器有 sim-to-real gap，于是用 video w... ]]></description>
+    <pubDate>Mon, 19 Oct 2026 03:52:07 GMT</pubDate>
+  </item><item>
     <title>Distill to Think, Foresee to Act: Cognitive-Physical Reinforcement Learning for Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2605-CoPhy</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2605-CoPhy</guid>
     <description><![CDATA[ Summary CoPhy 把 VLM 的语义认知蒸馏进 BEV encoder，训练后丢弃 VLM，实现零推理开销的 cognitive channel；同时用 auto-regressive BEV world model 在候选轨迹条件下 rollout 未来语义地图，作为可解释的物理沙盒。策略用 GRPO 优化，奖励由 world model rollout 导出的物理安全项与 language-aligned cognitive scorer 组成。NAVSIM v1 navtest 91.4 PDMS、v2 navtest 86.1 EPDMS，均为表中最高，并支持用自然语言命令做... ]]></description>
-    <pubDate>Mon, 19 Oct 2026 03:34:45 GMT</pubDate>
+    <pubDate>Mon, 19 Oct 2026 03:52:07 GMT</pubDate>
   </item><item>
     <title>PriorEye: Geospatial Visual Priors for End-to-End Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-PriorEye</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-PriorEye</guid>
     <description><![CDATA[ Summary PriorEye 提出 geospatial visual priors：把离线采集的街景图像按行驶路线锚定成可检索的记忆，通过 model-agnostic 的 dual-memory 模块与 adaptive gate 注入现有 end-to-end planner，使模型在传感器视野之外获得视觉-空间预判。方法不改 baseline 架构、不增加额外损失，在 NAVSIM-v2 的四个 E2E baseline 上一致提升 EPDMS（navhard-two-stage 上 GTRS-Dense 44.9→48.6），并改善传感器损坏与先验损坏下的鲁棒性。 Problem... ]]></description>
-    <pubDate>Mon, 19 Oct 2026 03:28:34 GMT</pubDate>
+    <pubDate>Mon, 19 Oct 2026 03:52:07 GMT</pubDate>
   </item><item>
     <title>EponaV2: Driving World Model with Comprehensive Future Reasoning</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</link>
@@ -40,12 +46,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2512-ColaVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2512-ColaVLA</guid>
     <description><![CDATA[ Summary 针对驾驶 VLA 的三个痛点——离散文本 reasoning 与连续控制不匹配、autoregressive CoT 解码带来高延迟、以及规划器非因果 / 解码低效——ColaVLA 把 reasoning 从文本 CoT 迁移到统一的 latent 空间，并用 hierarchical parallel decoding 一次性并行产出多尺度轨迹。方法由两部分构成：Cognitive Latent Reasoner（仅需 2 次 VLM 前向即可完成 scene comprehension → critical entity recognition → latent reth... ]]></description>
-    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
-  </item><item>
-    <title>DreamerAD: Efficient Reinforcement Learning via Latent World Model for Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</guid>
-    <description><![CDATA[ Summary 把驾驶 world model 的生成过程压到 1 步，并在 latent 空间里完成 RL：SF-WM 用 shortcut forcing 把采样从 100 步降到 1 步，AD-RM 在 latent 上逐 horizon 预测 8 维奖励，GRPO 在轨迹词表的 Gaussian 邻域内采样。NAVSIM v2 navtest 上 87.7 EPDMS（Epona 基线 85.1），单帧推理 0.03 s。 Problem &amp; Motivation 真实世界做 RL 试错成本与安全风险不可接受；传统仿真器有 sim-to-real gap，于是用 video w... ]]></description>
     <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
   </item><item>
     <title>Bridging Scene Generation and Planning: Driving with World Model via Unifying Vision and Motion Representation</title>
