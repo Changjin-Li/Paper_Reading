@@ -837,6 +837,11 @@
       "paper": "Papers/2609-Raven.md",
       "added_at": "2026-10-08",
       "haystack": "task planning, llm, raven: the harness of harnesses for composable agentic intelligence"
+    },
+    {
+      "paper": "Papers\\2609-DriveZero.md",
+      "added_at": "2026-10-19",
+      "haystack": "imitation learning, rl, drivezero: end to end driving beyond human demonstrations"
     }
   ]
 }
