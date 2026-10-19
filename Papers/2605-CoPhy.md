@@ -28,72 +28,72 @@ CoPhy 把 VLM 的语义认知蒸馏进 BEV encoder，训练后丢弃 VLM，实�
 
 ## Method
 
-### 0. 总体框架
+**0. 总体框架**
 
-输入多模态观测 $\mathcal{V}=\{\mathcal{V}_{\text{RGB}},\mathcal{V}_{\text{LiDAR}}\}$，经多模态 encoder $\mathcal{E}_{\theta}$ 得到 BEV 状态：
++ 输入多模态观测 $\mathcal{V}=\{\mathcal{V}_{\text{RGB}},\mathcal{V}_{\text{LiDAR}}\}$，经多模态 encoder $\mathcal{E}_{\theta}$ 得到 BEV 状态：
 
 $$
 \mathbf{B}_0=\mathcal{E}_{\theta}(\mathcal{V})
 $$
 
-从专家演示中聚类出 $N$ 个运动学轨迹原型 $\mathcal{T}_p$，把动作空间限制在物理可行范围内。轨迹 refiner $\pi_{\theta}$ 输出候选轨迹：
++ 从专家演示中聚类出 $N$ 个运动学轨迹原型 $\mathcal{T}_p$，把动作空间限制在物理可行范围内。轨迹 refiner $\pi_{\theta}$ 输出候选轨迹：
 
 $$
 \hat{\mathcal{T}}=\mathcal{T}_p+\pi_{\theta}(\mathrm{TE}(\mathcal{T}_p),\mathbf{B}_0)
 $$
 
-后续在 refiner 中加入认知条件 $\mathbf{C}$，并在 IL 之后只对该 refiner 做 RL。整体包含三个模块：cognitive prior distillation、physical world model rollout、cognitive-physical policy optimization。
++ 后续在 refiner 中加入认知条件 $\mathbf{C}$，并在 IL 之后只对该 refiner 做 RL。整体包含三个模块：cognitive prior distillation、physical world model rollout、cognitive-physical policy optimization。
 
-### 1. Cognitive Prior Distillation（Distill to Think）
+**1. Cognitive Prior Distillation（Distill to Think）**
 
-用 LoRA 在多个驾驶 VQA 数据集上微调 InternVL3-8B，使其成为领域专家，输出交通标志、道路拓扑、驾驶意图等 cognitive priors：
++ 用 LoRA 在多个驾驶 VQA 数据集上微调 InternVL3-8B，使其成为领域专家，输出交通标志、道路拓扑、驾驶意图等 cognitive priors：
 
 $$
 \mathcal{L}_{\text{VLM}}=-\sum_{l=1}^{L}\log P_{\xi}(y_l\mid y_{<l},\mathcal{V},Q)
 $$
 
-其中 $\xi$ 为 LoRA 参数。训练完成后冻结 VLM，用其为 IL 训练生成文本描述，再由 CLIP text encoder 编码为 cognitive prior $\mathbf{C}$，从而把 VLM 从"在线推理器"变成"离线标注器"。
++ 其中 $\xi$ 为 LoRA 参数。训练完成后冻结 VLM，用其为 IL 训练生成文本描述，再由 CLIP text encoder 编码为 cognitive prior $\mathbf{C}$，从而把 VLM 从"在线推理器"变成"离线标注器"。
 
-为让 BEV encoder 内化语言先验，用 BEV tokenizer $\mathrm{BE}(\cdot)$ 提取认知特征，并与 $\mathbf{C}$ 做跨模态余弦对齐：
++ 为让 BEV encoder 内化语言先验，用 BEV tokenizer $\mathrm{BE}(\cdot)$ 提取认知特征，并与 $\mathbf{C}$ 做跨模态余弦对齐：
 
 $$
 \mathcal{L}_{\text{Distill}}=1-\frac{\mathrm{BE}(\mathbf{B}_0)\cdot\mathbf{C}}{\|\mathrm{BE}(\mathbf{B}_0)\|_2\|\mathbf{C}\|_2}
 $$
 
-除特征级蒸馏外，$\mathbf{C}$ 还直接注入 refiner：
++ 除特征级蒸馏外，$\mathbf{C}$ 还直接注入 refiner：
 
 $$
 \hat{\mathcal{T}}=\mathcal{T}_p+\pi_{\theta}(\mathrm{TE}(\mathcal{T}_p),\mathbf{B}_0,\mathbf{C})
 $$
 
-这一注入同时打开了 intent-controllable driving 的接口：推理时把 $\mathbf{C}$ 换成用户命令的 CLIP embedding 即可，无需重训练。
++ 这一注入同时打开了 intent-controllable driving 的接口：推理时把 $\mathbf{C}$ 换成用户命令的 CLIP embedding 即可，无需重训练。
 
-### 2. Physical World Model Rollout（Foresee to Act）
+**2. Physical World Model Rollout（Foresee to Act）**
 
-Transformer world model 以当前 BEV 状态 $\mathbf{B}_0$、认知特征 $\mathbf{C}$ 与初始 ego 特征 $\mathbf{e}_0=\mathrm{TE}(\hat{\mathcal{T}})$ 为输入，递归 rollout：
++ Transformer world model 以当前 BEV 状态 $\mathbf{B}_0$、认知特征 $\mathbf{C}$ 与初始 ego 特征 $\mathbf{e}_0=\mathrm{TE}(\hat{\mathcal{T}})$ 为输入，递归 rollout：
 
 $$
 (\mathbf{B}_k,\mathbf{e}_k)=\mathrm{WM}(\mathbf{B}_{k-1},\mathbf{e}_{k-1},\mathbf{C}),\quad k\in\{1,\dots,K\}
 $$
 
-训练时每次迭代随机采样一个未来步 $j$，用轻量 spatial decoder 把对应状态投影为 dense BEV 语义地图 $\hat{\mathcal{M}}_K^j\in\mathbb{R}^{H\times W\times C_c}$，以 nuPlan 生成的真值地图做 focal loss 监督：
++ 训练时每次迭代随机采样一个未来步 $j$，用轻量 spatial decoder 把对应状态投影为 dense BEV 语义地图 $\hat{\mathcal{M}}_K^j\in\mathbb{R}^{H\times W\times C_c}$，以 nuPlan 生成的真值地图做 focal loss 监督：
 
 $$
 \mathcal{L}_{\text{WM}}=\mathrm{FocalLoss}(\hat{\mathcal{M}}_K^j,\mathcal{M}_K^j)
 $$
 
-world model 有两个用途：为候选轨迹提供未来 rollout 的物理沙盒；在 RL 阶段充当内部环境。
++ world model 有两个用途：为候选轨迹提供未来 rollout 的物理沙盒；在 RL 阶段充当内部环境。
 
-### 3. Cognitive 与 Physical 轨迹打分
+**3. Cognitive 与 Physical 轨迹打分**
 
-对 $N$ 条候选轨迹沿两个互补维度打分。**Physical score** 以到专家轨迹的距离 $d$ 为监督信号，$s_{\text{Phy}}\propto\exp(-d)$；把 $\{\mathbf{B}_k\}_{k=1}^{K}$ 沿时间拼接后用卷积压成 BEV 向量 $\mathbf{b}$，与 ego 特征 $\{\mathbf{e}_k\}$ 一起经 MLP 与 softmax 输出：
++ 对 $N$ 条候选轨迹沿两个互补维度打分。**Physical score** 以到专家轨迹的距离 $d$ 为监督信号，$s_{\text{Phy}}\propto\exp(-d)$；把 $\{\mathbf{B}_k\}_{k=1}^{K}$ 沿时间拼接后用卷积压成 BEV 向量 $\mathbf{b}$，与 ego 特征 $\{\mathbf{e}_k\}$ 一起经 MLP 与 softmax 输出：
 
 $$
 \hat{s}_{\text{Phy}}=\mathrm{Softmax}\big(\mathrm{MLP}([\mathbf{b};\mathbf{e}])\big),\quad
 \mathcal{L}_{\text{Phy}}=-s_{\text{Phy}}\log(\hat{s}_{\text{Phy}})
 $$
 
-**Cognitive score** 定义为 $\mathbf{C}$ 与候选轨迹在投影后的余弦相似度。由于缺少人工意图标签，作者假设专家轨迹与 VLM 的认知意图一致，用 InfoNCE 监督，负样本取与专家轨迹 L2 距离最大的 5 条候选：
++ **Cognitive score** 定义为 $\mathbf{C}$ 与候选轨迹在投影后的余弦相似度。由于缺少人工意图标签，作者假设专家轨迹与 VLM 的认知意图一致，用 InfoNCE 监督，负样本取与专家轨迹 L2 距离最大的 5 条候选：
 
 $$
 \hat{s}_{\text{Co}}=\cos\big(\mathrm{MLP}(\hat{\mathcal{T}}),\mathrm{MLP}(\mathbf{C})\big)
@@ -103,39 +103,41 @@ $$
 \mathcal{L}_{\text{Co}}=-\log\frac{\exp(s^{+}/\epsilon)}{\exp(s^{+}/\epsilon)+\sum_{m=1}^{5}\exp(s^{-}_{m}/\epsilon)}
 $$
 
-IL 阶段除 VLM 外的所有模块联合训练：
++ IL 阶段除 VLM 外的所有模块联合训练：
 
 $$
 \mathcal{L}_{\text{IL}}=\mathcal{L}_{\text{Traj}}+\mathcal{L}_{\text{Distill}}+\mathcal{L}_{\text{WM}}+\mathcal{L}_{\text{Phy}}+\mathcal{L}_{\text{Co}}
 $$
 
-其中 $\mathcal{L}_{\text{Traj}}=\|\hat{\mathcal{T}}-\mathcal{T}\|_1$。
++ 其中 $\mathcal{L}_{\text{Traj}}=\|\hat{\mathcal{T}}-\mathcal{T}\|_1$。
 
-### 4. Cognitive-Physical Policy Optimization
+**4. Cognitive-Physical Policy Optimization**
 
-RL 只优化轨迹 refiner $\pi_{\theta}$，冻结其余参数。冻结 world model 既降低训练成本，也避免"环境"与策略共同演化导致训练崩溃。
++ RL 只优化轨迹 refiner $\pi_{\theta}$，冻结其余参数。冻结 world model 既降低训练成本，也避免"环境"与策略共同演化导致训练崩溃。
 
-**Physical reward** 直接从 world model 想象出的 BEV 语义地图 $\hat{\mathcal{M}}_k$ 导出：把 ego 车辆 footprint $\mathcal{F}_{\text{ego}}$ 投影到 rollout 上，按五项指标加权：
++ **Physical reward** 直接从 world model 想象出的 BEV 语义地图 $\hat{\mathcal{M}}_k$ 导出：把 ego 车辆 footprint $\mathcal{F}_{\text{ego}}$ 投影到 rollout 上，按五项指标加权：
 
 $$
 \mathcal{R}_{\text{Phy}}^{i}=\omega_1\mathcal{R}_{\text{NC}}^{i}+\omega_2\mathcal{R}_{\text{DAC}}^{i}+\omega_3\mathcal{R}_{\text{EP}}^{i}+\omega_4\mathcal{R}_{\text{TTC}}^{i}+\omega_5\mathcal{R}_{\text{Comf}}^{i}
 $$
 
-- No Collision：$\mathcal{R}_{\text{NC}}=\mathbb{1}[\mathcal{F}_{\text{ego}}\cap\mathcal{M}_{\text{obs}}=\emptyset]$
-- Drivable Area：$\mathcal{R}_{\text{DAC}}=\mathbb{1}[\mathcal{F}_{\text{ego}}\subseteq\mathcal{M}_{\text{drive}}]$
-- Ego Progress：$\mathcal{R}_{\text{EP}}=\sigma\big((x_K-\mu_v)/\sigma_v\big)$，$\mu_v=v_{\text{ego}}\Delta T$，$\Delta T=4.0$ s，$\sigma_v=\max(0.3\mu_v,2.0)$
-- Time-to-Collision：$\mathcal{R}_{\text{TTC}}=\sigma\big((d_{\min}-d_{\text{safe}})/\Delta d\big)$，$d_{\text{safe}}=5.0$ m，$\Delta d=2.0$ m
-- Comfort：$\mathcal{R}_{\text{Comf}}=\exp(-\bar{a}/\lambda_a)\cdot\exp(-\bar{j}/\lambda_j)$，$\lambda_a=2.0$，$\lambda_j=5.0$
++ 五项指标定义为：
 
-权重取 $(\omega_1,\dots,\omega_5)=(1,1,0.4,0.4,0.2)$，即 NAVSIM 指标权重 $(5,5,2,2,1)$ 归一化后的比例。
+  + No Collision：$\mathcal{R}_{\text{NC}}=\mathbb{1}[\mathcal{F}_{\text{ego}}\cap\mathcal{M}_{\text{obs}}=\emptyset]$
+  + Drivable Area：$\mathcal{R}_{\text{DAC}}=\mathbb{1}[\mathcal{F}_{\text{ego}}\subseteq\mathcal{M}_{\text{drive}}]$
+  + Ego Progress：$\mathcal{R}_{\text{EP}}=\sigma\big((x_K-\mu_v)/\sigma_v\big)$，$\mu_v=v_{\text{ego}}\Delta T$，$\Delta T=4.0$ s，$\sigma_v=\max(0.3\mu_v,2.0)$
+  + Time-to-Collision：$\mathcal{R}_{\text{TTC}}=\sigma\big((d_{\min}-d_{\text{safe}})/\Delta d\big)$，$d_{\text{safe}}=5.0$ m，$\Delta d=2.0$ m
+  + Comfort：$\mathcal{R}_{\text{Comf}}=\exp(-\bar{a}/\lambda_a)\cdot\exp(-\bar{j}/\lambda_j)$，$\lambda_a=2.0$，$\lambda_j=5.0$
 
-**Cognitive reward** 用 IL 阶段训练好的 language-aligned scorer，参数冻结：
++ 权重取 $(\omega_1,\dots,\omega_5)=(1,1,0.4,0.4,0.2)$，即 NAVSIM 指标权重 $(5,5,2,2,1)$ 归一化后的比例。
+
++ **Cognitive reward** 用 IL 阶段训练好的 language-aligned scorer，参数冻结：
 
 $$
 \mathcal{R}_{\text{Co}}^{i}=\cos\big(\mathrm{MLP}(\hat{\mathcal{T}}^{i}),\mathrm{MLP}(\mathbf{C})\big)
 $$
 
-**GRPO**：旧策略对每个场景采样 $G$ 条轨迹，统一奖励 $\mathcal{R}^{i}=\mathcal{R}_{\text{Phy}}^{i}+\mathcal{R}_{\text{Co}}^{i}$，组内标准化得优势：
++ **GRPO**：旧策略对每个场景采样 $G$ 条轨迹，统一奖励 $\mathcal{R}^{i}=\mathcal{R}_{\text{Phy}}^{i}+\mathcal{R}_{\text{Co}}^{i}$，组内标准化得优势：
 
 $$
 \hat{A}^{i}=\frac{\mathcal{R}^{i}-\mu_{\mathcal{R}}}{\sigma_{\mathcal{R}}+\varphi}
@@ -145,9 +147,9 @@ $$
 \mathcal{J}_{\text{GRPO}}(\theta)=\frac{1}{G}\sum_{i=1}^{G}\Big[\min\big(\rho^{i}\hat{A}^{i},\mathrm{clip}(\rho^{i},1-\gamma,1+\gamma)\hat{A}^{i}\big)\Big]+\mathcal{H}(\pi_{\theta})-0.2\,\mathcal{L}_{\text{IL}}
 $$
 
-其中 $\rho^{i}=\pi_{\theta}(\hat{\mathcal{T}}^{i})/\pi_{\theta_{\text{old}}}(\hat{\mathcal{T}}^{i})$，$\gamma=0.2$。IL 正则用于防止遗忘专家先验，熵项鼓励探索。
++ 其中 $\rho^{i}=\pi_{\theta}(\hat{\mathcal{T}}^{i})/\pi_{\theta_{\text{old}}}(\hat{\mathcal{T}}^{i})$，$\gamma=0.2$。IL 正则用于防止遗忘专家先验，熵项鼓励探索。
 
-### 5. 超参数
+**5. 实现细节**
 
 | 项目 | 设置 |
 |:--|:--|
@@ -178,7 +180,7 @@ $$
 
 ## Key Results
 
-### 1) NAVSIM v1 navtest（Table 1）
+**1) NAVSIM v1 navtest（Table 1）**
 
 | Method | Input | WM | NC | DAC | EP | TTC | C | PDMS |
 |:--|:--:|:--:|--:|--:|--:|--:|--:|--:|
@@ -191,9 +193,9 @@ $$
 | DiffusionDrive | C+L | ✗ | 98.2 | 96.2 | 82.2 | 94.7 | 100 | 88.1 |
 | **CoPhy** | **C+L** | **✓** | **99.0** | **98.2** | 85.3 | **96.8** | **100** | **91.4** |
 
-相对第二名 DriveDPO（90.0）为 +1.4 PDMS；NC、DAC、TTC 三个安全相关指标均为全表最高。EP 低于 DriveSuprim 的 86.7，作者将其解释为"安全—效率 trade-off"：纯 IL 的 DriveSuprim 进度更高，但 NC 97.8、TTC 93.6 明显更差。
++ 相对第二名 DriveDPO（90.0）为 +1.4 PDMS；NC、DAC、TTC 三个安全相关指标均为全表最高。EP 低于 DriveSuprim 的 86.7，作者将其解释为"安全—效率 trade-off"：纯 IL 的 DriveSuprim 进度更高，但 NC 97.8、TTC 93.6 明显更差。
 
-### 2) NAVSIM v2 navtest（Table 2）
+**2) NAVSIM v2 navtest（Table 2）**
 
 | Method | NC | DAC | DDC | TL | EP | TTC | LK | C | EC | EPDMS |
 |:--|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
@@ -203,9 +205,9 @@ $$
 | HydraMDP++ | 97.2 | 97.5 | 99.4 | 99.6 | 83.1 | 96.5 | 94.4 | 98.2 | 70.9 | 81.4 |
 | **CoPhy** | **99.3** | **97.6** | 97.3 | **100** | 83.6 | **99.1** | 96.8 | 97.4 | 80.0 | **86.1** |
 
-NC 99.3（+1.0）、TTC 99.1（+1.7）、TL 100 均为全表最高，说明认知奖励确实压住了交通灯违规。代价是 EP 83.6、EC 80.0 低于部分基线；DDC 97.3 是表中最低，C 97.4 也偏低。由于 EPDMS 对 DDC 是乘性惩罚，这一项被 TTC/TL 的增益抵消。
++ NC 99.3（+1.0）、TTC 99.1（+1.7）、TL 100 均为全表最高，说明认知奖励确实压住了交通灯违规。代价是 EP 83.6、EC 80.0 低于部分基线；DDC 97.3 是表中最低，C 97.4 也偏低。由于 EPDMS 对 DDC 是乘性惩罚，这一项被 TTC/TL 的增益抵消。
 
-### 3) 模块消融（Table 3，NAVSIM v1）
+**3) 模块消融（Table 3，NAVSIM v1）**
 
 | Model | PS | VD | CS | CRL | PRL | NC | DAC | EP | TTC | C | PDMS |
 |:--|:--:|:--:|:--:|:--:|:--:|--:|--:|--:|--:|--:|--:|
@@ -216,9 +218,9 @@ NC 99.3（+1.0）、TTC 99.1（+1.7）、TL 100 均为全表最高，说明认�
 | B2 | ✓ | ✓ | ✓ | | ✓ | 98.9 | 97.8 | 85.0 | 95.8 | 100 | 90.7 |
 | **B3** | ✓ | ✓ | ✓ | ✓ | ✓ | **99.0** | **98.2** | **85.3** | **96.8** | **100** | **91.4** |
 
-增量拆解：VLM distillation +1.5（EP +2.5、DAC +1.9）；cognitive score 层级选择 +0.3（TTC +1.5）；单独 cognitive RL 奖励 +1.3（NC +0.5、EP +1.0）；单独 physical RL 奖励 +1.8（DAC +0.6、EP +1.8、TTC +1.3）；两者合用相对 A2 为 +2.5。PS = physical score，VD = VLM distillation，CS = cognitive score，CRL/PRL = cognitive/physical RL reward。
++ 增量拆解：VLM distillation +1.5（EP +2.5、DAC +1.9）；cognitive score 层级选择 +0.3（TTC +1.5）；单独 cognitive RL 奖励 +1.3（NC +0.5、EP +1.0）；单独 physical RL 奖励 +1.8（DAC +0.6、EP +1.8、TTC +1.3）；两者合用相对 A2 为 +2.5。PS = physical score，VD = VLM distillation，CS = cognitive score，CRL/PRL = cognitive/physical RL reward。
 
-### 4) VLM 微调与 rollout 步数
+**4) VLM 微调与 rollout 步数（Table 4）**
 
 | VLM | NC | DAC | EP | TTC | C | PDMS |
 |:--|--:|--:|--:|--:|--:|--:|
@@ -231,13 +233,13 @@ NC 99.3（+1.0）、TTC 99.1（+1.7）、TL 100 均为全表最高，说明认�
 | **2** | **99.0** | **98.2** | **85.3** | **96.8** | **100** | **91.4** |
 | 4 | 98.8 | 98.0 | 85.4 | 95.1 | 100 | 91.2 |
 
-领域微调带来 2.4 PDMS 的差距；$K=1$ 的粗粒度预测漏掉中途违规（DAC 97.2、TTC 95.3），$K=4$ 虽然 EP 略高，但 NC/TTC 退化，作者归因于 auto-regressive 误差累积。4 s horizon 下 $K=2$ 最优。
++ 领域微调带来 2.4 PDMS 的差距；$K=1$ 的粗粒度预测漏掉中途违规（DAC 97.2、TTC 95.3），$K=4$ 虽然 EP 略高，但 NC/TTC 退化，作者归因于 auto-regressive 误差累积。4 s horizon 下 $K=2$ 最优。
 
-### 5) Intent-Controllable Driving
+**5) Intent-Controllable Driving**
 
-无定量指标，只有 Fig. 7 的两个定性例子：默认策略在红灯前减速，收到 "I'm in an urgent situation, accelerate and run the red light!" 后加速通过路口；跟车场景收到 "Do not tailgate. Change lanes to an open lane." 后执行左变道。作者强调 world model rollout 仍在执行物理安全约束。
++ 无定量指标，只有 Fig. 7 的两个定性例子：默认策略在红灯前减速，收到 "I'm in an urgent situation, accelerate and run the red light!" 后加速通过路口；跟车场景收到 "Do not tailgate. Change lanes to an open lane." 后执行左变道。作者强调 world model rollout 仍在执行物理安全约束。
 
-### Critical reading
+**Critical reading**
 
 - **SOTA 的来源是安全项，不是全面领先**：v2 上 NC/TTC/TL 三项第一，但 DDC 97.3 为表中最低、EP 83.6 低于 DriveSuprim 88.4、EC 80.0 低于 ResAD 88.2。EPDMS 的乘性结构让 TL=100 与 TTC=99.1 的增益覆盖了 DDC/C/EC 的损失，因此"leading safety-critical sub-scores"成立，但不宜读成所有维度都更好。
 - **physical reward 来自 world model 自己的预测**：$\mathcal{R}_{\text{NC}}$、$\mathcal{R}_{\text{DAC}}$、$\mathcal{R}_{\text{TTC}}$ 都定义在想象出的语义地图上，而不是真实环境。论文没有报告 future BEV semantic map 的 IoU/mAP，也没有比较 predicted-metric reward 与 GT-metric reward 的相关性，因此无法排除 reward 自我实现：world model 若系统性漏检障碍，策略会得到虚高的安全奖励。

@@ -27,36 +27,36 @@ date_added: 2026-10-18
 
 ## Method
 
-### 0. 总体框架
+**0. 总体框架**
 
-两个紧耦合组件：
++ 两个紧耦合组件：
 
-1. **World Model with Latent Reward Modeling**：`SF-WM` 单步预测未来 latent，`AD-RM` 自回归地给出逐 horizon 的奖励。
-2. **RL with Vocabulary Sampling**：策略在高质轨迹词表的 Gaussian 邻域内采样，用 `GRPO` 更新，避免 OOD 动作触发 world model 幻觉。
+  + **World Model with Latent Reward Modeling**：`SF-WM` 单步预测未来 latent，`AD-RM` 自回归地给出逐 horizon 的奖励。
+  + **RL with Vocabulary Sampling**：策略在高质轨迹词表的 Gaussian 邻域内采样，用 `GRPO` 更新，避免 OOD 动作触发 world model 幻觉。
 
-### 1. 基础 world model 与 SF-WM
+**1. 基础 world model 与 SF-WM**
 
-以 `Epona` 为 backbone（autoregressive flow-matching diffusion，统一视频生成与轨迹规划）。给定历史观测 $O$ 与动作 $A$：
++ 以 `Epona` 为 backbone（autoregressive flow-matching diffusion，统一视频生成与轨迹规划）。给定历史观测 $O$ 与动作 $A$：
 
 $$
 Z = \text{DCAE-encoder}(O), \quad a = \text{MLP}(A)
 $$
 
-$Z$ 经 temporal projection 得 $Z_{proj}$，与 action embedding 在空间维拼接为 $E \in \mathbb{R}^{B \times P \times (L+3) \times C}$，取最后一帧作为条件 $F$，预测下一帧 latent $\hat{z}_{next}$ 与未来轨迹 $\tau_{pred}$。原始模型在 nuPlan 上以 10 Hz 训练，而 NavSim 以 2 Hz 运行，因此先在 NavSim 上微调，再做步数蒸馏。
++ $Z$ 经 temporal projection 得 $Z_{proj}$，与 action embedding 在空间维拼接为 $E \in \mathbb{R}^{B \times P \times (L+3) \times C}$，取最后一帧作为条件 $F$，预测下一帧 latent $\hat{z}_{next}$ 与未来轨迹 $\tau_{pred}$。原始模型在 nuPlan 上以 10 Hz 训练，而 NavSim 以 2 Hz 运行，因此先在 NavSim 上微调，再做步数蒸馏。
 
-**Shortcut Forcing World Model（SF-WM）**：在 rectified flow 下定义
++ **Shortcut Forcing World Model（SF-WM）**：在 rectified flow 下定义
 
 $$
 x_t = t x_1 + (1-t) x_0, \quad v = \frac{dx_t}{dt} = x_1 - x_0
 $$
 
-训练时采样步长与信号水平：
++ 训练时采样步长与信号水平：
 
 $$
 d \sim 1/\mathcal{U}(\{1,2,4,8,\dots,K_{max}\}), \quad t \sim \mathcal{U}(\{0,d,2d,\dots,1-d\})
 $$
 
-模型同时以 $t$ 与 $d$ 为条件（step embedding）。$d=d_{min}$ 时用标准 flow matching 目标；$d>d_{min}$ 时用两个 teacher 半步：
++ 模型同时以 $t$ 与 $d$ 为条件（step embedding）。$d=d_{min}$ 时用标准 flow matching 目标；$d>d_{min}$ 时用两个 teacher 半步：
 
 $$
 v_1 = \phi_\theta(x_t, t, d/2), \quad x_{mid} = x_t + v_1 d/2
@@ -74,25 +74,25 @@ $$
 \mathcal{L}(\theta) = \mathbb{E}_{x_0,x_1,t,d}\left[\omega(t)\|\phi_\theta(x_t,t,d) - v_{target}\|^2\right], \quad \omega(t) = 0.9t + 0.1
 $$
 
-推理时可指定 $d$，用 1–4 步生成；论文称相比 100 步最多 80× 加速，1 步时视觉清晰度仍能维持（Fig. 4）。
++ 推理时可指定 $d$，用 1–4 步生成；论文称相比 100 步最多 80× 加速，1 步时视觉清晰度仍能维持（Fig. 4）。
 
-### 2. Autoregressive Dense Reward Model（AD-RM）
+**2. Autoregressive Dense Reward Model（AD-RM）**
 
-**词表构造**：从 8192 条轨迹中，按终点状态过滤到人类轨迹邻域：
++ **词表构造**：从 8192 条轨迹中，按终点状态过滤到人类轨迹邻域：
 
 $$
 |\Delta y| \le 5\,\text{m}, \quad |\Delta x| \le 10\,\text{m}, \quad \Delta\theta \le 20^\circ
 $$
 
-再按 $|\Delta y|$ 排序、等距采样，得到 $K=256$ 的轨迹词表 $\Gamma$。每条轨迹在 NavSim PDM 仿真器中打分，得到 8 个维度 $\{r_{nc}, r_{dac}, r_{ddc}, r_{tlc}, r_{ep}, r_{ttc}, r_{lk}, r_{hc}\}$；与以往只算整条轨迹分数不同，这里在 $[0, 4.0]$ s 内每 0.5 s 打一次分，形成 8 个 horizon 的监督信号。
++ 再按 $|\Delta y|$ 排序、等距采样，得到 $K=256$ 的轨迹词表 $\Gamma$。每条轨迹在 NavSim PDM 仿真器中打分，得到 8 个维度 $\{r_{nc}, r_{dac}, r_{ddc}, r_{tlc}, r_{ep}, r_{ttc}, r_{lk}, r_{hc}\}$；与以往只算整条轨迹分数不同，这里在 $[0, 4.0]$ s 内每 0.5 s 打一次分，形成 8 个 horizon 的监督信号。
 
-**奖励模型**：冻结 world model，自回归预测 $\{\hat{z}_1,\dots,\hat{z}_t\}$，历史编码为
++ **奖励模型**：冻结 world model，自回归预测 $\{\hat{z}_1,\dots,\hat{z}_t\}$，历史编码为
 
 $$
 \text{his}_{-3:t} = \text{his\_enc}(\text{concat}[z_{-3},z_{-2},z_{-1},z_0,\hat{z}_1,\dots,\hat{z}_t])
 $$
 
-latent 维 $L=512$ 经 learnable query 压到 $l=32$；8 个奖励维度各有可学习 base $Q_{base} \in \mathbb{R}^{8 \times D}$，动态条件为
++ latent 维 $L=512$ 经 learnable query 压到 $l=32$；8 个奖励维度各有可学习 base $Q_{base} \in \mathbb{R}^{8 \times D}$，动态条件为
 
 $$
 C_{dyn} = \text{MLP}_{traj}(\text{traj}_{0:t}) + \text{Emb}_{step}(t), \quad Q_r = Q_{base} + C_{dyn}
@@ -102,15 +102,15 @@ $$
 r_{pred}^t = \text{MLP}(\text{Cross-Attention}(Q_r, \text{his}_{-3:t}))
 $$
 
-监督用 BCE：
++ 监督用 BCE：
 
 $$
 \mathcal{L}_{sup} = \sum_{k=1}^{8} \omega_k \cdot \gamma(t) \cdot \text{BCEWithLogits}(r_{pred}, r)
 $$
 
-### 3. RL：奖励设计与词表采样
+**3. RL：奖励设计与词表采样**
 
-**奖励融合**：安全项 $r_{safe}=\{r_{nc}, r_{dac}, r_{ddc}, r_{tlc}\}$，任务项 $r_{task}=\{r_{ep}, r_{ttc}, r_{lk}, r_{hc}\}$。安全项用 log-sigmoid 聚合，任务项用加权和再取 log：
++ **奖励融合**：安全项 $r_{safe}=\{r_{nc}, r_{dac}, r_{ddc}, r_{tlc}\}$，任务项 $r_{task}=\{r_{ep}, r_{ttc}, r_{lk}, r_{hc}\}$。安全项用 log-sigmoid 聚合，任务项用加权和再取 log：
 
 $$
 L = \sum_{i \in safe} w_i \log(\text{sigmoid}(r_i)), \quad S = \log\left(\sum_{j \in task} w_j r_j\right)
@@ -124,17 +124,17 @@ $$
 r_{final} = \sum_{t=1}^{8} w_t \cdot r_{total}^t
 $$
 
-log 融合使碰撞类事件把安全项压向 0、$r_{total}$ 趋向 $-\infty$，从而让安全约束主导奖励；逐 horizon 求和则提供 temporal credit assignment。
++ log 融合使碰撞类事件把安全项压向 0、$r_{total}$ 趋向 $-\infty$，从而让安全约束主导奖励；逐 horizon 求和则提供 temporal credit assignment。
 
-**Gaussian 词表采样**：以策略输出 $\tau_{act}$ 为均值、固定方差构造 $\tau \sim \mathcal{N}(\tau_{act}, \sigma^2)$，按 Mahalanobis 距离对词表轨迹排序：
++ **Gaussian 词表采样**：以策略输出 $\tau_{act}$ 为均值、固定方差构造 $\tau \sim \mathcal{N}(\tau_{act}, \sigma^2)$，按 Mahalanobis 距离对词表轨迹排序：
 
 $$
 d(x, \tau_{act}) = \sum_{t=1}^{T}\sum_{i=1}^{3} \frac{(x_{t,i} - \tau_{act_{t,i}})^2}{\sigma_{t,i}^2}
 $$
 
-混合两种采样：$g_1$ 条按 softmax 概率做判别性选择，$g_2$ 条从 Gaussian 邻域做局部探索，$G = g_1 + g_2$。
++ 混合两种采样：$g_1$ 条按 softmax 概率做判别性选择，$g_2$ 条从 Gaussian 邻域做局部探索，$G = g_1 + g_2$。
 
-**策略优化**：组内归一化优势与 PPO 式裁剪：
++ **策略优化**：组内归一化优势与 PPO 式裁剪：
 
 $$
 A_i = \frac{r_{final}^i - \text{mean}(r_{final}^{1..G})}{\sqrt{\text{var}(r_{final}^{1..G})}}, \quad \rho = \exp(\log\pi_\theta - \log\pi_{old})
@@ -148,7 +148,7 @@ $$
 L_{total} = L_{actor} + L_{bc} + L_{kl}, \quad L_{bc} = \|\tau_{act} - \tau_{gt}\|_1, \quad L_{kl} = D_{KL}(\pi_\theta \| \pi_{ref})
 $$
 
-### 4. 实现细节
+**4. 实现细节**
 
 | 项目 | 设置 |
 |:--|:--|
@@ -163,7 +163,7 @@ $$
 
 ## Pipeline
 
-![DreamerAD 整体框架](https://arxiv.org/html/2603.24587v2/main.png)
+![DreamerAD 整体框架](../images/DreamerAD-architecture.png)
 
 1. **World model 适配**：Epona 在 NavSim 上以 2 Hz 微调，对齐生成间隔。
 2. **步数蒸馏**：用 shortcut forcing 训练 SF-WM，使其支持 1–4 步采样。
@@ -176,7 +176,7 @@ $$
 
 **1) NAVSIM v2 navtest（Table 1）**
 
-测试集为 136 个场景，指标为 EPDMS（NC / DAC / DDC / TLC / EP / TTC / LK / HC / EC 聚合）。
++ 测试集为 136 个场景，指标为 EPDMS（NC / DAC / DDC / TLC / EP / TTC / LK / HC / EC 聚合）。
 
 | Method | NC | DAC | DDC | TLC | EP | TTC | LK | HC | EC | EPDMS |
 |:--|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
@@ -192,7 +192,7 @@ $$
 | Epona (Base) | 97.1 | 95.7 | 99.3 | 99.7 | 88.6 | 96.3 | 97.0 | 98.0 | 67.8 | 85.1 |
 | **DreamerAD** | **98.0** | **97.2** | **99.5** | **99.8** | **87.8** | **97.4** | **97.5** | **98.3** | **72.4** | **87.7** |
 
-相对 Epona：NC +0.9、DAC +1.5、TTC +1.1、LK +0.5、HC +0.3、EC +4.6，EP −0.8，EPDMS +2.6。作者把 EP 下降解释为 safety-first 的主动取舍。
++ 相对 Epona：NC +0.9、DAC +1.5、TTC +1.1、LK +0.5、HC +0.3、EC +4.6，EP −0.8，EPDMS +2.6。作者把 EP 下降解释为 safety-first 的主动取舍。
 
 **2) NAVSIM v1 navtest（Table 2）**
 
@@ -207,7 +207,7 @@ $$
 | Epona (Base) | C-Only | 97.9 | 95.1 | 93.8 | 99.9 | 80.4 | 86.2 |
 | **DreamerAD** | **C-Only** | **98.0** | **97.2** | **94.3** | **100.0** | **83.1** | **88.7** |
 
-相对 Epona：NC +0.1、DAC +2.1、TTC +0.5、Comf +0.1、EP +2.7，PDMS +2.5。论文的表述是 "state-of-the-art among all world-model-based methods"——全表最高仍是 RecogDrive 90.8 与 AutoVLA 89.1。
++ 相对 Epona：NC +0.1、DAC +2.1、TTC +0.5、Comf +0.1、EP +2.7，PDMS +2.5。论文的表述是 "state-of-the-art among all world-model-based methods"——全表最高仍是 RecogDrive 90.8 与 AutoVLA 89.1。
 
 **3) 组件消融（Table 3）**
 
@@ -220,7 +220,7 @@ $$
 | 5 | ✓ | ✓ | WorldRFT | 86.6 |
 | 6 | ✓ | ✓ | Flow-GRPO | 87.0 |
 
-拆分来看：SF-WM 带来 +1.3（ID2 → ID4），AD-RM 带来 +0.7（ID3 → ID4），采样方式相对 Flow-GRPO +0.7、相对 WorldRFT +1.1。
++ 拆分来看：SF-WM 带来 +1.3（ID2 → ID4），AD-RM 带来 +0.7（ID3 → ID4），采样方式相对 Flow-GRPO +0.7、相对 WorldRFT +1.1。
 
 **4) 采样步数与延迟（Table 4）**
 
@@ -230,7 +230,7 @@ $$
 | 4 | 0.10 | 87.8 |
 | 1 | 0.03 | 87.7 |
 
-1 步与 16 步的 EPDMS 几乎相同，说明在该设置下规划性能对 world model 采样步数不敏感。
++ 1 步与 16 步的 EPDMS 几乎相同，说明在该设置下规划性能对 world model 采样步数不敏感。
 
 **5) 奖励模型数据量（Table 5）**
 
@@ -241,7 +241,7 @@ $$
 | 40% | 87.5 |
 | 100% | 87.7 |
 
-作者据此认为奖励模型只需少量数据即可学到好坏驾驶行为的差异。
++ 作者据此认为奖励模型只需少量数据即可学到好坏驾驶行为的差异。
 
 **Critical reading**
 
@@ -283,11 +283,11 @@ $$
 + **可迁移点**：
   + shortcut forcing 的 step embedding（同时以 $t$ 和 $d$ 为条件）可以直接套到任何 flow-matching 视频模型上，把它变成 1–4 步 sampler；对需要高频采样的 planner/RL 场景是通用加速手段。
   + "在受限候选集上用规则/仿真器打标签 → 训练 latent reward model → RL 时替代环境" 这套流程，可以迁移到其他难以实时仿真的具身任务。
- + 以策略输出为均值、在词表上按 Mahalanobis 距离做混合采样，是一种通用的 constrained exploration 方案，比直接对连续动作加 Gaussian 噪声更不容易跳出可行域。
+  + 以策略输出为均值、在词表上按 Mahalanobis 距离做混合采样，是一种通用的 constrained exploration 方案，比直接对连续动作加 Gaussian 噪声更不容易跳出可行域。
 
 + **待跟进**：
-  + 在 navhard / 反应式闭环上，latent reward model 是否仍然有效？EP 与安全项的拉锯会如何变化？
-  + 奖励模型对未见轨迹的校准误差是多少？能否用 conformal prediction 或 ensemble 给出不确定性，从而避免 reward hacking？
-  + $\sigma$、$g_1/g_2$ 的取值与敏感性；词表过滤阈值（10 m / 5 m / 20°）是否会把真正需要的避险动作排除在外？
-  + Epona 的 nuPlan 预训练与 NavSim navtest 是否存在场景重叠？若存在，基线 85.1 与最终 87.7 都需要重新解读。
-  + 与 "best-of-N + 真 PDM 打分" 的选择上界相比，学习到的奖励模型还差多少？这决定了 latent reward 是否值得替代仿真器。
+  - **latent reward 在长尾场景下的有效性**：现有验证只在 navtest 的常规场景，若换到 navhard 或反应式闭环，EP 与安全项的拉锯是否会改变、奖励模型是否会偏向保守或冒进，目前没有证据。
+  - **奖励模型的校准与不确定性**：论文没有报告 held-out 轨迹上的校准误差，也没有给出与 "best-of-N + 真 PDM 打分" 的上界差距；这两项决定了 latent reward 能否安全地替代仿真器。
+  - **采样超参与词表覆盖**：$\sigma$、$g_1/g_2$ 未给出取值和敏感性分析，10 m / 5 m / 20° 的过滤阈值也可能把必要的避险动作排除在词表之外，需要看词表在 cut-in、施工区等场景下的覆盖率。
+  - **预训练数据重叠**：Epona 在 nuPlan 上预训练而 NavSim 由 nuPlan 构建，navtrain/navtest 与预训练场景的重叠程度会直接影响 85.1 → 87.7 这一提升的解释。
+  - **训练效率的边界**：论文的 "efficient" 只体现在推理侧，32 张 H20、奖励模型约一周的训练成本没有与 ReSim、WorldRFT 等方法做同口径对比。
