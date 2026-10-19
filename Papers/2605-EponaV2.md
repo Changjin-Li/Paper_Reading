@@ -28,30 +28,30 @@ date_added: 2026-10-18
 
 ## Method
 
-### 0. 总体框架
+**0. 总体框架**
 
-两阶段训练：
++ 两阶段训练：
 
-1. **Stage 1（建立未来推理能力）**：冻结 DINO-Tok，优化 world model backbone、depth head $f_d$、semantic head $f_{sam}$、flow matching planner $v_{traj}$ 与 future frame head $v_{img}$，损失为 $\mathcal{L}=\mathcal{L}_{traj}+\mathcal{L}_{img}+\mathcal{L}_d+\mathcal{L}_s$。
-2. **Stage 2（提升规划精度）**：冻结其余所有组件，只用 flow matching GRPO 微调 $v_{traj}$。
+  + **Stage 1（建立未来推理能力）**：冻结 DINO-Tok，优化 world model backbone、depth head $f_d$、semantic head $f_{sam}$、flow matching planner $v_{traj}$ 与 future frame head $v_{img}$，损失为 $\mathcal{L}=\mathcal{L}_{traj}+\mathcal{L}_{img}+\mathcal{L}_d+\mathcal{L}_s$。
+  + **Stage 2（提升规划精度）**：冻结其余所有组件，只用 flow matching GRPO 微调 $v_{traj}$。
 
-输入只有 $N$ 帧前视视频 $\{I_i\}_{i=1}^{N}$ 与对应相对运动 $\{\Delta A_i\}_{i=1}^{N}$，不使用任何人工感知标注。
++ 输入只有 $N$ 帧前视视频 $\{I_i\}_{i=1}^{N}$ 与对应相对运动 $\{\Delta A_i\}_{i=1}^{N}$，不使用任何人工感知标注。
 
-### 1. World Model Backbone 与 Flow Matching Heads
+**1. World Model Backbone 与 Flow Matching Heads**
 
-每帧独立经冻结的 DINO-based tokenizer `DINO-Tok` 编码为特征序列 $\{F_i\}_{i=1}^{N}$，与动作一起送入以 Qwen3-VL 4B 语言部分初始化的 backbone。backbone 使用 causal attention mask，保证未来帧特征不会影响当前帧推断：
++ 每帧独立经冻结的 DINO-based tokenizer `DINO-Tok` 编码为特征序列 $\{F_i\}_{i=1}^{N}$，与动作一起送入以 Qwen3-VL 4B 语言部分初始化的 backbone。backbone 使用 causal attention mask，保证未来帧特征不会影响当前帧推断：
 
 $$
 \{F'_1,\Delta A'_1,\dots,F'_N,\Delta A'_N\}=\mathrm{WM}(\{F_1,\Delta A_1,\dots,F_N,\Delta A_N\})
 $$
 
-**Rectified flow matching planner**：以推断出的 $\{F'_i,\Delta A'_i\}$ 为条件，从数据样本 $x_0$ 指向噪声 $x_1\sim\mathcal{N}(0,I)$ 预测速度场：
++ **Rectified flow matching planner**：以推断出的 $\{F'_i,\Delta A'_i\}$ 为条件，从数据样本 $x_0$ 指向噪声 $x_1\sim\mathcal{N}(0,I)$ 预测速度场：
 
 $$
 dx_t=v_{traj}(F'_i,\Delta A'_i,x_t,t)\,dt,\quad t\in[0,1]
 $$
 
-训练时的加噪路径与回归目标：
++ 训练时的加噪路径与回归目标：
 
 $$
 x_t=(1-t)x_0+t x_1,\quad t\in[0,1]
@@ -61,13 +61,13 @@ $$
 \mathcal{L}_{traj}=\left\|v_{traj}(F'_i,\Delta A'_i,x_t,t)-(x_1-x_0)\right\|^2
 $$
 
-推理时从 $\hat{x}_1\sim\mathcal{N}(0,I)$ 出发做 Euler 积分：
++ 推理时从 $\hat{x}_1\sim\mathcal{N}(0,I)$ 出发做 Euler 积分：
 
 $$
 \hat{x}_{t+\Delta t}=\hat{x}_t+v_{traj}(F'_i,\Delta A'_i,\hat{x}_t,t)\Delta t
 $$
 
-**Future frame predictor**：沿用 Epona 的下一帧 latent 预测，条件为推断出的未来表征与相对运动 $\Delta A_{i+1}$：
++ **Future frame predictor**：沿用 Epona 的下一帧 latent 预测，条件为推断出的未来表征与相对运动 $\Delta A_{i+1}$：
 
 $$
 \mathcal{L}_{img}=\left\|v_{img}(F'_i,\Delta A'_i,\Delta A_{i+1},t,F^t_{i+1})-(\epsilon-F_{i+1})\right\|^2
@@ -77,23 +77,23 @@ $$
 F^t_{i+1}=(1-t)F_{i+1}+t\epsilon,\quad \epsilon\sim\mathcal{N}(0,I)
 $$
 
-推理阶段 $\Delta A_{i+1}$ 不再由 GT 给出，而由轨迹规划器自行预测。
++ 推理阶段 $\Delta A_{i+1}$ 不再由 GT 给出，而由轨迹规划器自行预测。
 
-### 2. Comprehensive Future Reasoning：未来深度与未来语义
+**2. Comprehensive Future Reasoning：未来深度与未来语义**
 
-**未来深度**：轻量 depth head 从 $F'_i$ 与规划器预测的 $\Delta\hat{A}_{i+1}$ 解码下一帧 metric depth 与 confidence map：
++ **未来深度**：轻量 depth head 从 $F'_i$ 与规划器预测的 $\Delta\hat{A}_{i+1}$ 解码下一帧 metric depth 与 confidence map：
 
 $$
 \{\hat{d}_{i+1},\hat{c}_{i+1}\}=f_d(F'_i,\Delta\hat{A}_{i+1})
 $$
 
-监督信号为 Depth-Anything-V3 生成的伪 metric depth $d_{i+1}$，并按 Metric3D 的 canonical focal length 缩放。损失为 confidence-weighted L1 加 spatial gradient 项：
++ 监督信号为 Depth-Anything-V3 生成的伪 metric depth $d_{i+1}$，并按 Metric3D 的 canonical focal length 缩放。损失为 confidence-weighted L1 加 spatial gradient 项：
 
 $$
 \mathcal{L}_d=\hat{c}_{i+1}\left\|\hat{d}_{i+1}-d_{i+1}\right\|_1-\lambda_c\log\hat{c}_{i+1}+\left\|\nabla_x\hat{d}_{i+1}-\nabla_x d_{i+1}\right\|_1+\left\|\nabla_y\hat{d}_{i+1}-\nabla_y d_{i+1}\right\|_1
 $$
 
-**未来语义**：不预测分割 mask，而是预测 SAM3 的 text-fused 特征图。文本 prompt 经 SAM3 text branch 得到 $h_{text}$，semantic head 输出下一帧的 text-aligned feature：
++ **未来语义**：不预测分割 mask，而是预测 SAM3 的 text-fused 特征图。文本 prompt 经 SAM3 text branch 得到 $h_{text}$，semantic head 输出下一帧的 text-aligned feature：
 
 $$
 \hat{h}_{i+1}=f_{sam}(F'_i,\Delta\hat{A}_{i+1},h_{text}),\quad \mathcal{L}_s=\left\|\hat{h}_{i+1}-h_{i+1}\right\|^2
@@ -101,9 +101,9 @@ $$
 
 其中 $h_{i+1}$ 是 SAM3 在下一帧生成的伪标签，实验只用 `car` 与 `human` 两个 prompt。为加速收敛，depth 与 semantic 两个分支训练时都把预测的 $\Delta\hat{A}_{i+1}$ 替换成 GT 相对运动。
 
-### 3. Flow Matching GRPO
+**3. Flow Matching GRPO**
 
-沿用 Flow-GRPO，把确定性 flow ODE 采样改写成 SDE，使每个去噪步成为一个 Gaussian policy：
++ 沿用 Flow-GRPO，把确定性 flow ODE 采样改写成 SDE，使每个去噪步成为一个 Gaussian policy：
 
 $$
 \hat{x}_{t+\Delta t}=\mu_\theta(\hat{x}_t,t)+\sigma_t\sqrt{|\Delta t|}\,\epsilon,\quad \epsilon\sim\mathcal{N}(0,I)
@@ -117,13 +117,13 @@ $$
 \sigma_t=a\sqrt{\frac{t}{1-t}}
 $$
 
-对同一场景采样 $G$ 条轨迹，计算组内标准化优势：
++ 对同一场景采样 $G$ 条轨迹，计算组内标准化优势：
 
 $$
 A_g=\frac{r_g-\mathrm{mean}(\{r_g\}_{g=1}^{G})}{\mathrm{std}(\{r_g\}_{g=1}^{G})}
 $$
 
-**奖励设计**：不能直接用 PDMS，因为算 PDMS 需要人工感知标注。作者把生成轨迹施加到模拟车辆上，以**GT 轨迹与模拟车辆轨迹的偏差**定义 $r_g$。策略损失对整条去噪链做 discounted log-likelihood：
++ **奖励设计**：不能直接用 PDMS，因为算 PDMS 需要人工感知标注。作者把生成轨迹施加到模拟车辆上，以**GT 轨迹与模拟车辆轨迹的偏差**定义 $r_g$。策略损失对整条去噪链做 discounted log-likelihood：
 
 $$
 \mathcal{L}_{rl}=-\frac{1}{G}\sum_{g=1}^{G}\frac{1}{T}\sum_{t=1}^{T}\gamma^{t-1}\log\pi_\theta(\hat{x}^g_{t-1}\mid\hat{x}^g_t)A_g
@@ -135,7 +135,7 @@ $$
 \mathcal{L}_{il}=\left\|v_{traj}(F'_i,\Delta A'_i,\hat{x}_t,t)-\frac{\hat{x}_t-x_0}{t}\right\|^2,\quad \mathcal{L}_{grpo}=\mathcal{L}_{rl}+\lambda_{il}\mathcal{L}_{il}
 $$
 
-### 4. 实现细节
+**4. 实现细节**
 
 | 项目 | 设置 |
 |:--|:--|
@@ -164,7 +164,7 @@ $$
 
 ## Key Results
 
-### 1) NAVSIMv1 navtest（Table 1，PDMS）
+**1) NAVSIMv1 navtest（Table 1，PDMS）**
 
 | Method | Perception | Input | NC | DAC | EP | TTC | C | PDMS |
 |:--|:--:|:--|--:|--:|--:|--:|--:|--:|
@@ -182,7 +182,7 @@ $$
 
 相对最强的 perception-free 基线 DriveLaW（89.1）为 +1.3 PDMS，这也是摘要中 "+1.3 PDMS" 的来源。全表最高仍是 perception-based 的 SafeDrive 91.6；EponaV2 比 ReCogDrive 90.8、AutoDrive-P3 90.6 也略低。
 
-### 2) NAVSIMv2 navtest（Table 3，EPDMS）
+**2) NAVSIMv2 navtest（Table 3，EPDMS）**
 
 | Method | Perception | NC | DAC | DDC | TLC | EP | TTC | LK | HC | EC | EPDMS |
 |:--|:--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
@@ -198,7 +198,7 @@ $$
 
 相对 DriveLaW 只有 +0.3 EPDMS。EC 为 77.4，与 DriveLaW 相同，明显低于 DiffusionDrive 87.7 与 Tranfuser 87.2。
 
-### 3) NAVSIMv2 navhard（Table 2，两阶段伪闭环评测）
+**3) NAVSIMv2 navhard（Table 2，两阶段伪闭环评测）**
 
 | Method | Perception | Stage | NC | DAC | DDC | TLC | EP | TTC | LK | HC | EC | EPDMS |
 |:--|:--:|:--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
@@ -215,11 +215,11 @@ $$
 | **EponaV2** | | **1** | **97.3** | **90.7** | **99.4** | **100** | **83.3** | **97.3** | **97.3** | **97.6** | **60.9** | **36.1** |
 | **EponaV2** | | **2** | **83.6** | **78.0** | **88.0** | **98.9** | **86.0** | **80.3** | **50.1** | **96.1** | **52.0** | **–** |
 
-`Stage 1/2` 指 NAVSIMv2 的两阶段伪闭环评测协议，不是本文的训练阶段。表中 EPDMS 只出现在 Stage 1 行（multirow 垂直居中），Stage 2 行不报 EPDMS。相对 DriveLaW 的 +5.5 EPDMS（36.1 vs 30.6）来自 Stage 1，也是摘要中 "+5.5 EPDMS" 的来源。perception-based RAP 为 39.6，仍高于 EponaV2。
++ `Stage 1/2` 指 NAVSIMv2 的两阶段伪闭环评测协议，不是本文的训练阶段。表中 EPDMS 只出现在 Stage 1 行（multirow 垂直居中），Stage 2 行不报 EPDMS。相对 DriveLaW 的 +5.5 EPDMS（36.1 vs 30.6）来自 Stage 1，也是摘要中 "+5.5 EPDMS" 的来源。perception-based RAP 为 39.6，仍高于 EponaV2。
 
-值得注意的是，所有方法进入 Stage 2 后单项指标都明显退化（EponaV2：NC 97.3→83.6、DAC 90.7→78.0、LK 97.3→50.1）。由于 Stage 2 不报 EPDMS，无法判断最终闭环排序，但退化幅度说明该协议下的反应式交互仍是所有方法的薄弱环节。
++ 值得注意的是，所有方法进入 Stage 2 后单项指标都明显退化（EponaV2：NC 97.3→83.6、DAC 90.7→78.0、LK 97.3→50.1）。由于 Stage 2 不报 EPDMS，无法判断最终闭环排序，但退化幅度说明该协议下的反应式交互仍是所有方法的薄弱环节。
 
-### 4) 未来预测损失消融（Table 4，3.5B 模型）
+**4) 未来预测损失消融（Table 4，3.5B 模型）**
 
 | $\mathcal{L}_{traj}$ | $\mathcal{L}_{img}$ | $\mathcal{L}_d$ | $\mathcal{L}_s$ | NC | DAC | EP | TTC | C | PDMS |
 |:--:|:--:|:--:|:--:|--:|--:|--:|--:|--:|--:|
@@ -229,27 +229,27 @@ $$
 | ✓ | ✓ | ✓ | | 97.1 | 95.4 | 80.6 | 92.3 | 99.9 | 85.6 |
 | ✓ | ✓ | ✓ | ✓ | **97.7** | **96.1** | **81.4** | **93.5** | **100** | **86.9** |
 
-逐项增量：$+\mathcal{L}_{img}$ +0.4、$+\mathcal{L}_d$ +0.8、$+\mathcal{L}_{img}+\mathcal{L}_d$ +1.2、再加 $\mathcal{L}_s$ 到全量为 +2.5。语义项的边际增益（+1.3）最大，主要来自 NC、DAC、EP。
++ 逐项增量：$+\mathcal{L}_{img}$ +0.4、$+\mathcal{L}_d$ +0.8、$+\mathcal{L}_{img}+\mathcal{L}_d$ +1.2、再加 $\mathcal{L}_s$ 到全量为 +2.5。语义项的边际增益（+1.3）最大，主要来自 NC、DAC、EP。
 
-### 5) 预测未来 vs 预测当前（Table 5，仅 depth 自监督）
+**5) 预测未来 vs 预测当前（Table 5，仅 depth 自监督）**
 
 | Prediction | NC | DAC | EP | TTC | C | PDMS |
 |:--|--:|--:|--:|--:|--:|--:|
 | Present Frame | 96.3 | 94.5 | 78.8 | 90.8 | 99.8 | 83.6 |
 | Future Frame | 97.3 | 95.0 | 79.4 | 93.2 | 99.9 | 85.2 |
 
-同为 depth 自监督，预测未来帧比预测当前帧高 +1.6 PDMS。
++ 同为 depth 自监督，预测未来帧比预测当前帧高 +1.6 PDMS。
 
-### 6) Flow Matching GRPO 消融（Table 6）
+**6) Flow Matching GRPO 消融（Table 6）**
 
 | Model | NC | DAC | EP | TTC | C | PDMS |
 |:--|--:|--:|--:|--:|--:|--:|
 | EponaV2 w/o $\mathcal{L}_{grpo}$ | 98.6 | 97.3 | 83.6 | 95.3 | 99.9 | 89.4 |
 | **EponaV2** | **98.6** | **97.9** | **84.8** | **95.7** | **100** | **90.4** |
 
-+1.0 PDMS 中 EP 贡献 +1.2、DAC +0.6、TTC +0.4、C +0.1，NC 不变。
++ 1.0 PDMS 中 EP 贡献 +1.2、DAC +0.6、TTC +0.4、C +0.1，NC 不变。
 
-### Critical reading
+**Critical reading**
 
 - **三个 benchmark 的增益口径不同**：摘要写 "+1.3 PDMS, +5.5 EPDMS"，前者是 NAVSIMv1 navtest 相对 DriveLaW，后者是 navhard **Stage 1** 相对 DriveLaW。在最常被引用的 NAVSIMv2 navtest 上只领先 0.3（88.9 vs 88.6），且 EC 与 DriveLaW 持平（77.4）。"SOTA" 仅在 perception-free 子集内成立。
 - **navhard Stage 2 退化了但未讨论**：NC 下降 13.7、LK 下降 47.2，所有方法都有类似趋势；论文没有分析原因，也没有报 Stage 2 的 EPDMS，读者无法判断方法在反应式闭环中的真实排序。
