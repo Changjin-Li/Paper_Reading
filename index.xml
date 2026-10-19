@@ -10,7 +10,7 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2609-DriveZero</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2609-DriveZero</guid>
     <description><![CDATA[ Summary 把端到端驾驶拆成动作模型与感知模型分别在各自最适合的训练范式下预训练，再用蒸馏重新合并。动作侧 DriveRL 是一个 5.7M 参数的特权策略，在由真实 nuPlan 日志初始化的 mixed-agent 交互世界中从零开始用 PPO 训练，输入结构化场景状态与两点 goal，输出 jerk 与 steering-rate 的 Beta 分布；推理时用 critic 做 value-guided test-time action search（TTS）。感知侧 DriveVFM 把 DINOv3、SigLIP2、SAM、Depth Anything V2 四个冻结 found... ]]></description>
-    <pubDate>Mon, 19 Oct 2026 09:16:54 GMT</pubDate>
+    <pubDate>Mon, 19 Oct 2026 09:20:46 GMT</pubDate>
   </item><item>
     <title>ExploreVLA: Dense World Modeling and Exploration for End-to-End Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-ExploreVLA</link>
