@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>DiffusionDrive: Truncated Diffusion Model for End-to-End Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2411-DiffusionDrive</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2411-DiffusionDrive</guid>
+    <description><![CDATA[ Summary 把机器人领域成熟的 conditional diffusion policy 搬到端到端自动驾驶，但不从纯 Gaussian 噪声开始去噪：先用 K-Means 在训练集轨迹上聚类出 20 个 anchor，只在 anchor 周围加少量噪声（训练 schedule 截断到 50/1000）构造 anchored Gaussian 分布，让网络学习”从 anchor 附近恢复到 GT 轨迹”。配合一个 transformer diffusion decoder（deformable spatial cross-attention + agent/map cross-attent... ]]></description>
+    <pubDate>Mon, 19 Oct 2026 03:57:24 GMT</pubDate>
+  </item><item>
     <title>EponaV2: Driving World Model with Comprehensive Future Reasoning</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</guid>
@@ -58,12 +64,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-CriticVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2604-CriticVLA</guid>
     <description><![CDATA[ Summary CriticVLA 主张 VLA 不该只是”从多模态输入直接回归控制信号”的 action generator，而应先”判断”再”驾驶”。它提出一个 two-stage、critic-centric 框架：Stage-1 用 VLA 生成一条 rough trajectory，Stage-2 复用同一个 VLA（充当 multimodal critic）对该轨迹做结构化自然语言风险分析并输出纠正建议，再由 query-based delta adaptor 把建议转成对轨迹的精细化修正。配套构建 CriticDrive——1290 万条带标注轨迹的大规模合成数据集。在 Benc... ]]></description>
-    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
-  </item><item>
-    <title>SpanVLA: Learning from Negative-Recovery Samples with Fast Action Bridging for Vision-Language-Action Model</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-SpanVLA</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2604-SpanVLA</guid>
-    <description><![CDATA[ Summary 针对驾驶 VLA 的两个痛点——autoregressive action decoding 延迟高、且仅用正样本监督导致长尾鲁棒性不足——SpanVLA 提出 efficient action bridge（稀疏 KV-cache 条件 + 历史轨迹初始化的 flow-matching action expert）与 NR-RFT（基于 GRPO 的负样本惩罚 / 恢复奖励后训练），并发布首个同时含 negative 与 expert recovery 样本的真实世界驾驶数据集与 benchmark nuReasoning-NR。方法在 NAVSIM v1/v2、nuReas... ]]></description>
     <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
   </item>
     </channel>
