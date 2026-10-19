@@ -80,6 +80,12 @@ date_added: 2026-10-14
 ## Notes
 
 - **方法与既有工作的关系**：直接对标 `ReCogDrive`（末层 feature + diffusion）与 `Alpamayo`（dense 全层 KV + flow matching）；借鉴 `AutoVLA` 的 action codebook 与 adaptive reasoning；RFT 上以 `GRPO` + 非对称奖励区别于 takeover + `DPO` 路线。
-- **可迁移点**：①"稀疏层 KV cache 条件"是省算力的多粒度特征聚合思路，可能可迁移到其他 VLM→action 的 bridge；②"历史初始化取代纯噪声"对任何 flow-matching / diffusion policy 都值得一试；③`advantage correction`（去 std 归一化 + 零 reward 组的虚拟参考）是通用 `GRPO` 技巧。
-- **待跟进**：数据集/benchmark code 发布后应复核；best-of-N 口径下的公平比较值得关注；该文与本 vault GUI/Embodied 方向的连接点主要在 VLA + agentic-RL 范式。
+- **可迁移点**：
+  - "稀疏层 KV cache 条件"是省算力的多粒度特征聚合思路，可能可迁移到其他 VLM→action 的 bridge；
+  - "历史初始化取代纯噪声"对任何 flow-matching / diffusion policy 都值得一试；
+  - `advantage correction`（去 std 归一化 + 零 reward 组的虚拟参考）是通用 `GRPO` 技巧。
+- **待跟进**：
+  - 数据集/benchmark code 发布后应复核；
+  - best-of-N 口径下的公平比较值得关注；
+  - 该文与本 vault GUI/Embodied 方向的连接点主要在 VLA + agentic-RL 范式。
 - **repo_candidate**：`code: https://github.com/motional/SpanVLA`（数据集 "Coming Soon"）。

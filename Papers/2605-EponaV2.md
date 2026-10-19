@@ -293,10 +293,10 @@ $$
   + 在 flow matching planner 上用 SDE + 组内标准化优势 + IL 正则做 RL，是一套低改动、易复用的后训练方案；IL 正则同时起到防止 reward hacking 的作用。
   + "预测未来 vs 预测当前"的对照设计可以作为评估自监督目标是否真正服务于规划的标准实验。
 
-+ **待跟进问题**：
-  + 伪标签质量与最终性能的关系是什么？用 GT depth（nuScenes 有 LiDAR）做上界实验，能缩小与 perception-based 方法的差距吗？
-  + 语义头只用了 `car` / `human` 两个 prompt；扩展到交通灯、骑行者、施工区等类别，增益是否会更大？prompt 数量与类别选择如何影响 NC/DAC？
-  + 为什么 navhard Stage 2 所有方法都大幅退化？是评测协议的分布偏移，还是反应式交互下 world model 的 rollout 误差累积？需要逐帧误差分析。
-  + GRPO 的奖励只惩罚与 GT 的偏差，是否会抑制必要的避险绕行？加入碰撞、舒适性、规则合规项后，EP 与 NC 的 trade-off 会如何变化？
-  + depth 与 semantic 两个 head 的参数量、训练开销占比是多少？如果换成更强的 foundation model（如更新的 depth/segmentation 模型），性能上限在哪里？
-  + 全量 6.7B 模型上逐项 loss 消融是否保持同样趋势？缩尺实验的结论能否外推？
++ **待跟进**：
+  - **伪标签的性能上界**：用 GT depth（nuScenes LiDAR）与 GT segmentation 替换 Depth-Anything-V3 / SAM3 伪标签，量化当前与 perception-based 方法差距中有多少来自标签噪声。
+  - **语义 prompt 的覆盖范围**：从 `car` / `human` 扩展到交通灯、骑行者、施工区等规划关键类别，观察 NC / DAC 的变化。
+  - **navhard Stage 2 退化的归因**：区分两阶段评测协议的分布偏移与反应式交互下 world model rollout 的误差累积，需要逐帧误差分析。
+  - **GRPO 奖励设计**：在 GT 轨迹偏差之外加入碰撞、舒适性、规则合规项，观察 EP 与 NC 的 trade-off，并与 best-of-N 上界对比。
+  - **辅助 head 的开销与上限**：depth / semantic head 的参数量、训练开销占比，以及换用更强 foundation model 后性能上限在哪里。
+  - **全量 6.7B 的逐项消融**：验证 3.5B 缩尺模型上的 loss 边际增益能否外推到主模型。

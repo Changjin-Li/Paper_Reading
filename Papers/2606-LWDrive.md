@@ -240,18 +240,16 @@ L2 0.37 m 为表中最低；CR 0.16% 并非最低（RDA-Driver 0.10、UniAD 0.12
 
 **论文定位**：把 VLM 的角色从"轨迹生成器"改成"意图提供者 + 前瞻特征源"，世界模型退化为训练期正则项。真正承重的设计是 proposal-refinement-score 这条几何精修链路，VLM 提供的是条件与特征，而不是最终输出。
 
-**可迁移点**
++ **可迁移点**：
+  - **future-frame latent denoising 作为 hidden-state 正则**：只需一个冻结 VAE + 小 world head，就能把"预测未来"压进任意 VLM 的中间层，推理零成本。适合作为其他 planner 的 auxiliary objective。
+  - **按层稀疏注入**：不必每层都接 refinement，按固定间隔取层即可；这比"只取最后一层"和"全层都接"都更划算，且实现简单（一次 index 选择）。
+  - **残差 + Min-over-N + 阶段折扣**：多 stage 精修时，早期 stage 用 $\beta^{R-r}$ 降权、每级只学残差，可避免深层 stage 梯度主导。
+  - **score head 用可仿真指标自监督**：用 NAVSIM 风格的 proposal score 做 BCE，把"选择"变成一个可学习排序问题，而不依赖专家轨迹的 argmin 标签。
 
-- **future-frame latent denoising 作为 hidden-state 正则**：只需一个冻结 VAE + 小 world head，就能把"预测未来"压进任意 VLM 的中间层，推理零成本。适合作为其他 planner 的 auxiliary objective。
-- **按层稀疏注入**：不必每层都接 refinement，按固定间隔取层即可；这比"只取最后一层"和"全层都接"都更划算，且实现简单（一次 index 选择）。
-- **残差 + Min-over-N + 阶段折扣**：多 stage 精修时，早期 stage 用 $\beta^{R-r}$ 降权、每级只学残差，可避免深层 stage 梯度主导。
-- **score head 用可仿真指标自监督**：用 NAVSIM 风格 proposal score 做 BCE，把"选择"变成一个可学习排序问题，而不依赖专家轨迹的 argmin 标签。
-
-**待跟进 / 疑问**
-
-- **Eq. 12 的权重写法**：论文写作 $\text{NC} \cdot \text{DAC} \cdot (5\text{EP} + 5\text{TTC} + 2\text{C}) / 12$，与 NAVSIM 官方 PDMS 的子项权重对应关系未作解释；且正文明确说子指标独立平均、无法由分项反推总分，因此无法用表中数字交叉验证该式。需要对照 NAVSIM 官方 evaluator 源码确认。
-- **Stage 2 中 world head 的去留**：论文只说冻结 backbone 与 action-query embeddings，未说明 world head 是否仍参与前向或是否被移除；若仍参与，Stage 2 的显存/计算开销会被低估。
-- **$N_p$ 与候选多样性**：候选池大小、初始化方式（除 TPM 外是否加噪声/聚类）都未给出，直接影响推理延迟与 Min-over-N 的行为。
-- **延迟与参数量**：36 层 Qwen2.5-VL-3B + 6 个 refinement stage + ResNet-34 BEV encoder 的实际 FPS 未知，无法判断能否上车。
-- **未来帧监督的因果性**：缺少"world-model 监督质量 ↔ 规划增益"的定量联系（如 future latent 重建误差 vs PDMS），目前只有 86.3 → 92.0 的整体差值。
-- **"closed-loop" 表述**：若后续引用该论文的结论，应改写为"non-reactive pseudo-simulation"，避免与真实闭环仿真混淆。
++ **待跟进**：
+  - **Eq. 12 的权重写法**：论文写作 $\text{NC} \cdot \text{DAC} \cdot (5\text{EP} + 5\text{TTC} + 2\text{C}) / 12$，与 NAVSIM 官方 PDMS 的子项权重对应关系未作解释；且正文明确说子指标独立平均、无法由分项反推总分，因此无法用表中数字交叉验证该式。需要对照 NAVSIM 官方 evaluator 源码确认。
+  - **Stage 2 中 world head 的去留**：论文只说冻结 backbone 与 action-query embeddings，未说明 world head 是否仍参与前向或是否被移除；若仍参与，Stage 2 的显存/计算开销会被低估。
+  - **$N_p$ 与候选多样性**：候选池大小、初始化方式（除 TPM 外是否加噪声/聚类）都未给出，直接影响推理延迟与 Min-over-N 的行为。
+  - **延迟与参数量**：36 层 Qwen2.5-VL-3B + 6 个 refinement stage + ResNet-34 BEV encoder 的实际 FPS 未知，无法判断能否上车。
+  - **未来帧监督的因果性**：缺少"world-model 监督质量 ↔ 规划增益"的定量联系（如 future latent 重建误差 vs PDMS），目前只有 86.3 → 92.0 的整体差值。
+  - **"closed-loop" 表述**：若后续引用该论文的结论，应改写为"non-reactive pseudo-simulation"，避免与真实闭环仿真混淆。

@@ -85,5 +85,12 @@ date_added: 2026-10-15
 ## Notes
 
 - **与既有工作的关系**：`V-CoT` 与既有"视觉域 CoT"（如 `CoT-VLA`）思路同源；`ToT-Evaluation` 借鉴 Tree-of-Thought 的多路径探索 + 自评估，并把它落成"逐 waypoint 打分 + 累计分 argmax"的轻量形式。未来场景生成装置沿用 `MoVQGAN` / `VQGAN` 离散 visual token 的自回归范式（与世界模型 `GAIA-1` / `DriveDreamer` 同族），差别在于把生成结果**直接用作规划的 goal**而非仅做合成。Backbone 为 `Qwen2-VL-2B`。
-- **可迁移点**：①"在视觉域做 CoT（生成未来观测作为 goal）而非文本 CoT"是缓解 modality gap 的通用思路，可用于其他具身 VLA 的预测式推理；②"生成多条候选 → 按显式维度逐点打分 → 选累计最优"是把搜索式 deliberation 塞进单次前向的轻量方案，可迁移到需要多维权衡的规划 / 导航任务；③safety / progress / comfort 三轴可解释打分作为中间监督，是可复用的多目标评估接口。
-- **待跟进**：闭环（`CARLA` / `Bench2Drive`）与真实路测验证；ToT 候选生成策略与 $N$ 的敏感性分析；`V-CoT` 生成式预判的推理开销 vs 精度收益帕累托；跨数据集 / 长时域泛化。
+- **可迁移点**：
+  - "在视觉域做 CoT（生成未来观测作为 goal）而非文本 CoT"是缓解 modality gap 的通用思路，可用于其他具身 VLA 的预测式推理；
+  - "生成多条候选 → 按显式维度逐点打分 → 选累计最优"是把搜索式 deliberation 塞进单次前向的轻量方案，可迁移到需要多维权衡的规划 / 导航任务；
+  - "safety / progress / comfort 三轴可解释打分作为中间监督，是可复用的多目标评估接口。
+- **待跟进**：
+  - "闭环（`CARLA` / `Bench2Drive`）与真实路测验证"；
+  - "ToT 候选生成策略与 $N$ 的敏感性分析"；
+  - "`V-CoT` 生成式预判的推理开销 vs 精度收益帕累托"；
+  - "跨数据集 / 长时域泛化"。

@@ -81,4 +81,7 @@ date_added: 2026-10-15
 ## Notes
 
 - **与既有工作的关系**：感知侧直接复用 `LLaVA v1.5` + `StreamPETR`；latent reasoning 思路与"把 CoT 迁到连续空间"的相关工作同源；planner 侧以因果混合注意力 + 并行多尺度解码区别于逐尺度自回归回归方案；maneuver 预测（`focal loss`）借鉴驾驶规划常见做法。
-- **可迁移点**：①用可学习 meta-query（由轨迹聚类初始化）注入任务的"高层模式先验"值得迁移到其他具身任务的 latent reasoning；②causality-preserving 掩码设计是"并行解码 + 防未来泄漏"的通用方案；③`Top-K` + `Gumbel-Softmax` 的稀疏实体选择可用于任何需要从长序列中挑关键 token 的场景。
+- **可迁移点**：
+  - 用可学习 meta-query（由轨迹聚类初始化）注入任务的"高层模式先验"值得迁移到其他具身任务的 latent reasoning；
+  - causality-preserving 掩码设计是"并行解码 + 防未来泄漏"的通用方案；
+  - `Top-K` + `Gumbel-Softmax` 的稀疏实体选择可用于任何需要从长序列中挑关键 token 的场景。

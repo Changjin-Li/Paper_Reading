@@ -99,5 +99,12 @@ date_added: 2026-10-15
 ## Notes
 
 - **在 VLA 谱系中的位置**：`AutoVLA` 是"**单模型、完全端到端**"路线的代表作，直接对标 `DriveVLM` 的双系统（slow VLM + fast planner）——后者被其批评为"架构复杂、非完全端到端"；与 `EMMA`（text waypoint 输出）相比，其 physical action token 在 Table 5 中被证明更优。
-- **可迁移点**：① **K-disk 动作离散化**是把连续控制并入自回归 LM 的通用手段，可迁移到机器人操作；② **$r = r_{\text{task}} - \lambda_r r_{\text{length}}$ 的"抑制过度思考"奖励**对任何"CoT 长但收益递减"的推理模型都适用；③ fast/slow thinking 的自适应切换（由 RFT 习得）可作为推理效率优化的通用范式。
-- **待跟进/疑问**：① 代码/权重/数据集官网标注 "We will release"（截至撰写尚未发布），复现性待观察；② Table 5 显示 physical action 全面优于 text waypoint，但两者是否公平对齐了推理预算需查正文；③ Fig 4 data-scaling 中 action-only 与 reasoning 两条曲线的具体 PDM 数值存在抽取歧义，本笔记只做定性描述未引用具体数字；④ best-of-N 92.12 的采样次数与额外算力未展开。
+- **可迁移点**：
+  - **K-disk 动作离散化**是把连续控制并入自回归 LM 的通用手段，可迁移到机器人操作；
+  - **$r = r_{\text{task}} - \lambda_r r_{\text{length}}$ 的"抑制过度思考"奖励**对任何"CoT 长但收益递减"的推理模型都适用；
+  - fast/slow thinking 的自适应切换（由 RFT 习得）可作为推理效率优化的通用范式。
+- **待跟进**：
+  - 代码/权重/数据集官网标注 "We will release"（截至撰写尚未发布），复现性待观察；
+  - Table 5 显示 physical action 全面优于 text waypoint，但两者是否公平对齐了推理预算需查正文；
+  - Fig 4 data-scaling 中 action-only 与 reasoning 两条曲线的具体 PDM 数值存在抽取歧义，本笔记只做定性描述未引用具体数字；
+  - best-of-N 92.12 的采样次数与额外算力未展开。

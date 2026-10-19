@@ -278,18 +278,16 @@ $$
 
 ## Notes
 
-**论文定位**：把 video world model 当作 RL 的 latent simulator，用可学习的 dense reward 替代昂贵的环境交互，并用轨迹词表把 exploration 限制在物理可行流形内。核心贡献是 "让 world model 快到可以参与 RL 循环"，而不是提出新的世界模型结构。
++ **论文定位**：把 video world model 当作 RL 的 latent simulator，用可学习的 dense reward 替代昂贵的环境交互，并用轨迹词表把 exploration 限制在物理可行流形内。核心贡献是 "让 world model 快到可以参与 RL 循环"，而不是提出新的世界模型结构。
 
-**可迁移点**
++ **可迁移点**：
+  + shortcut forcing 的 step embedding（同时以 $t$ 和 $d$ 为条件）可以直接套到任何 flow-matching 视频模型上，把它变成 1–4 步 sampler；对需要高频采样的 planner/RL 场景是通用加速手段。
+  + "在受限候选集上用规则/仿真器打标签 → 训练 latent reward model → RL 时替代环境" 这套流程，可以迁移到其他难以实时仿真的具身任务。
+ + 以策略输出为均值、在词表上按 Mahalanobis 距离做混合采样，是一种通用的 constrained exploration 方案，比直接对连续动作加 Gaussian 噪声更不容易跳出可行域。
 
-- shortcut forcing 的 step embedding（同时以 $t$ 和 $d$ 为条件）可以直接套到任何 flow-matching 视频模型上，把它变成 1–4 步 sampler；对需要高频采样的 planner/RL 场景是通用加速手段。
-- "在受限候选集上用规则/仿真器打标签 → 训练 latent reward model → RL 时替代环境" 这套流程，可以迁移到其他难以实时仿真的具身任务。
-- 以策略输出为均值、在词表上按 Mahalanobis 距离做混合采样，是一种通用的 constrained exploration 方案，比直接对连续动作加 Gaussian 噪声更不容易跳出可行域。
-
-**待跟进问题**
-
-- 在 navhard / 反应式闭环上，latent reward model 是否仍然有效？EP 与安全项的拉锯会如何变化？
-- 奖励模型对未见轨迹的校准误差是多少？能否用 conformal prediction 或 ensemble 给出不确定性，从而避免 reward hacking？
-- $\sigma$、$g_1/g_2$ 的取值与敏感性；词表过滤阈值（10 m / 5 m / 20°）是否会把真正需要的避险动作排除在外？
-- Epona 的 nuPlan 预训练与 NavSim navtest 是否存在场景重叠？若存在，基线 85.1 与最终 87.7 都需要重新解读。
-- 与 "best-of-N + 真 PDM 打分" 的选择上界相比，学习到的奖励模型还差多少？这决定了 latent reward 是否值得替代仿真器。
++ **待跟进**：
+  + 在 navhard / 反应式闭环上，latent reward model 是否仍然有效？EP 与安全项的拉锯会如何变化？
+  + 奖励模型对未见轨迹的校准误差是多少？能否用 conformal prediction 或 ensemble 给出不确定性，从而避免 reward hacking？
+  + $\sigma$、$g_1/g_2$ 的取值与敏感性；词表过滤阈值（10 m / 5 m / 20°）是否会把真正需要的避险动作排除在外？
+  + Epona 的 nuPlan 预训练与 NavSim navtest 是否存在场景重叠？若存在，基线 85.1 与最终 87.7 都需要重新解读。
+  + 与 "best-of-N + 真 PDM 打分" 的选择上界相比，学习到的奖励模型还差多少？这决定了 latent reward 是否值得替代仿真器。

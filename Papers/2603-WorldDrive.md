@@ -259,17 +259,15 @@ date_added: 2026-10-18
 - 把 driving world model 当作**表征预训练器 + 轨迹评估器**，而不是推理时必须调用的视频模拟器；核心贡献是把"共享表征"从口号落成一条可执行的两阶段继承 pipeline。
 - 更接近 "world model as pretraining + reranker" 的路线，而不是 "world model as online simulator" 的路线。
 
-**可迁移点**
++ **可迁移点**：
+  - **轨迹词表 + 残差**可作为任何视频 world model 的通用运动条件接口：粗锚点负责多模态覆盖，残差负责精度。
+  - **frozen encoder inheritance** 可迁移到"大规模视频/世界模型预训练 → 下游规划/控制"的场景，显著降低下游训练成本。
+  - **train-only future latent distillation + Bradley-Terry ranking** 是一种把生成模型的前瞻能力压缩进轻量 scorer 的通用模板，可复用到其他 candidate reranking 任务。
+  - **top-K 候选 + hard negative + random negative** 的偏好对构造方式简单，适合候选集规模不大的场景。
 
-- **轨迹词表 + 残差**可作为任何视频 world model 的通用运动条件接口：粗锚点负责多模态覆盖，残差负责精度。
-- **frozen encoder inheritance** 可迁移到"大规模视频/世界模型预训练 → 下游规划/控制"的场景，显著降低下游训练成本。
-- **train-only future latent distillation + Bradley-Terry ranking** 是一种把生成模型的前瞻能力压缩进轻量 scorer 的通用模板，可复用到其他 candidate reranking 任务。
-- **top-K 候选 + hard negative + random negative** 的偏好对构造方式简单，适合候选集规模不大的场景。
-
-**待跟进问题**
-
-- 如果不用 PDMS/仿真分数、而用真实碰撞或人工偏好构造 preference，FAR 的 +1.2 还剩多少？
-- 训练 FAR 时 $z_k$ 是如何得到的：每个候选都跑完整扩散采样，还是用单步/少步近似？这部分数据构造成本没有报告。
-- EPDMS 的权重定义是什么？EP 大幅下降是否意味着策略在用"慢"换"安全"？
-- 多视角、多传感器扩展后，representation inheritance 是否仍然成立，还是单目视频预训练的表征会成为瓶颈？
-- 能否把 TA-DWM 的生成能力用于 hard case mining / data augmentation，而不仅是表征预训练与离线可视化？
++ **待跟进**：
+  - 如果不用 PDMS/仿真分数、而用真实碰撞或人工偏好构造 preference，FAR 的 +1.2 还剩多少？
+  - 训练 FAR 时 $z_k$ 是如何得到的：每个候选都跑完整扩散采样，还是用单步/少步近似？这部分数据构造成本没有报告。
+  - EPDMS 的权重定义是什么？EP 大幅下降是否意味着策略在用"慢"换"安全"？
+  - 多视角、多传感器扩展后，representation inheritance 是否仍然成立，还是单目视频预训练的表征会成为瓶颈？
+  - 能否把 TA-DWM 的生成能力用于 hard case mining / data augmentation，而不仅是表征预训练与离线可视化？
