@@ -175,6 +175,11 @@
       "survey": "WorldModel-Survey",
       "paper": "Papers\\2605-EponaV2.md",
       "added_at": "2026-10-19"
+    },
+    {
+      "survey": "EmbodiedAI-Survey",
+      "paper": "Papers\\2606-PriorEye.md",
+      "added_at": "2026-10-19"
     }
   ],
   "unrouted": [
