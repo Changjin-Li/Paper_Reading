@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr"><head><title>DriveZero: End-to-End Driving Beyond Human Demonstrations</title><meta charset="utf-8"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted Grotesk:wght@400;700&amp;family=Source Sans Pro:ital,wght@0,400;0,600;1,400;1,600&amp;family=IBM Plex Mono:wght@400;600&amp;display=swap"/><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="og:site_name" content="Paper Reading"/><meta property="og:title" content="DriveZero: End-to-End Driving Beyond Human Demonstrations"/><meta property="og:type" content="website"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="DriveZero: End-to-End Driving Beyond Human Demonstrations"/><meta name="twitter:description" content="Summary 把端到端驾驶拆成动作模型与感知模型分别在各自最适合的训练范式下预训练，再用蒸馏重新合并。动作侧 DriveRL 是一个 5.7M 参数的特权策略，在由真实 nuPlan 日志初始化的 mixed-agent 交互世界中从零开始用 PPO 训练，输入结构化场景状态与两点 goal，输出 jerk 与 steering-rate 的 Beta 分布；推理时用 critic 做 value-guided test-time action search（TTS）。感知侧 DriveVFM 把 DINOv3、SigLIP2、SAM、Depth Anything V2 四个冻结 found..."/><meta property="og:description" content="Summary 把端到端驾驶拆成动作模型与感知模型分别在各自最适合的训练范式下预训练，再用蒸馏重新合并。动作侧 DriveRL 是一个 5.7M 参数的特权策略，在由真实 nuPlan 日志初始化的 mixed-agent 交互世界中从零开始用 PPO 训练，输入结构化场景状态与两点 goal，输出 jerk 与 steering-rate 的 Beta 分布；推理时用 critic 做 value-guided test-time action search（TTS）。感知侧 DriveVFM 把 DINOv3、SigLIP2、SAM、Depth Anything V2 四个冻结 found..."/><meta property="og:image:alt" content="Summary 把端到端驾驶拆成动作模型与感知模型分别在各自最适合的训练范式下预训练，再用蒸馏重新合并。动作侧 DriveRL 是一个 5.7M 参数的特权策略，在由真实 nuPlan 日志初始化的 mixed-agent 交互世界中从零开始用 PPO 训练，输入结构化场景状态与两点 goal，输出 jerk 与 steering-rate 的 Beta 分布；推理时用 critic 做 value-guided test-time action search（TTS）。感知侧 DriveVFM 把 DINOv3、SigLIP2、SAM、Depth Anything V2 四个冻结 found..."/><meta property="og:image" content="https://changjin-li.github.io/Paper_Reading/static/og-image.png"/><meta property="og:image:url" content="https://changjin-li.github.io/Paper_Reading/static/og-image.png"/><meta name="twitter:image" content="https://changjin-li.github.io/Paper_Reading/static/og-image.png"/><meta property="og:image:type" content="image/.png"/><meta property="twitter:domain" content="changjin-li.github.io/Paper_Reading"/><meta property="og:url" content="https://changjin-li.github.io/Paper_Reading/Papers/2609-DriveZero"/><meta property="twitter:url" content="https://changjin-li.github.io/Paper_Reading/Papers/2609-DriveZero"/><link rel="icon" href="../static/icon.png"/><meta name="description" content="Summary 把端到端驾驶拆成动作模型与感知模型分别在各自最适合的训练范式下预训练，再用蒸馏重新合并。动作侧 DriveRL 是一个 5.7M 参数的特权策略，在由真实 nuPlan 日志初始化的 mixed-agent 交互世界中从零开始用 PPO 训练，输入结构化场景状态与两点 goal，输出 jerk 与 steering-rate 的 Beta 分布；推理时用 critic 做 value-guided test-time action search（TTS）。感知侧 DriveVFM 把 DINOv3、SigLIP2、SAM、Depth Anything V2 四个冻结 found..."/><meta name="generator" content="Quartz"/><link href="../index.css" rel="stylesheet" type="text/css" data-persist="true"/><style>.expand-button {
+  position: absolute;
+  display: flex;
+  float: right;
+  padding: 0.4rem;
+  margin: 0.3rem;
+  right: 0;
+  color: var(--gray);
+  border-color: var(--dark);
+  background-color: var(--light);
+  border: 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  transition: 0.2s;
+}
+.expand-button > svg {
+  fill: var(--light);
+  filter: contrast(0.3);
+}
+.expand-button:hover {
+  cursor: pointer;
+  border-color: var(--secondary);
+}
+.expand-button:focus {
+  outline: 0;
+}
+
+pre:hover > .expand-button {
+  opacity: 1;
+  transition: 0.2s;
+}
+
+#mermaid-container {
+  position: fixed;
+  contain: layout;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+#mermaid-container.active {
+  display: inline-block;
+}
+#mermaid-container > #mermaid-space {
+  border: 1px solid var(--lightgray);
+  background-color: var(--light);
+  border-radius: 5px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+#mermaid-container > #mermaid-space > .mermaid-content {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.1s ease;
+  overflow: visible;
+  min-height: 200px;
+  min-width: 200px;
+}
+#mermaid-container > #mermaid-space > .mermaid-content pre {
+  margin: 0;
+  border: none;
+}
+#mermaid-container > #mermaid-space > .mermaid-content svg {
+  max-width: none;
+  height: auto;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  color: var(--dark);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--bodyFont);
+  transition: all 0.2s ease;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:hover {
+  background: var(--lightgray);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:active {
+  transform: translateY(1px);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:nth-child(2) {
+  width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiL2hvbWUvcnVubmVyL3dvcmsvUGFwZXJfUmVhZGluZy9QYXBlcl9SZWFkaW5nL3dlYnNpdGUvcXVhcnR6L2NvbXBvbmVudHMvc3R5bGVzIiwic291cmNlcyI6WyJtZXJtYWlkLmlubGluZS5zY3NzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTtFQUNBOztBQUdGO0VBQ0U7RUFDQTs7QUFHRjtFQUNFOzs7QUFLRjtFQUNFO0VBQ0E7OztBQUlKO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTs7QUFFQTtFQUNFOztBQUdGO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTtFQUNBOztBQUdGO0VBQ0U7RUFDQTs7QUFJSjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7O0FBR0Y7RUFDRTs7QUFJRjtFQUNFO0VBQ0E7RUFDQSIsInNvdXJjZXNDb250ZW50IjpbIi5leHBhbmQtYnV0dG9uIHtcbiAgcG9zaXRpb246IGFic29sdXRlO1xuICBkaXNwbGF5OiBmbGV4O1xuICBmbG9hdDogcmlnaHQ7XG4gIHBhZGRpbmc6IDAuNHJlbTtcbiAgbWFyZ2luOiAwLjNyZW07XG4gIHJpZ2h0OiAwOyAvLyBOT1RFOiByaWdodCB3aWxsIGJlIHNldCBpbiBtZXJtYWlkLmlubGluZS50c1xuICBjb2xvcjogdmFyKC0tZ3JheSk7XG4gIGJvcmRlci1jb2xvcjogdmFyKC0tZGFyayk7XG4gIGJhY2tncm91bmQtY29sb3I6IHZhcigtLWxpZ2h0KTtcbiAgYm9yZGVyOiAxcHggc29saWQ7XG4gIGJvcmRlci1yYWRpdXM6IDVweDtcbiAgb3BhY2l0eTogMDtcbiAgdHJhbnNpdGlvbjogMC4ycztcblxuICAmID4gc3ZnIHtcbiAgICBmaWxsOiB2YXIoLS1saWdodCk7XG4gICAgZmlsdGVyOiBjb250cmFzdCgwLjMpO1xuICB9XG5cbiAgJjpob3ZlciB7XG4gICAgY3Vyc29yOiBwb2ludGVyO1xuICAgIGJvcmRlci1jb2xvcjogdmFyKC0tc2Vjb25kYXJ5KTtcbiAgfVxuXG4gICY6Zm9jdXMge1xuICAgIG91dGxpbmU6IDA7XG4gIH1cbn1cblxucHJlIHtcbiAgJjpob3ZlciA+IC5leHBhbmQtYnV0dG9uIHtcbiAgICBvcGFjaXR5OiAxO1xuICAgIHRyYW5zaXRpb246IDAuMnM7XG4gIH1cbn1cblxuI21lcm1haWQtY29udGFpbmVyIHtcbiAgcG9zaXRpb246IGZpeGVkO1xuICBjb250YWluOiBsYXlvdXQ7XG4gIHotaW5kZXg6IDk5OTtcbiAgbGVmdDogMDtcbiAgdG9wOiAwO1xuICB3aWR0aDogMTAwdnc7XG4gIGhlaWdodDogMTAwdmg7XG4gIG92ZXJmbG93OiBoaWRkZW47XG4gIGRpc3BsYXk6IG5vbmU7XG4gIGJhY2tkcm9wLWZpbHRlcjogYmx1cig0cHgpO1xuICBiYWNrZ3JvdW5kOiByZ2JhKDAsIDAsIDAsIDAuNSk7XG5cbiAgJi5hY3RpdmUge1xuICAgIGRpc3BsYXk6IGlubGluZS1ibG9jaztcbiAgfVxuXG4gICYgPiAjbWVybWFpZC1zcGFjZSB7XG4gICAgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tbGlnaHRncmF5KTtcbiAgICBiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS1saWdodCk7XG4gICAgYm9yZGVyLXJhZGl1czogNXB4O1xuICAgIHBvc2l0aW9uOiBmaXhlZDtcbiAgICB0b3A6IDUwJTtcbiAgICBsZWZ0OiA1MCU7XG4gICAgdHJhbnNmb3JtOiB0cmFuc2xhdGUoLTUwJSwgLTUwJSk7XG4gICAgaGVpZ2h0OiA4MHZoO1xuICAgIHdpZHRoOiA4MHZ3O1xuICAgIG92ZXJmbG93OiBoaWRkZW47XG5cbiAgICAmID4gLm1lcm1haWQtY29udGVudCB7XG4gICAgICBwb3NpdGlvbjogcmVsYXRpdmU7XG4gICAgICB0cmFuc2Zvcm0tb3JpZ2luOiAwIDA7XG4gICAgICB0cmFuc2l0aW9uOiB0cmFuc2Zvcm0gMC4xcyBlYXNlO1xuICAgICAgb3ZlcmZsb3c6IHZpc2libGU7XG4gICAgICBtaW4taGVpZ2h0OiAyMDBweDtcbiAgICAgIG1pbi13aWR0aDogMjAwcHg7XG5cbiAgICAgIHByZSB7XG4gICAgICAgIG1hcmdpbjogMDtcbiAgICAgICAgYm9yZGVyOiBub25lO1xuICAgICAgfVxuXG4gICAgICBzdmcge1xuICAgICAgICBtYXgtd2lkdGg6IG5vbmU7XG4gICAgICAgIGhlaWdodDogYXV0bztcbiAgICAgIH1cbiAgICB9XG5cbiAgICAmID4gLm1lcm1haWQtY29udHJvbHMge1xuICAgICAgcG9zaXRpb246IGFic29sdXRlO1xuICAgICAgYm90dG9tOiAyMHB4O1xuICAgICAgcmlnaHQ6IDIwcHg7XG4gICAgICBkaXNwbGF5OiBmbGV4O1xuICAgICAgZ2FwOiA4cHg7XG4gICAgICBwYWRkaW5nOiA4cHg7XG4gICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodCk7XG4gICAgICBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgYm9yZGVyLXJhZGl1czogNnB4O1xuICAgICAgYm94LXNoYWRvdzogMCAycHggNHB4IHJnYmEoMCwgMCwgMCwgMC4xKTtcbiAgICAgIHotaW5kZXg6IDI7XG5cbiAgICAgIC5tZXJtYWlkLWNvbnRyb2wtYnV0dG9uIHtcbiAgICAgICAgZGlzcGxheTogZmxleDtcbiAgICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjtcbiAgICAgICAganVzdGlmeS1jb250ZW50OiBjZW50ZXI7XG4gICAgICAgIHdpZHRoOiAzMnB4O1xuICAgICAgICBoZWlnaHQ6IDMycHg7XG4gICAgICAgIHBhZGRpbmc6IDA7XG4gICAgICAgIGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgICAgIGJhY2tncm91bmQ6IHZhcigtLWxpZ2h0KTtcbiAgICAgICAgY29sb3I6IHZhcigtLWRhcmspO1xuICAgICAgICBib3JkZXItcmFkaXVzOiA0cHg7XG4gICAgICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICAgICAgZm9udC1zaXplOiAxNnB4O1xuICAgICAgICBmb250LWZhbWlseTogdmFyKC0tYm9keUZvbnQpO1xuICAgICAgICB0cmFuc2l0aW9uOiBhbGwgMC4ycyBlYXNlO1xuXG4gICAgICAgICY6aG92ZXIge1xuICAgICAgICAgIGJhY2tncm91bmQ6IHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgICAgIH1cblxuICAgICAgICAmOmFjdGl2ZSB7XG4gICAgICAgICAgdHJhbnNmb3JtOiB0cmFuc2xhdGVZKDFweCk7XG4gICAgICAgIH1cblxuICAgICAgICAvLyBTdHlsZSB0aGUgcmVzZXQgYnV0dG9uIGRpZmZlcmVudGx5XG4gICAgICAgICY6bnRoLWNoaWxkKDIpIHtcbiAgICAgICAgICB3aWR0aDogYXV0bztcbiAgICAgICAgICBwYWRkaW5nOiAwIDEycHg7XG4gICAgICAgICAgZm9udC1zaXplOiAxNHB4O1xuICAgICAgICB9XG4gICAgICB9XG4gICAgfVxuICB9XG59XG4iXX0= */</style><link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet" type="text/css" data-persist="true"/><script src="../prescript.js" type="application/javascript" data-persist="true"></script><script type="application/javascript" data-persist="true">const fetchData = fetch("../static/contentIndex.json").then(data => data.json())</script><link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://changjin-li.github.io/Paper_Reading/index.xml"/></head><body data-slug="Papers/2609-DriveZero"><div id="quartz-root" class="page"><div id="quartz-body"><div class="left sidebar"><h2 class="page-title"><a href="..">Paper Reading</a></h2><div class="spacer mobile-only"></div><div class="flex-component" style="flex-direction: row; flex-wrap: nowrap; gap: 1rem;"><div style="flex-grow: 1; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><div class="search"><button class="search-button"><svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title>Search</title><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"></path><circle cx="8" cy="8" r="7"></circle></g></svg><p>Search</p></button><div class="search-container"><div class="search-space"><input autocomplete="off" class="search-bar" name="search" type="text" aria-label="Search for something" placeholder="Search for something"/><div class="search-layout" data-preview="true"></div></div></div></div></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="darkmode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="dayIcon" x="0px" y="0px" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35" xml:space="preserve" aria-label="Dark mode"><title>Dark mode</title><path d="M6,17.5C6,16.672,5.328,16,4.5,16h-3C0.672,16,0,16.672,0,17.5    S0.672,19,1.5,19h3C5.328,19,6,18.328,6,17.5z M7.5,26c-0.414,0-0.789,0.168-1.061,0.439l-2,2C4.168,28.711,4,29.086,4,29.5    C4,30.328,4.671,31,5.5,31c0.414,0,0.789-0.168,1.06-0.44l2-2C8.832,28.289,9,27.914,9,27.5C9,26.672,8.329,26,7.5,26z M17.5,6    C18.329,6,19,5.328,19,4.5v-3C19,0.672,18.329,0,17.5,0S16,0.672,16,1.5v3C16,5.328,16.671,6,17.5,6z M27.5,9    c0.414,0,0.789-0.168,1.06-0.439l2-2C30.832,6.289,31,5.914,31,5.5C31,4.672,30.329,4,29.5,4c-0.414,0-0.789,0.168-1.061,0.44    l-2,2C26.168,6.711,26,7.086,26,7.5C26,8.328,26.671,9,27.5,9z M6.439,8.561C6.711,8.832,7.086,9,7.5,9C8.328,9,9,8.328,9,7.5    c0-0.414-0.168-0.789-0.439-1.061l-2-2C6.289,4.168,5.914,4,5.5,4C4.672,4,4,4.672,4,5.5c0,0.414,0.168,0.789,0.439,1.06    L6.439,8.561z M33.5,16h-3c-0.828,0-1.5,0.672-1.5,1.5s0.672,1.5,1.5,1.5h3c0.828,0,1.5-0.672,1.5-1.5S34.328,16,33.5,16z     M28.561,26.439C28.289,26.168,27.914,26,27.5,26c-0.828,0-1.5,0.672-1.5,1.5c0,0.414,0.168,0.789,0.439,1.06l2,2    C28.711,30.832,29.086,31,29.5,31c0.828,0,1.5-0.672,1.5-1.5c0-0.414-0.168-0.789-0.439-1.061L28.561,26.439z M17.5,29    c-0.829,0-1.5,0.672-1.5,1.5v3c0,0.828,0.671,1.5,1.5,1.5s1.5-0.672,1.5-1.5v-3C19,29.672,18.329,29,17.5,29z M17.5,7    C11.71,7,7,11.71,7,17.5S11.71,28,17.5,28S28,23.29,28,17.5S23.29,7,17.5,7z M17.5,25c-4.136,0-7.5-3.364-7.5-7.5    c0-4.136,3.364-7.5,7.5-7.5c4.136,0,7.5,3.364,7.5,7.5C25,21.636,21.636,25,17.5,25z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="nightIcon" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100" xml:space="preserve" aria-label="Light mode"><title>Light mode</title><path d="M96.76,66.458c-0.853-0.852-2.15-1.064-3.23-0.534c-6.063,2.991-12.858,4.571-19.655,4.571  C62.022,70.495,50.88,65.88,42.5,57.5C29.043,44.043,25.658,23.536,34.076,6.47c0.532-1.08,0.318-2.379-0.534-3.23  c-0.851-0.852-2.15-1.064-3.23-0.534c-4.918,2.427-9.375,5.619-13.246,9.491c-9.447,9.447-14.65,22.008-14.65,35.369  c0,13.36,5.203,25.921,14.65,35.368s22.008,14.65,35.368,14.65c13.361,0,25.921-5.203,35.369-14.65  c3.872-3.871,7.064-8.328,9.491-13.246C97.826,68.608,97.611,67.309,96.76,66.458z"></path></svg></button></div></div><div class="explorer" data-behavior="link" data-collapsed="collapsed" data-savestate="false" data-data-fns="{&quot;order&quot;:[&quot;filter&quot;,&quot;map&quot;,&quot;sort&quot;],&quot;sortFn&quot;:&quot;(a,b)=>{let order=[\&quot;DomainMaps\&quot;,\&quot;Papers\&quot;,\&quot;Topics\&quot;,\&quot;Ideas\&quot;,\&quot;Projects\&quot;],aIdx=order.indexOf(a.displayName),bIdx=order.indexOf(b.displayName);return aIdx!==-1&amp;&amp;bIdx!==-1?aIdx-bIdx:aIdx!==-1?-1:bIdx!==-1?1:a.slug?.startsWith(\&quot;Papers/\&quot;)&amp;&amp;b.slug?.startsWith(\&quot;Papers/\&quot;)?b.displayName.localeCompare(a.displayName):a.displayName.localeCompare(b.displayName)}&quot;,&quot;filterFn&quot;:&quot;node=>node.slugSegment!==\&quot;tags\&quot;&quot;,&quot;mapFn&quot;:&quot;node=>{node.isFolder||(node.displayName=node.slugSegment)}&quot;}"><button type="button" class="explorer-toggle mobile-explorer hide-until-loaded" data-mobile="true" aria-controls="explorer-27"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-menu"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button><button type="button" class="title-button explorer-toggle desktop-explorer" data-mobile="false" aria-expanded="true"><h2>Explorer</h2><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div id="explorer-27" class="explorer-content" aria-expanded="false" role="group"><ul class="explorer-ul overflow" id="list-0"><li class="overflow-end"></li></ul></div><template id="template-file"><li><a href="#"></a></li></template><template id="template-folder"><li><div class="folder-container"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><polyline points="6 9 12 15 18 9"></polyline></svg><div><button class="folder-button"><span class="folder-title"></span></button></div></div><div class="folder-outer"><ul class="content"></ul></div></li></template></div></div><div class="center"><div class="page-header"><div class="popover-hint"><nav class="breadcrumb-container" aria-label="breadcrumbs"><div class="breadcrumb-element"><a href="../">Home</a><p> ❯ </p></div><div class="breadcrumb-element"><a href="../Papers/">Papers</a><p> ❯ </p></div><div class="breadcrumb-element"><a href>DriveZero: End to End Driving Beyond Human Demonstrations</a></div></nav><h1 class="article-title">DriveZero: End-to-End Driving Beyond Human Demonstrations</h1><div class="paper-meta"><span class="paper-venue">arXiv Technical Report</span><span class="paper-institute"><span class="meta-sep">·</span>AD &amp; Robotics, L3 Team, Xiaomi EV</span><span class="paper-authors"><span class="meta-sep">·</span>Hao He <button class="et-al-btn" aria-expanded="false">et al.</button><span class="authors-full" style="display:none"><span>, Chengcheng Hu</span><span>, Zirun Su</span><span>, Heng Zhang</span><span>, Haisong Liu</span><span>, Jinke Li</span><span>, Haochen Tian</span><span>, Zhenwei Shen</span><span>, Hongyang Li</span><span>, Zhichao Li</span><span>, Yunchen Yang</span><span>, Bochao Huang</span><span>, Siyu Zhang</span><span>, Kuangye Chen</span><span>, Xiongjie Zhang</span><span>, Wentao Dai</span><span>, Hengchen Dai</span><span>, Siyuan Liu</span><span>, Zehao Huang</span><span>, Naiyan Wang</span></span></span></div><p show-comma="true" class="content-meta"><time datetime="2026-10-19T09:02:08.000Z">Oct 19, 2026</time></p><ul class="tags"><li><a href="../tags/imitation-learning" class="internal tag-link">imitation-learning</a></li><li><a href="../tags/RL" class="internal tag-link">RL</a></li></ul></div></div><article class="popover-hint"><h2 id="summary">Summary<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#summary" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>把端到端驾驶拆成<strong>动作模型</strong>与<strong>感知模型</strong>分别在各自最适合的训练范式下预训练，再用蒸馏重新合并。动作侧 DriveRL 是一个 5.7M 参数的特权策略，在由真实 nuPlan 日志初始化的 mixed-agent 交互世界中从零开始用 PPO 训练，输入结构化场景状态与两点 goal，输出 jerk 与 steering-rate 的 Beta 分布；推理时用 critic 做 value-guided test-time action search（TTS）。感知侧 DriveVFM 把 DINOv3、SigLIP2、SAM、Depth Anything V2 四个冻结 foundation model 的特征蒸馏进一个 ViT backbone，不需要任何任务标注。最后 DriveZero 以 DriveVFM 为冻结 backbone（rank-32 Q/V LoRA），用 4 路相机输入预测 64 条轨迹 proposal，通过 winner-takes-all 拟合 DriveRL 的 rollout，并用 PDM 六项指标训练 proposal scoring。由于 teacher 是 goal-conditioned 的，可以对同一场景改查询不同导航意图，得到日志中不存在的多样化监督。结果：DriveRL 在 nuPlan 六个评测上均值 93.01（TTS 后 93.57），超过 Log-Replay；DriveZero 在 NAVSIMv1 navtest 上 94.8 PDMS 与人类司机持平，加 237K SimScale 仿真数据后 95.3；NAVSIMv2 navhard 51.5→57.1 EPDMS，HUGSIM 零样本 46.6 HD-Score。</p>
+<h2 id="problem--motivation">Problem &amp; Motivation<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#problem--motivation" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li>主流端到端驾驶用 behavior cloning 拟合人类日志，监督信号只有<strong>一条</strong>被记录的未来轨迹。同一场景下多个合理动作、安全关键的纠偏与恢复操作在日志中极少出现，策略一旦离开示范分布就会误差累积。</li>
+<li>闭环 RL 能优化显式目标、观察自身动作后果、访问并学会从扰动状态恢复，因此行为不被日志覆盖范围限制；但直接做视觉 RL 会把 sample-intensive 的探索与昂贵的视觉仿真耦合在一起，难以 scale。</li>
+<li>privileged RL teacher → visual student 的蒸馏路线（ROACH、GigaPixel、TerraTransfer）已经出现，但这些工作通常把视觉 encoder 当作现成组件，没有单独为驾驶预训练感知表征。</li>
+<li>作者的核心主张：<strong>perception 需要海量多样图像来理解世界，action 需要闭环交互来学会驾驶</strong>，二者应解耦预训练，再通过轨迹蒸馏统一到一个 camera-only planner 中。这样 student 既继承 RL 学到的闭环行为，又不需要进入渲染环境做在线探索。</li>
+<li>另一个被利用的性质是 teacher 的 goal-conditioning：日志只记录一个驾驶意图，而 teacher 可以在同一初始状态被查询不同 goal，从而生成反事实的、goal-consistent 的监督。</li>
+</ul>
+<h2 id="method">Method<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#method" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p><strong>0. 总体框架</strong></p>
+<ul>
+<li>三阶段：
+<ul>
+<li><strong>DriveRL</strong>：在结构化状态上用 mixed-agent 闭环 PPO 从零训练特权 teacher，另用 critic 做推理期 TTS。</li>
+<li><strong>DriveVFM</strong>：只用原始图像，把多个冻结视觉 foundation model 的特征蒸馏进单个驾驶 backbone。</li>
+<li><strong>DriveZero</strong>：camera-only student，冻结 DriveVFM，用 LoRA 适配，通过 WTA 轨迹蒸馏与 proposal scoring 学习 teacher 行为。</li>
+</ul>
+</li>
+<li>teacher 只在训练期使用，推理时完全移除；student 在 logged frame 上 open-loop 训练，从不进入交互环境。</li>
+</ul>
+<p><strong>1. DriveRL：结构化状态上的闭环 PPO teacher</strong></p>
+<ul>
+<li><strong>输入</strong>：每步观测 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">O</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 包含 ego、周围交通参与者、局部 vector map 与交通灯状态。ego 与每个 agent 用 5 帧历史（当前帧 + 4 帧，5 Hz）表示，最多 96 个 agent；map 最多 256 个 token，交通灯状态附着在对应 map element 上。导航意图用 ego frame 下的两点 goal <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">G</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord"><span class="mord mathbb">R</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span><span class="mbin mtight">×</span><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span> 表示。</li>
+<li><strong>Goal 构造</strong>：训练时从日志中的未来 ego 位置采样 1 或 2 个点（单点时复制到两个 slot），50% 保留日志位置、50% 投影到 20 m 内最近 lane center；部署时沿 route polyline 取 near/far 两个 anchor，look-ahead 距离随速度缩放，每步重算。两种来源共享同一个 permutation-invariant 两点接口。</li>
+<li><strong>Policy network</strong>：agent、ego kinematics、map 分别用独立 encoder 编码为 256 维 token；两个 goal 点经 sinusoidal positional encoding + 共享 MLP，再 mean-pool 成一个 goal feature。以 ego token 为唯一 query，先做 2 层 ego-to-agent cross-attention，再做 1 层 ego-to-map cross-attention；拼接 ego token、goal、kinematics、map context 后经 MLP 融合进入 policy head。总参数 5.7M。</li>
+<li><strong>动作分布</strong>：jerk 与 tire steering-angle rate 各用一个独立 Beta 分布，shape 参数用 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop"><span class="mord mathrm">softplus</span></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> 约束到 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">1</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">∞</span><span class="mclose">)</span></span></span></span>，保证单峰并抑制极端动作。训练时采样，评测时取解析 mode <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">1</span><span class="mclose">)</span><span class="mord">/</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.05278em;">β</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">2</span><span class="mclose">)</span></span></span></span>，再经 affine transform 映射到物理范围，由 kinematic bicycle model 执行。</li>
+<li><strong>Mixed-agent 仿真</strong>：每个背景 actor 通过统一的 physical state–action 接口挂载独立 behavior provider，支持 log replay、IDM、前车急刹与 learned policy（self-play）。训练配置中背景车用 batched IDM，少量车辆可被 front-vehicle braking 覆盖，行人保持 log replay。晚进入场景的 actor 只有在 ego 位姿距日志位姿 5 m / 0.35 rad 以内且不会碰撞时才被释放，避免 ego 偏离日志后出现不合理插入。</li>
+<li><strong>奖励</strong>：硬事件惩罚 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>、一次性到达奖励 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>、六项软质量分数 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8252em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord">0</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">1</span><span class="mclose">]</span></span></span></span>：</li>
+</ul>
+<p><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8778em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">PPO</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace"> </span><span class="mord text"><span class="mord">optimizes</span></span><span class="mspace" style="margin-right:1em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1.2em;vertical-align:-0.35em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size1">(</span></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8451em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.08125em;">H</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∏</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1864em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span><span class="mrel mtight">∈</span><span class="mord mathcal mtight" style="margin-right:0.01445em;">K</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3271em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size1">)</span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathcal" style="margin-right:0.01445em;">K</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord text"><span class="mord">cross-lane</span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord text"><span class="mord">centerline</span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord text"><span class="mord">curb</span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord text"><span class="mord">comfort</span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord text"><span class="mord">TTC</span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord text"><span class="mord">overspeed</span></span><span class="mclose">}</span></span></span></span></p>
+<p>其中 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.08125em;">H</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">110</span></span></span></span> 为 rollout 长度，<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 表示硬终止。乘积形式要求六项软指标<strong>同时</strong>满足，防止某一项的高分掩盖另一项的严重缺陷。碰撞罚 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">−</span><span class="mord">1.0</span></span></span></span>，off-road 终止并按速度给 base <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">−</span><span class="mord">2.0</span></span></span></span> 的惩罚；1.5 m 内首次到达给一次性 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">+</span><span class="mord">0.5</span></span></span></span>，goal arrival 不终止 rollout。</p>
+<ul>
+<li><strong>八通道 critic</strong>：把标量回报拆成 hard、goal 与六个 soft 通道，soft 通道按 deficit <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9805em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">b</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop">max</span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">0</span><span class="mclose">)</span></span></span></span> 归一化分配，保证 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.0497em;vertical-align:-0.2997em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.0017em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2997em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight">c</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>。每个通道独立做 GAE 与 clipped value loss；actor 使用八通道 advantage 之和。由于 reward 与折扣因子一致，该分解在数学上等价于对标量回报做 GAE，只是让 critic 监督更有结构。</li>
+<li><strong>训练规模</strong>：从 nuPlan trainval 取 922,703 个场景，10 Hz 导出、每两帧取一帧得到 5 Hz；12 节点 96 GPU，每 rank 2,048 worlds，全局 196,608 worlds 并行，110 步 rollout。每 rank 225,280 transitions，切成 11 个 20,480 的 minibatch，跑 4 个 PPO epoch，即每次 update 44 步；共 2,400 updates，约 21 小时。优化器 Muon，<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.05556em;">γ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0.99</span></span></span></span>，<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">λ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0.95</span></span></span></span>，clip 0.2/0.2，entropy 0.01，value 0.5，grad clip 0.5，lr <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">3</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">4</span></span></span></span></span></span></span></span></span></span></span></span> cosine 无 warmup。</li>
+</ul>
+<p><strong>2. Value-guided test-time action search（TTS）</strong></p>
+<ul>
+<li>每个 planner step 保留 Beta mode 作为候选 0，再从同一策略采样 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> 个首动作；每个候选做 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span></span></span></span> 步短 rollout，后续动作取同策略在候选诱导状态上的 mode，背景 actor 用 constant-turn-rate-and-acceleration 外推。</li>
+<li>候选打分复用训练奖励、折扣因子与 critic：</li>
+</ul>
+<p><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.888em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">i</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.3083em;vertical-align:-0.3271em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.9812em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">ℓ</span><span class="mrel mtight">=</span><span class="mord mtight">0</span></span></span></span><span style="top:-3.2029em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">L</span><span class="mbin mtight">−</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2997em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.05556em;">γ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8491em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">ℓ</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∏</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1864em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">u</span><span class="mrel mtight">&lt;</span><span class="mord mtight">ℓ</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3271em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">u</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">ℓ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1.1684em;vertical-align:-0.3271em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.05556em;">γ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">L</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∏</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1786em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">u</span><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">L</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3271em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">u</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.22222em;">V</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">O</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">L</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span></p>
+<ul>
+<li>只有最高分候选超过 modal action 的分数一个 margin <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.03785em;">δ</span></span></span></span> 时才替换，否则执行 modal action。所有候选并行 rollout，因此增大 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span></span></span></span> 主要增加并行计算，增大 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span></span></span></span> 才增加串行深度。默认 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">5</span></span></span></span>、<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.03785em;">δ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0.03</span></span></span></span>。</li>
+</ul>
+<p><strong>3. DriveVFM：多教师视觉表征蒸馏</strong></p>
+<ul>
+<li>共享 ViT 对每张图输出每个 foundation model 一个 summary token，以及一组共享 spatial patch token；每个冻结教师配一个轻量 adaptor，分别投影 summary 与 patch 表示。</li>
+<li><strong>非对称监督</strong>：DINOv3 同时监督 summary 与 patch；SigLIP2 只监督 summary；SAM 只监督 patch；Depth Anything V2 蒸馏其<strong>视觉特征</strong>而非 depth 预测（作者称 feature distillation 更好）。summary 用 cosine distance，patch 用 MSE：</li>
+</ul>
+<p><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">DriveVFM</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.8em;vertical-align:-0.65em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1864em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span><span class="mrel mtight">∈</span><span class="mord mathcal mtight" style="margin-right:0.25417em;">T</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3271em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size2">(</span></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-2.4169em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">sum</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2831em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-2.4169em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">sum</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2831em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.967em;"><span style="top:-2.3987em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span></span></span><span style="top:-3.1809em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">patch</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3013em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.967em;"><span style="top:-2.3987em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span></span></span><span style="top:-3.1809em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">patch</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3013em;"><span></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size2">)</span></span></span></span></span></span></p>
+<ul>
+<li><strong>PHI-S 标准化</strong>：不同教师特征的尺度、方差与各向异性差异很大，逐模型 loss 权重无法修正模型内部维度间的不平衡。PHI-S 用离线统计量中心化 patch 特征，做 PCA–Hadamard rotation 把方差均匀分配到各维，再用统一标量缩放，使每个教师成为条件相近的回归目标。</li>
+<li><strong>QK-Clip</strong>：训练中部分 attention head 的 QK 点积会快速增长，导致 loss spike。每次 optimizer update 后监测每个 head 的最大 pre-softmax logit，超过阈值 1,000 时对 query/key 投影权重做同比例平方根缩放，不改变 attention 形式。该约束同时让 FP16 部署近似无损（Table A14：mean abs 0.109→0.004，cosine 0.893→0.999）。</li>
+<li><strong>预训练 schedule</strong>：256×256 训练 600K iter，再 512×512 训练 200K iter，global batch 2,048，AdamW。数据混合 LAION-2B、ImageNet-21K、SA-1B 与 OpenDV、nuPlan、Waymo 的驾驶图像。预训练后丢弃所有教师与 adaptor，只保留 backbone。</li>
+</ul>
+<p><strong>4. DriveZero：把 RL teacher 蒸馏成 camera-only planner</strong></p>
+<ul>
+<li><strong>输入与架构</strong>：当前帧 4 路相机（CAM_F0/B0/L0/R0）、ego kinematics、由 teacher goal 导出的导航 command。DriveVFM 共享权重编码每路图像，视觉 token 加 3D positional embedding，再用 16 个 learnable register token 压缩成 scene token；ego kinematics 与 command 编码成一个 ego token，加到 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">M</span></span></span></span> 个 learnable trajectory query 上；4 层 trajectory decoder 通过 cross-attention 输出轨迹。独立的 scoring decoder 把每条候选轨迹编码成 score query，attend 视觉 token，预测 PDM 六项分量。</li>
+<li><strong>Teacher rollout 监督</strong>：每个 logged frame 上，冻结 teacher 接收结构化状态与 goal，在所有背景 actor 按日志运动的条件下 rollout 出 20 步轨迹 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8413em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.13889em;">T</span></span></span></span></span></span></span></span></span></span></span>，表示为 ego-relative <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.03588em;">y</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathrm" style="margin-right:0.01389em;">yaw</span></span><span class="mclose">)</span></span></span></span> 序列。student 的 64 条 proposal 中只有最近的一条参与回归：</li>
+</ul>
+<p><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">traj</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.2em;vertical-align:-0.35em;"></span><span class="mop"><span class="mop">min</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">m</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mord mathrm">dist</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size1">(</span></span><span class="mord"><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.2222em;"><span class="mord">^</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">m</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.13889em;">T</span></span></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size1">)</span></span></span></span></span></span></p>
+<p><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mop"><span class="mord mathrm">dist</span></span></span></span></span> 为逐点 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 平均。该 WTA 分配让不同 query 捕获不同驾驶模式，选择交给 scoring branch。</p>
+<ul>
+<li><strong>Proposal scoring</strong>：六项分量用 PDM 目标做 BCE，候选轨迹在进入 scoring 前 detach，使生成与排序解耦：</li>
+</ul>
+<p><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">score</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.3262em;vertical-align:-0.345em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8451em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.10903em;">M</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.9812em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">m</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.2029em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.10903em;">M</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2997em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.954em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.03148em;">k</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.2029em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">6</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2997em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathrm">BCE</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;">(</span><span class="mord mathnormal" style="margin-right:0.03588em;">σ</span><span class="mopen">(</span><span class="mord"><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">s</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.03148em;">mk</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.03148em;">mk</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;">)</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">DriveZero</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.9805em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">traj</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">traj</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">score</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">score</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></p>
+<ul>
+<li><strong>Goal augmentation</strong>：日志只有一条已实现轨迹，但 teacher 是 goal-conditioned 的。训练时先增广 route intent 与对应导航 command，再让 teacher 生成轨迹；同一增广 route 也用于评估 student proposal 的分数，保证 command、teacher 轨迹与 proposal score 三者一致。这样每个 logged scene 被扩展成多个有效监督目标。</li>
+<li><strong>推理</strong>：选预测总分最高的 proposal，不需要 teacher，也不需要渲染或闭环仿真。</li>
+</ul>
+<p><strong>5. 实现细节</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">项目</th><th style="text-align:left;">设置</th></tr></thead><tbody><tr><td style="text-align:left;">DriveRL 参数量 / token 宽 / heads</td><td style="text-align:left;">5.7M / 256 / 4</td></tr><tr><td style="text-align:left;">DriveRL attention</td><td style="text-align:left;">2 层 ego-to-agent + 1 层 ego-to-map</td></tr><tr><td style="text-align:left;">Agent / map 容量</td><td style="text-align:left;">96 agents（含 ego）/ 256 map tokens</td></tr><tr><td style="text-align:left;">动作空间</td><td style="text-align:left;">jerk <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord">−</span><span class="mord">8</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">5</span><span class="mclose">]</span></span></span></span> m/s³；steering rate <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord">−</span><span class="mord">0.8</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">0.8</span><span class="mclose">]</span></span></span></span> rad/s</td></tr><tr><td style="text-align:left;">车辆约束</td><td style="text-align:left;">加速度上限 4.0 m/s²；前轮转角上限 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.03588em;">π</span><span class="mord">/3</span></span></span></span> rad；轴距 3.09 m</td></tr><tr><td style="text-align:left;">DriveRL 分布式训练</td><td style="text-align:left;">12 节点 / 96 GPU；2,048 worlds/rank；全局 196,608 worlds</td></tr><tr><td style="text-align:left;">DriveRL rollout / update</td><td style="text-align:left;">110 步 @5 Hz；每 rank 225,280 transitions；11 minibatch × 4 epoch</td></tr><tr><td style="text-align:left;">DriveRL 优化</td><td style="text-align:left;">Muon；2,400 updates；lr <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">3</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">4</span></span></span></span></span></span></span></span></span></span></span></span> cosine；约 21 h</td></tr><tr><td style="text-align:left;">TTS 默认参数</td><td style="text-align:left;"><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">5</span></span></span></span>，<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.03785em;">δ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0.03</span></span></span></span>，<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7224em;vertical-align:-0.0391em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord">8</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">16</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">32</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">64</span><span class="mclose">}</span></span></span></span></td></tr><tr><td style="text-align:left;">DriveVFM 预训练</td><td style="text-align:left;">256² × 600K iter + 512² × 200K iter；batch 2,048；AdamW</td></tr><tr><td style="text-align:left;">DriveVFM 教师</td><td style="text-align:left;">DINOv3（summary+patch）、SigLIP2（summary）、SAM（patch）、Depth Anything V2（patch feature）</td></tr><tr><td style="text-align:left;">DriveVFM 稳定化</td><td style="text-align:left;">PHI-S；QK-Clip 阈值 1,000</td></tr><tr><td style="text-align:left;">DriveZero backbone</td><td style="text-align:left;">DriveVFM ViT-L（冻结）+ rank-32 Q/V LoRA</td></tr><tr><td style="text-align:left;">DriveZero 输入 / 输出</td><td style="text-align:left;">4 相机 960×512；20 步 @5 Hz</td></tr><tr><td style="text-align:left;">DriveZero 规划头</td><td style="text-align:left;">64 proposals；256 维；4 层 decoder；每相机 16 register tokens</td></tr><tr><td style="text-align:left;">DriveZero 参数量</td><td style="text-align:left;">可训练 18.58M / 总计 338.46M</td></tr><tr><td style="text-align:left;">DriveZero 训练</td><td style="text-align:left;">100K navtrain + 237K SimScale；16×H20；25 epochs；batch 256；AdamW lr <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">2</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">4</span></span></span></span></span></span></span></span></span></span></span></span> cosine；wd 0.01；grad clip 1.0；FP32；38 h</td></tr></tbody></table></div>
+<h2 id="pipeline">Pipeline<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#pipeline" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p><img src=".././images/DriveZero-architecture.png" alt="DriveZero 三阶段框架"/></p>
+<ol>
+<li><strong>构造交互世界</strong>：从 nuPlan 日志取场景，每个背景 actor 挂载 log replay / IDM / 前车急刹 / learned policy 之一。</li>
+<li><strong>训练特权 teacher</strong>：DriveRL 从随机初始化开始，用结构化状态与两点 goal 做闭环 PPO，学习 jerk 与 steering-rate 的 Beta 策略；同时训练八通道 critic。</li>
+<li><strong>推理期动作搜索</strong>：TTS 采样 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span></span></span></span> 个首动作，各做 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span></span></span></span> 步 rollout，用 critic bootstrap 打分，超过 margin <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.03785em;">δ</span></span></span></span> 才替换 modal action。</li>
+<li><strong>预训练视觉 backbone</strong>：DriveVFM 从原始图像蒸馏 DINOv3、SigLIP2、SAM、Depth Anything V2 的冻结特征，用 PHI-S 平衡异质目标。</li>
+<li><strong>生成监督</strong>：在每个 logged frame 上，冻结 teacher 接收结构化状态与 goal，rollout 出 20 步轨迹；训练时先增广导航意图，得到多样化 goal-consistent 轨迹。</li>
+<li><strong>训练 student</strong>：DriveZero 用冻结 DriveVFM + LoRA 编码 4 路相机，decoder 输出 64 条 proposal；最近 proposal 做 WTA 回归，scoring head 用 PDM 目标做 BCE。</li>
+<li><strong>部署</strong>：丢弃 teacher 与所有 foundation model，只保留 DriveVFM backbone 与 DriveZero 规划头；推理时选预测分数最高的 proposal。</li>
+</ol>
+<h2 id="key-results">Key Results<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#key-results" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p><strong>1) DriveRL 在 nuPlan 闭环评测（Table 2，CLS）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Method</th><th style="text-align:center;">Human</th><th style="text-align:right;">Val14 NR</th><th style="text-align:right;">Val14 R</th><th style="text-align:right;">Test14-hard NR</th><th style="text-align:right;">Test14-hard R</th><th style="text-align:right;">Test14-random NR</th><th style="text-align:right;">Test14-random R</th></tr></thead><tbody><tr><td style="text-align:left;">Log-Replay</td><td style="text-align:center;">✗</td><td style="text-align:right;">93.53</td><td style="text-align:right;">80.32</td><td style="text-align:right;">85.96</td><td style="text-align:right;">68.80</td><td style="text-align:right;">94.03</td><td style="text-align:right;">75.86</td></tr><tr><td style="text-align:left;">PDM-Closed</td><td style="text-align:center;">✓</td><td style="text-align:right;">92.84</td><td style="text-align:right;">92.12</td><td style="text-align:right;">65.08</td><td style="text-align:right;">75.19</td><td style="text-align:right;">90.05</td><td style="text-align:right;">91.63</td></tr><tr><td style="text-align:left;">CaRL</td><td style="text-align:center;">✗</td><td style="text-align:right;">93.87</td><td style="text-align:right;">93.12</td><td style="text-align:right;">–</td><td style="text-align:right;">85.00</td><td style="text-align:right;">–</td><td style="text-align:right;">–</td></tr><tr><td style="text-align:left;">GigaFlow</td><td style="text-align:center;">✗</td><td style="text-align:right;">–</td><td style="text-align:right;">93.80</td><td style="text-align:right;">–</td><td style="text-align:right;">–</td><td style="text-align:right;">–</td><td style="text-align:right;">–</td></tr><tr><td style="text-align:left;"><strong>DriveRL</strong></td><td style="text-align:center;">✗</td><td style="text-align:right;"><strong>95.16</strong></td><td style="text-align:right;"><strong>94.25</strong></td><td style="text-align:right;"><strong>89.97</strong></td><td style="text-align:right;"><strong>89.18</strong></td><td style="text-align:right;"><strong>94.50</strong></td><td style="text-align:right;"><strong>95.00</strong></td></tr><tr><td style="text-align:left;"><strong>DriveRL-TTS</strong></td><td style="text-align:center;">✗</td><td style="text-align:right;"><strong>95.54</strong></td><td style="text-align:right;"><strong>94.53</strong></td><td style="text-align:right;"><strong>91.13</strong></td><td style="text-align:right;">89.15</td><td style="text-align:right;"><strong>95.93</strong></td><td style="text-align:right;"><strong>95.12</strong></td></tr></tbody></table></div>
+<ul>
+<li>DriveRL 六项均值 93.01，超过 Log-Replay 的 83.08，且在全部六个设置上超过 Log-Replay；也超过 CaRL 与 GigaFlow 这两个同样不使用人类数据的已有方法。</li>
+<li>TTS 把均值提升 0.56 到 93.57，五项提升、Test14-hard R 基本不变（89.15 vs 89.18）。</li>
+</ul>
+<p><strong>2) TTS 的 test-time scaling（Table 3，固定 checkpoint）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Setting</th><th style="text-align:right;">Val14 NR</th><th style="text-align:right;">Val14 R</th><th style="text-align:right;">Hard NR</th><th style="text-align:right;">Hard R</th><th style="text-align:right;">Random NR</th><th style="text-align:right;">Random R</th><th style="text-align:right;">Mean</th><th style="text-align:right;">Δ</th></tr></thead><tbody><tr><td style="text-align:left;">DriveRL</td><td style="text-align:right;">95.16</td><td style="text-align:right;">94.25</td><td style="text-align:right;">89.97</td><td style="text-align:right;">89.18</td><td style="text-align:right;">94.50</td><td style="text-align:right;">95.00</td><td style="text-align:right;">93.01</td><td style="text-align:right;">0.00</td></tr><tr><td style="text-align:left;">TTS <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">8</span></span></span></span></td><td style="text-align:right;">95.17</td><td style="text-align:right;">94.49</td><td style="text-align:right;">89.97</td><td style="text-align:right;">89.05</td><td style="text-align:right;">94.92</td><td style="text-align:right;">95.11</td><td style="text-align:right;">93.12</td><td style="text-align:right;">+0.11</td></tr><tr><td style="text-align:left;">TTS <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">16</span></span></span></span></td><td style="text-align:right;">95.22</td><td style="text-align:right;">94.38</td><td style="text-align:right;">89.98</td><td style="text-align:right;">88.97</td><td style="text-align:right;">95.29</td><td style="text-align:right;">94.98</td><td style="text-align:right;">93.13</td><td style="text-align:right;">+0.13</td></tr><tr><td style="text-align:left;">TTS <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">32</span></span></span></span></td><td style="text-align:right;">95.49</td><td style="text-align:right;">94.43</td><td style="text-align:right;">90.95</td><td style="text-align:right;">88.85</td><td style="text-align:right;">95.83</td><td style="text-align:right;">94.84</td><td style="text-align:right;">93.40</td><td style="text-align:right;">+0.39</td></tr><tr><td style="text-align:left;">TTS <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">64</span></span></span></span></td><td style="text-align:right;">95.54</td><td style="text-align:right;">94.53</td><td style="text-align:right;">91.13</td><td style="text-align:right;">89.15</td><td style="text-align:right;">95.93</td><td style="text-align:right;">95.12</td><td style="text-align:right;">93.57</td><td style="text-align:right;">+0.56</td></tr></tbody></table></div>
+<ul>
+<li>收益集中在 non-reactive 的 Test14 拆分：Hard NR +1.16、Random NR +1.43；reactive 模式提升很小，Hard R 在 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">16/32</span></span></span></span> 时反而低于 baseline。</li>
+<li>作者把趋势解释为 test-time search 是局部 policy-improvement operator：候选越多，越可能找到一个短期 rollout 避开不利后果的首动作。</li>
+</ul>
+<p><strong>3) NAVSIMv1 navtest（Table 4，PDMS）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Method</th><th style="text-align:center;">Input</th><th style="text-align:center;">Human</th><th style="text-align:right;">NC</th><th style="text-align:right;">DAC</th><th style="text-align:right;">TTC</th><th style="text-align:right;">C</th><th style="text-align:right;">EP</th><th style="text-align:right;">PDMS</th></tr></thead><tbody><tr><td style="text-align:left;">Human Driver</td><td style="text-align:center;">GT</td><td style="text-align:center;">✓</td><td style="text-align:right;">100</td><td style="text-align:right;">100</td><td style="text-align:right;">100</td><td style="text-align:right;">99.9</td><td style="text-align:right;">87.5</td><td style="text-align:right;">94.8</td></tr><tr><td style="text-align:left;">PDM-Closed</td><td style="text-align:center;">GT</td><td style="text-align:center;">✓</td><td style="text-align:right;">94.6</td><td style="text-align:right;">99.8</td><td style="text-align:right;">89.9</td><td style="text-align:right;">86.9</td><td style="text-align:right;">99.9</td><td style="text-align:right;">89.1</td></tr><tr><td style="text-align:left;">DriveSuprim</td><td style="text-align:center;">C &amp; L</td><td style="text-align:center;">✓</td><td style="text-align:right;">98.6</td><td style="text-align:right;">98.6</td><td style="text-align:right;">95.5</td><td style="text-align:right;">100</td><td style="text-align:right;">91.3</td><td style="text-align:right;">93.5</td></tr><tr><td style="text-align:left;">DrivoR-Scale</td><td style="text-align:center;">C</td><td style="text-align:center;">✓</td><td style="text-align:right;">99.1</td><td style="text-align:right;">99.2</td><td style="text-align:right;">96.9</td><td style="text-align:right;">100</td><td style="text-align:right;">91.6</td><td style="text-align:right;">94.6</td></tr><tr><td style="text-align:left;">DriveRL</td><td style="text-align:center;">GT</td><td style="text-align:center;">✗</td><td style="text-align:right;">99.8</td><td style="text-align:right;">99.9</td><td style="text-align:right;">99.1</td><td style="text-align:right;">99.0</td><td style="text-align:right;">91.5</td><td style="text-align:right;">95.8</td></tr><tr><td style="text-align:left;"><strong>DriveZero</strong></td><td style="text-align:center;">C</td><td style="text-align:center;">✗</td><td style="text-align:right;">99.0</td><td style="text-align:right;">99.2</td><td style="text-align:right;">96.0</td><td style="text-align:right;">100</td><td style="text-align:right;"><strong>93.1</strong></td><td style="text-align:right;"><strong>94.8</strong></td></tr><tr><td style="text-align:left;"><strong>DriveZero-Scale</strong></td><td style="text-align:center;">C</td><td style="text-align:center;">✗</td><td style="text-align:right;"><strong>99.2</strong></td><td style="text-align:right;"><strong>99.4</strong></td><td style="text-align:right;"><strong>97.3</strong></td><td style="text-align:right;">99.9</td><td style="text-align:right;">92.5</td><td style="text-align:right;"><strong>95.3</strong></td></tr></tbody></table></div>
+<ul>
+<li>DriveZero 在<strong>不使用任何人类轨迹监督</strong>的条件下达到 94.8，与 Human Driver 持平；DriveZero-Scale 用 237K SimScale 场景扩到 95.3，成为首个在该榜超过人类司机的端到端模型。</li>
+<li>提升主要来自 EP（DriveZero 93.1 vs Human 87.5），而 NC 99.0 仍低于人类的 100；PDMS 更高不等于更安全。</li>
+</ul>
+<p><strong>4) NAVSIMv2 navhard（Table 5，EPDMS）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Method</th><th style="text-align:center;">Human</th><th style="text-align:right;">Stage 1 EPDM</th><th style="text-align:right;">Stage 2 EPDM</th><th style="text-align:right;">EPDMS</th></tr></thead><tbody><tr><td style="text-align:left;">PDM-Closed*</td><td style="text-align:center;">✓</td><td style="text-align:right;">–</td><td style="text-align:right;">–</td><td style="text-align:right;">56.6</td></tr><tr><td style="text-align:left;">LTF</td><td style="text-align:center;">✓</td><td style="text-align:right;">–</td><td style="text-align:right;">–</td><td style="text-align:right;">25.1</td></tr><tr><td style="text-align:left;">NavFormer</td><td style="text-align:center;">✓</td><td style="text-align:right;">–</td><td style="text-align:right;">–</td><td style="text-align:right;">34.1</td></tr><tr><td style="text-align:left;">RAP</td><td style="text-align:center;">✓</td><td style="text-align:right;">–</td><td style="text-align:right;">–</td><td style="text-align:right;">39.6</td></tr><tr><td style="text-align:left;">GuideFlow</td><td style="text-align:center;">✓</td><td style="text-align:right;">–</td><td style="text-align:right;">–</td><td style="text-align:right;">51.5</td></tr><tr><td style="text-align:left;">SimScale</td><td style="text-align:center;">✓</td><td style="text-align:right;">–</td><td style="text-align:right;">–</td><td style="text-align:right;">53.2</td></tr><tr><td style="text-align:left;">DrivoR-Scale</td><td style="text-align:center;">✓</td><td style="text-align:right;">–</td><td style="text-align:right;">–</td><td style="text-align:right;">54.6</td></tr><tr><td style="text-align:left;">ZTRS</td><td style="text-align:center;">✗</td><td style="text-align:right;">–</td><td style="text-align:right;">–</td><td style="text-align:right;">48.1</td></tr><tr><td style="text-align:left;">GigaPixel</td><td style="text-align:center;">✗</td><td style="text-align:right;">77.8</td><td style="text-align:right;">63.5</td><td style="text-align:right;">50.1</td></tr><tr><td style="text-align:left;">DriveRL*</td><td style="text-align:center;">✗</td><td style="text-align:right;">84.1</td><td style="text-align:right;">65.4</td><td style="text-align:right;">55.6</td></tr><tr><td style="text-align:left;"><strong>DriveZero</strong></td><td style="text-align:center;">✗</td><td style="text-align:right;"><strong>84.1</strong></td><td style="text-align:right;">60.8</td><td style="text-align:right;"><strong>51.5</strong></td></tr><tr><td style="text-align:left;"><strong>DriveZero-Scale</strong></td><td style="text-align:center;">✗</td><td style="text-align:right;">82.3</td><td style="text-align:right;"><strong>69.1</strong></td><td style="text-align:right;"><strong>57.1</strong></td></tr></tbody></table></div>
+<ul>
+<li>DriveZero 51.5，比同为 RL-teacher 路线的 GigaPixel 高 1.4；DriveZero-Scale 57.1 比 DriveZero 高 5.6，超过使用 GT symbolic 输入的 PDM-Closed（56.6）和同样用 SimScale 的 DrivoR-Scale（54.6）。</li>
+<li>扩数据的代价是 Stage 1 从 84.1 降到 82.3（-1.8），但 Stage 2 从 60.8 升到 69.1（+8.3）：nominal 性能略降，扰动鲁棒性大幅提升。</li>
+<li>注意 DriveRL 55.6 用 GT 结构化输入，仍低于 PDM-Closed 56.6；DriveZero 与 GuideFlow 在 51.5 上持平。</li>
+</ul>
+<p><strong>5) HUGSIM 真闭环零样本评测（Table 6，HD-Score）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Method</th><th style="text-align:center;">Human</th><th style="text-align:right;">RC Avg</th><th style="text-align:right;">HD Easy</th><th style="text-align:right;">HD Medium</th><th style="text-align:right;">HD Hard</th><th style="text-align:right;">HD Extreme</th><th style="text-align:right;">HD Avg</th></tr></thead><tbody><tr><td style="text-align:left;">LTF</td><td style="text-align:center;">✓</td><td style="text-align:right;">38.9</td><td style="text-align:right;">58.9</td><td style="text-align:right;">18.0</td><td style="text-align:right;">9.8</td><td style="text-align:right;">25.9</td><td style="text-align:right;">23.7</td></tr><tr><td style="text-align:left;">VAD</td><td style="text-align:center;">✓</td><td style="text-align:right;">31.4</td><td style="text-align:right;">36.3</td><td style="text-align:right;">9.5</td><td style="text-align:right;">8.0</td><td style="text-align:right;">11.5</td><td style="text-align:right;">13.4</td></tr><tr><td style="text-align:left;">UniAD</td><td style="text-align:center;">✓</td><td style="text-align:right;">45.9</td><td style="text-align:right;">64.9</td><td style="text-align:right;">45.8</td><td style="text-align:right;">20.6</td><td style="text-align:right;">6.6</td><td style="text-align:right;">32.7</td></tr><tr><td style="text-align:left;">DrivoR-Scale</td><td style="text-align:center;">✓</td><td style="text-align:right;">46.4</td><td style="text-align:right;">64.8</td><td style="text-align:right;">50.3</td><td style="text-align:right;">16.8</td><td style="text-align:right;">25.8</td><td style="text-align:right;">38.1</td></tr><tr><td style="text-align:left;">GigaPixel</td><td style="text-align:center;">✗</td><td style="text-align:right;">50.1</td><td style="text-align:right;">67.4</td><td style="text-align:right;">51.9</td><td style="text-align:right;">19.1</td><td style="text-align:right;">21.6</td><td style="text-align:right;">38.5</td></tr><tr><td style="text-align:left;"><strong>DriveZero</strong></td><td style="text-align:center;">✗</td><td style="text-align:right;"><strong>53.9</strong></td><td style="text-align:right;"><strong>78.5</strong></td><td style="text-align:right;">47.2</td><td style="text-align:right;">16.0</td><td style="text-align:right;"><strong>28.7</strong></td><td style="text-align:right;"><strong>39.4</strong></td></tr><tr><td style="text-align:left;"><strong>DriveZero-Scale</strong></td><td style="text-align:center;">✗</td><td style="text-align:right;"><strong>54.5</strong></td><td style="text-align:right;"><strong>81.9</strong></td><td style="text-align:right;"><strong>60.5</strong></td><td style="text-align:right;"><strong>24.7</strong></td><td style="text-align:right;">27.6</td><td style="text-align:right;"><strong>46.6</strong></td></tr></tbody></table></div>
+<ul>
+<li>没有任何 HUGSIM 微调，DriveZero-Scale 平均 46.6，比此前最好的 GigaPixel 高 8.1。作者把增益归因于 DriveRL 在 OOD SimScale 数据上生成的更多样、更合理的轨迹。</li>
+<li>绝对分数仍低：Hard 24.7、Extreme 27.6，说明真闭环下的长尾交互依然困难。</li>
+</ul>
+<p><strong>6) DriveVFM 与 DriveZero 消融（Table 7，ViT-S，仅 navtrain）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Study</th><th style="text-align:left;">Configuration</th><th style="text-align:right;">NC</th><th style="text-align:right;">DAC</th><th style="text-align:right;">EP</th><th style="text-align:right;">TTC</th><th style="text-align:right;">Comfort</th><th style="text-align:right;">PDMS</th></tr></thead><tbody><tr><td style="text-align:left;">Visual backbone</td><td style="text-align:left;">DA3 Small</td><td style="text-align:right;">99.10</td><td style="text-align:right;">98.84</td><td style="text-align:right;">89.68</td><td style="text-align:right;">96.21</td><td style="text-align:right;">99.93</td><td style="text-align:right;">93.31</td></tr><tr><td style="text-align:left;"></td><td style="text-align:left;">DA2 ViT-S</td><td style="text-align:right;">98.57</td><td style="text-align:right;">99.21</td><td style="text-align:right;">91.44</td><td style="text-align:right;">95.13</td><td style="text-align:right;">99.96</td><td style="text-align:right;">93.72</td></tr><tr><td style="text-align:left;"></td><td style="text-align:left;">DINOv2 ViT-S</td><td style="text-align:right;">98.86</td><td style="text-align:right;">99.07</td><td style="text-align:right;">91.63</td><td style="text-align:right;">95.46</td><td style="text-align:right;">99.98</td><td style="text-align:right;">93.88</td></tr><tr><td style="text-align:left;"></td><td style="text-align:left;">DINOv3 ViT-S</td><td style="text-align:right;">98.93</td><td style="text-align:right;">99.01</td><td style="text-align:right;">91.31</td><td style="text-align:right;">95.77</td><td style="text-align:right;">99.97</td><td style="text-align:right;">93.88</td></tr><tr><td style="text-align:left;"></td><td style="text-align:left;"><strong>DriveVFM ViT-S</strong></td><td style="text-align:right;"><strong>99.17</strong></td><td style="text-align:right;"><strong>99.14</strong></td><td style="text-align:right;"><strong>91.79</strong></td><td style="text-align:right;"><strong>96.29</strong></td><td style="text-align:right;"><strong>99.98</strong></td><td style="text-align:right;"><strong>94.41</strong></td></tr><tr><td style="text-align:left;">Teachers</td><td style="text-align:left;">DINOv3 + SigLIP2</td><td style="text-align:right;">98.67</td><td style="text-align:right;">98.98</td><td style="text-align:right;">91.55</td><td style="text-align:right;">95.27</td><td style="text-align:right;">99.98</td><td style="text-align:right;">93.69</td></tr><tr><td style="text-align:left;"></td><td style="text-align:left;">+ SAM</td><td style="text-align:right;">98.79</td><td style="text-align:right;">99.11</td><td style="text-align:right;">91.44</td><td style="text-align:right;">96.06</td><td style="text-align:right;">99.97</td><td style="text-align:right;">94.10</td></tr><tr><td style="text-align:left;"></td><td style="text-align:left;">+ DA2 = Full</td><td style="text-align:right;">99.17</td><td style="text-align:right;">99.14</td><td style="text-align:right;">91.79</td><td style="text-align:right;">96.29</td><td style="text-align:right;">99.98</td><td style="text-align:right;">94.41</td></tr><tr><td style="text-align:left;">Supervision</td><td style="text-align:left;">Human trajectories</td><td style="text-align:right;">98.76</td><td style="text-align:right;">98.95</td><td style="text-align:right;">91.99</td><td style="text-align:right;">95.30</td><td style="text-align:right;">99.98</td><td style="text-align:right;">93.92</td></tr><tr><td style="text-align:left;"></td><td style="text-align:left;">DriveRL trajectories</td><td style="text-align:right;">98.60</td><td style="text-align:right;">98.81</td><td style="text-align:right;">91.64</td><td style="text-align:right;">95.27</td><td style="text-align:right;">99.94</td><td style="text-align:right;">93.61</td></tr><tr><td style="text-align:left;"></td><td style="text-align:left;">DriveRL + goal aug.</td><td style="text-align:right;">99.17</td><td style="text-align:right;">99.14</td><td style="text-align:right;">91.79</td><td style="text-align:right;">96.29</td><td style="text-align:right;">99.98</td><td style="text-align:right;">94.41</td></tr></tbody></table></div>
+<ul>
+<li>DriveVFM ViT-S 比同容量 DINOv3 ViT-S 高 0.53 PDMS；加入 SAM +0.41、加入 Depth Anything V2 +0.31，两个教师累计 +0.72。</li>
+<li><strong>关键对照</strong>：只用 DriveRL 轨迹监督（93.61）反而低于人类轨迹（93.92）；加上 goal augmentation 才升到 94.41，比人类高 0.49。也就是说，“超越人类示范”的增益几乎全部来自 goal augmentation 带来的监督多样性，而不是 RL 轨迹本身更好。</li>
+</ul>
+<p><strong>7) 视觉 backbone scaling（Table A13，仅 navtrain）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Backbone</th><th style="text-align:right;">NC</th><th style="text-align:right;">DAC</th><th style="text-align:right;">TTC</th><th style="text-align:right;">Comfort</th><th style="text-align:right;">EP</th><th style="text-align:right;">DDC</th><th style="text-align:right;">PDMS</th></tr></thead><tbody><tr><td style="text-align:left;">DINOv3 ViT-L</td><td style="text-align:right;">98.80</td><td style="text-align:right;">99.25</td><td style="text-align:right;">95.74</td><td style="text-align:right;">99.94</td><td style="text-align:right;">92.72</td><td style="text-align:right;">95.87</td><td style="text-align:right;">94.55</td></tr><tr><td style="text-align:left;">DriveVFM ViT-S</td><td style="text-align:right;">99.17</td><td style="text-align:right;">99.14</td><td style="text-align:right;">96.29</td><td style="text-align:right;">99.98</td><td style="text-align:right;">91.79</td><td style="text-align:right;">95.97</td><td style="text-align:right;">94.41</td></tr><tr><td style="text-align:left;">DriveVFM ViT-B</td><td style="text-align:right;">98.89</td><td style="text-align:right;">99.24</td><td style="text-align:right;">95.93</td><td style="text-align:right;">99.97</td><td style="text-align:right;">92.44</td><td style="text-align:right;">95.79</td><td style="text-align:right;">94.54</td></tr><tr><td style="text-align:left;"><strong>DriveVFM ViT-L</strong></td><td style="text-align:right;"><strong>99.00</strong></td><td style="text-align:right;">99.24</td><td style="text-align:right;"><strong>95.97</strong></td><td style="text-align:right;"><strong>99.99</strong></td><td style="text-align:right;"><strong>93.10</strong></td><td style="text-align:right;">95.89</td><td style="text-align:right;"><strong>94.83</strong></td></tr></tbody></table></div>
+<ul>
+<li>ViT-S→B→L 为 94.41→94.54→94.83，呈正 scaling；ViT-L 仍略高于预训练规模大得多的 DINOv3 ViT-L（94.55）。</li>
+</ul>
+<p><strong>8) 交通灯输入与奖励（Table A8/A9）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">设置</th><th style="text-align:right;">Val14 NR</th><th style="text-align:right;">Val14 R</th><th style="text-align:right;">Hard NR</th><th style="text-align:right;">Hard R</th><th style="text-align:right;">Random NR</th><th style="text-align:right;">Random R</th><th style="text-align:right;">红灯违规率</th></tr></thead><tbody><tr><td style="text-align:left;">无 TL 输入</td><td style="text-align:right;">93.35</td><td style="text-align:right;">93.19</td><td style="text-align:right;">86.49</td><td style="text-align:right;">85.41</td><td style="text-align:right;">93.48</td><td style="text-align:right;">92.24</td><td style="text-align:right;">–</td></tr><tr><td style="text-align:left;">有 TL 输入</td><td style="text-align:right;">94.76</td><td style="text-align:right;">93.62</td><td style="text-align:right;">88.35</td><td style="text-align:right;">85.70</td><td style="text-align:right;">95.21</td><td style="text-align:right;">93.89</td><td style="text-align:right;">3.88%</td></tr><tr><td style="text-align:left;">TL 输入 + TL reward</td><td style="text-align:right;">93.08</td><td style="text-align:right;">91.35</td><td style="text-align:right;">81.71</td><td style="text-align:right;">82.96</td><td style="text-align:right;">92.36</td><td style="text-align:right;">91.79</td><td style="text-align:right;">2.03%</td></tr></tbody></table></div>
+<ul>
+<li>加入交通灯输入在六个设置全部提升（+0.29~+1.86）；但把红灯违规加入奖励后，违规率从 3.88% 降到 2.03%，六个 nuPlan 总分却全部下降（-1.21~-3.14）。作者因此在正式 teacher 的标量奖励中<strong>不包含</strong>交通灯违规项，只把它作为诊断指标。</li>
+</ul>
+<p><strong>9) Self-play（Table A7）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Model</th><th style="text-align:right;">Val14 NR</th><th style="text-align:right;">Val14 R</th><th style="text-align:right;">Hard NR</th><th style="text-align:right;">Hard R</th><th style="text-align:right;">Random NR</th><th style="text-align:right;">Random R</th><th style="text-align:right;">Mean</th></tr></thead><tbody><tr><td style="text-align:left;">DriveRL</td><td style="text-align:right;">95.16</td><td style="text-align:right;">94.25</td><td style="text-align:right;">89.97</td><td style="text-align:right;">89.18</td><td style="text-align:right;">94.50</td><td style="text-align:right;">95.00</td><td style="text-align:right;">93.01</td></tr><tr><td style="text-align:left;">Self-Play</td><td style="text-align:right;">95.09</td><td style="text-align:right;">93.92</td><td style="text-align:right;">90.04</td><td style="text-align:right;">88.96</td><td style="text-align:right;">95.04</td><td style="text-align:right;">95.63</td><td style="text-align:right;">93.11</td></tr><tr><td style="text-align:left;">Self-Play, 3-perturb</td><td style="text-align:right;">95.15</td><td style="text-align:right;">93.74</td><td style="text-align:right;">88.90</td><td style="text-align:right;">87.47</td><td style="text-align:right;">93.70</td><td style="text-align:right;">94.77</td><td style="text-align:right;">92.29</td></tr><tr><td style="text-align:left;">Self-Play, augmentation</td><td style="text-align:right;">94.91</td><td style="text-align:right;">94.38</td><td style="text-align:right;">88.56</td><td style="text-align:right;">87.92</td><td style="text-align:right;">93.43</td><td style="text-align:right;">94.22</td><td style="text-align:right;">92.24</td></tr><tr><td style="text-align:left;">Self-Play, 3-perturb + aug.</td><td style="text-align:right;">95.08</td><td style="text-align:right;">94.48</td><td style="text-align:right;">88.30</td><td style="text-align:right;">87.27</td><td style="text-align:right;">94.60</td><td style="text-align:right;">94.68</td><td style="text-align:right;">92.40</td></tr></tbody></table></div>
+<ul>
+<li>self-play 在 nuPlan 上没有稳定优势（最高 93.11 vs 93.01），作者归因于 nuPlan 闭环评测用 IDM 驱动背景车，不奖励更自然的交互。self-play 只用于实车部署配置。</li>
+</ul>
+<h2 id="critical-reading">Critical reading<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#critical-reading" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li><strong>“Beyond human demonstrations” 的边界被标题放大</strong>：DriveRL 的世界仍由人类日志初始化，训练 goal 也来自日志中的未来 ego 位置，日志只”seed scenes and goals”不等于完全不用人类数据。真正新增的是 goal-conditioned teacher 能回答反事实查询，而不是行为完全脱离日志分布。</li>
+<li><strong>Table 7 削弱了核心叙事</strong>：纯 DriveRL 轨迹监督 93.61 &lt; 人类轨迹 93.92。作者诚实地报告了这一点，但这也说明 RL 轨迹本身并不比人类轨迹更有信息量；+0.49 的最终优势完全依赖 goal augmentation。把”teacher 更好”与”监督更多”混在一个对照里，无法分解各自贡献。</li>
+<li><strong>goal augmentation 的对照天然不对称</strong>：人类轨迹基线无法做同样的意图增广（日志里没有反事实人类轨迹），因此这不是同等数据量下的公平比较。缺少”人类轨迹 + 其他增广（如翻转/扰动）“或”teacher 不做 goal aug. 但数据量匹配”的对照。</li>
+<li><strong>Headline 95.3 依赖额外的 237K OOD 仿真数据</strong>：不加 SimScale 的 DriveZero 是 94.8，恰好与 Human 持平，而不是超过。摘要用 95.3 讲”surpassing the human driver”，但正文 Table 4 的 base 模型并没有超过；且 SimScale 数据的生成管线本身可能使用了人类数据训练的模型，需要辨析”without human trajectory supervision”的严格程度。</li>
+<li><strong>navhard 的”超过所有只用 navtrain 的方法”不成立为严格领先</strong>：DriveZero 51.5 与 GuideFlow 51.5 完全持平，而 GuideFlow 使用人类示范。领先 GigaPixel 1.4 是事实，但”all methods”的措辞过强。</li>
+<li><strong>Stage 1/Stage 2 的 trade-off 未被讨论</strong>：加 SimScale 后 Stage 1 EPDM 降 1.8，Stage 2 升 8.3，总 EPDMS 提升。这说明 OOD 仿真数据提升了扰动鲁棒性但损害了 nominal 精度；论文只把它当作正面结果，没有分析哪些场景变差。</li>
+<li><strong>交通灯合规是明确的安全缺口</strong>：正式 teacher 的奖励不含红灯违规，Table A9 显示加入该奖励会把违规率减半但总分下降 1.2~3.1。作者选择优化 benchmark 分数而非合规性；在实车部署语境下这是需要正面讨论的取舍，而不应只放在附录。</li>
+<li><strong>TTS 的收益集中在非反应式场景</strong>：Hard R 在 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">16/32</span></span></span></span> 时低于 baseline，<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">64</span></span></span></span> 也只是回到 89.15（baseline 89.18）。这说明短 horizon rollout + 恒定转向率外推的背景车模型不足以处理交互式场景；论文却用平均分 93.57 讲”policy improvement”。</li>
+<li><strong>TTS 的推理成本没有数字</strong>：<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">64</span></span></span></span> 意味着每个 planner step 做 64 条 5 步闭环 rollout，计算量约为单次前向的数百倍；论文只说”primarily enlarges parallel computation”，没有给延迟、显存或吞吐，无法判断实车可行性。</li>
+<li><strong>奖励尺度与碰撞惩罚偏弱</strong>：碰撞罚 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">−</span><span class="mord">1.0</span></span></span></span>，而六项 soft 项乘积除以 110 后在 110 步上的累计回报可达约 0.7，加上 goal 0.5，硬安全事件与软质量的量级接近；论文没有做 reward scale 或惩罚强度的敏感性分析。</li>
+<li><strong>Beta 分布单峰限制 teacher 的多模态性</strong>：每步动作分布被约束为单峰，多模态只体现在 student 的 64 条 proposal 上。teacher 本身无法表达”左转或直行都合理”这类离散意图以外的多峰连续控制，可能限制蒸馏上限。</li>
+<li><strong>消融只在 ViT-S + 无 SimScale 下做</strong>：主表用 ViT-L + SimScale，Table 7 的 +0.53/+0.72/+0.49 能否外推到主配置未知；ViT scaling 表（A13）只报 PDMS，没有重复监督消融。</li>
+<li><strong>关键训练细节缺失</strong>：<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9805em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">traj</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>、<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">score</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>、goal augmentation 的具体意图采样分布与每条场景的增广数量、teacher rollout 的目标速度/舒适性筛选标准都没有给出，复现难度高。</li>
+<li><strong>实车验证只有定性描述</strong>：3.3 节说在小车队上部署 DriveRL、在拥挤城市道路闭环演示，但没有接管率、里程、碰撞/违规统计，也没有说明安全员介入情况。这是系统报告里最有价值却最不量化的部分。</li>
+<li><strong>真闭环只有 HUGSIM 一个 benchmark，绝对分数低</strong>：Hard 24.7 / Extreme 27.6 的 HD-Score 说明长尾场景仍远未解决；NAVSIMv1/v2 都是 pseudo closed-loop（背景车 log replay 或 IDM），不能等同于真实反应式交互。</li>
+<li><strong>训练成本未与 baseline 对齐</strong>：DriveRL 96 GPU × 21 h、DriveVFM 800K iter × batch 2,048、DriveZero 16 H20 × 38 h；论文没有报告总 GPU-hours，也没有与 DrivoR、GigaPixel 等 baseline 的训练成本做对比，“scalable” 的论点缺少成本维度。</li>
+</ul>
+<h2 id="strengths--weaknesses">Strengths &amp; Weaknesses<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#strengths--weaknesses" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p><strong>Strengths</strong></p>
+<ul>
+<li><strong>问题拆解干净</strong>：把”感知要 scale 图像、动作要闭环交互”这一直觉落实为两套独立预训练管线，再用轨迹蒸馏合并；比”直接视觉 RL”或”纯 BC”都更符合各自的样本效率特性。</li>
+<li><strong>把 teacher 当作可控数据生成器</strong>：goal-conditioned teacher 可以在同一场景回答反事实意图，这是日志数据本身不具备的能力；goal augmentation 是全文最有迁移价值的 insight。</li>
+<li><strong>工程规模扎实</strong>：196,608 个并行 world、GPU batched 的全 rollout loop、110 步 × 2,400 updates 在 21 小时内完成，说明 mixed-agent 闭环 RL 已经可以常规化训练，而不是一次性 demo。</li>
+<li><strong>DriveVFM 的蒸馏配方完整</strong>：非对称 summary/patch 监督、PHI-S 解决异质特征尺度、QK-Clip 同时稳定训练与 FP16 部署，每一部分都有消融或数值证据（Table 7、A14）。</li>
+<li><strong>主结果覆盖三类评测</strong>：nuPlan 闭环、NAVSIMv1/v2 pseudo closed-loop、HUGSIM 真闭环零样本；不是只挑一个有利 benchmark。</li>
+<li><strong>诚实地报告了不利对照</strong>：Table 7 明确写出 DriveRL-only 低于 human-only，Table A9 明确写出 TL reward 降分，Table A7 明确写出 self-play 无稳定增益。这种 negative result 在系统报告里少见。</li>
+<li><strong>student 架构轻</strong>：冻结 ViT-L + rank-32 LoRA，仅 18.58M 可训练参数，38 h / 16 H20 完成训练，部署侧不需要 teacher 或 foundation model，工程上合理。</li>
+</ul>
+<p><strong>Weaknesses</strong></p>
+<ul>
+<li><strong>核心 claim 的证据链不闭合</strong>：标题说 “beyond human demonstrations”，但 (a) 训练世界与 goal 来自日志，(b) 纯 RL 监督不如人类监督，(c) 超过人类只在加 237K OOD 仿真数据后成立。三点叠加使”超越”更像是数据与增广的胜利，而非行为范式的胜利。</li>
+<li><strong>goal augmentation 缺少可复现定义</strong>：如何采样替代意图、如何保证新 goal 在路网中可达、每条场景增广几次、增广后如何过滤不合理轨迹，全部没有说明；这是方法最关键的组件，却最不透明。</li>
+<li><strong>没有多模态 teacher</strong>：Beta 单峰策略无法表达同一状态下多个连续控制模式；student 的 64 proposal 只是事后覆盖，不能恢复 teacher 从未产生的模式。</li>
+<li><strong>安全合规被 benchmark 分数绑架</strong>：红灯违规不入奖励、碰撞惩罚量级偏弱、EP 高于人类而 NC 低于人类；这些取舍在论文中偏附录化，缺少”部署时如何补救”的讨论。</li>
+<li><strong>推理成本不透明</strong>：TTS 的 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">64</span></span></span></span> 与 DriveVFM ViT-L 的实际延迟、显存、吞吐均未报告，无法评估实时性；这是端到端驾驶论文的基本信息。</li>
+<li><strong>真闭环证据薄弱</strong>：HUGSIM 只有 4 个场景来源、绝对 HD-Score 低，且”zero-shot”只表示不做 HUGSIM 微调；训练数据与 HUGSIM 场景是否存在重叠没有说明。</li>
+<li><strong>消融与主实验不同配置</strong>：ViT-S vs ViT-L、有无 SimScale 的差异使消融结论的外推性受限；缺少主配置上的逐项消融。</li>
+<li><strong>实车部分是定性 demo</strong>：没有接管率、里程、违规统计与安全员介入记录，“real-world application” 的说服力远低于 benchmark 部分。</li>
+<li><strong>复现信息不足</strong>：两个 loss 权重、goal augmentation 协议、teacher rollout 的过滤规则、DriveVFM 各教师 loss 权重均缺失；代码/权重是否开源也未在正文明确。</li>
+</ul>
+<h2 id="notes">Notes<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#notes" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li>
+<p><strong>论文定位</strong>：一篇 system report，而不是单点方法论文。核心贡献是把端到端驾驶的监督源从”人类日志”换成”闭环 RL teacher 的 rollout”，并证明 perception 与 action 可以分别在图像自监督与结构化闭环 RL 中预训练后蒸馏合并。它延续 privileged teacher → visual student 的路线（ROACH、GigaPixel、TerraTransfer），但把视觉侧也做成了专门的驾驶 foundation model。</p>
+</li>
+<li>
+<p><strong>可迁移点</strong>：</p>
+<ul>
+<li><strong>goal-conditioned teacher 作为反事实数据生成器</strong>：只要 teacher 接受 goal/command 条件，就可以在同一初始状态查询多个意图，把一条日志扩展成多条监督。这个配方不限于驾驶，也适用于任何”日志只有一条已实现轨迹、但策略可条件化”的机器人操作与导航任务。</li>
+<li><strong>多教师特征蒸馏 + PHI-S</strong>：用冻结 foundation model 的中间特征替代人工感知标注，PHI-S 处理异质特征的尺度/协方差失衡。对任何需要把多个预训练模型能力合并进单个 backbone 的场景都适用。</li>
+<li><strong>QK-Clip 作为训练稳定器与 FP16 部署保障</strong>：只缩放 Q/K 投影权重、不改 attention 形式，实现简单，且能用 max logit / cosine similarity 定量验证。比 QK-Norm 更轻量。</li>
+<li><strong>critic-guided test-time search + margin</strong>：用与训练一致的 reward、discount 与 critic 给短 rollout 打分，只有超过 modal action 一个 margin 才替换。这是一个保守、无需重训的推理期 policy improvement 模板，可直接套到任何 actor-critic 策略上。</li>
+<li><strong>冻结 backbone + 低秩适配</strong>：ViT-L 只训 rank-32 Q/V LoRA（18.58M/338.46M），大幅降低 student 训练成本；适合把大视觉模型接到小规划头上。</li>
+<li><strong>八通道 critic 分解</strong>：把 hard/goal/六项 soft 拆成独立 value channel，再用 deficit 权重保证回报守恒。既保留标量策略目标，又给 critic 提供结构化监督，可用于任何多目标 reward 的 PPO。</li>
+</ul>
+</li>
+<li>
+<p><strong>待跟进</strong>：</p>
+<ul>
+<li><strong>goal augmentation 的具体协议与信息量</strong>：需要知道替代意图如何采样、每条场景增广多少条、如何过滤不可达或不合理 goal；这决定了 +0.49 PDMS 中有多少来自”反事实查询”、多少只是数据量增加。</li>
+<li><strong>teacher 与 student 的容量/模态 gap</strong>：5.7M 单峰 Beta teacher 的分布被 64 条 proposal 的 student 拟合，哪些 teacher 行为在蒸馏中丢失？需要比较 teacher 与 student 在同一批 logged frame 上的轨迹分布。</li>
+<li><strong>交通灯合规的补救路径</strong>：在不牺牲总分的前提下加入红灯约束（reward shaping、constrained PPO、推理期过滤），并测量违规率与 EP 的 Pareto 前沿。</li>
+<li><strong>TTS 的实时性边界</strong>：<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span></span></span></span> 与 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span></span></span></span> 在实车算力下的延迟/吞吐，以及是否可以用 learned value 或 early exit 降低 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">64</span></span></span></span> 的成本。</li>
+<li><strong>SimScale 数据与 HUGSIM 的重叠审计</strong>：确认零样本 claim 不受场景泄漏影响；同时分析 Stage 1 下降 1.8 的具体场景类型。</li>
+<li><strong>多模态 teacher</strong>：把单峰 Beta 换成 mixture/flow/diffusion 策略，观察蒸馏后的 proposal 多样性与闭环分数是否提升。</li>
+<li><strong>实车闭环的量化指标</strong>：接管率、每千公里违规、安全员介入次数，以及 self-play 与非 self-play 在实车上的对照。</li>
+<li><strong>总训练成本的 scaling law</strong>：把 DriveRL 的 world 数、DriveVFM 的 iter 数、DriveZero 的数据量放在同一坐标下，判断当前配置离 compute-optimal 有多远。</li>
+</ul>
+</li>
+</ul></article><hr/><div class="page-footer"></div></div><div class="right sidebar"><div class="toc desktop-only"><button type="button" class="toc-header" aria-controls="toc-14" aria-expanded="true"><h3>Table of Contents</h3><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><ul id="list-1" class="toc-content overflow"><li class="depth-0"><a href="#summary" data-for="summary">Summary</a></li><li class="depth-0"><a href="#problem--motivation" data-for="problem--motivation">Problem &amp; Motivation</a></li><li class="depth-0"><a href="#method" data-for="method">Method</a></li><li class="depth-0"><a href="#pipeline" data-for="pipeline">Pipeline</a></li><li class="depth-0"><a href="#key-results" data-for="key-results">Key Results</a></li><li class="depth-0"><a href="#critical-reading" data-for="critical-reading">Critical reading</a></li><li class="depth-0"><a href="#strengths--weaknesses" data-for="strengths--weaknesses">Strengths &amp; Weaknesses</a></li><li class="depth-0"><a href="#notes" data-for="notes">Notes</a></li><li class="overflow-end"></li></ul></div></div><footer class><p>Created with <a href="https://quartz.jzhao.xyz/">Quartz v4.5.2</a> © 2026</p><ul><li><a href="https://github.com/Changjin-Li/Paper_Reading">GitHub</a></li></ul></footer></div></div></body><script type="application/javascript" data-persist="true">function n(){let t=this.parentElement;t.classList.toggle("is-collapsed");let e=t.getElementsByClassName("callout-content")[0];if(!e)return;let l=t.classList.contains("is-collapsed");e.style.gridTemplateRows=l?"0fr":"1fr"}function c(){let t=document.getElementsByClassName("callout is-collapsible");for(let e of t){let l=e.getElementsByClassName("callout-title")[0],s=e.getElementsByClassName("callout-content")[0];if(!l||!s)continue;l.addEventListener("click",n),window.addCleanup(()=>l.removeEventListener("click",n));let o=e.classList.contains("is-collapsed");s.style.gridTemplateRows=o?"0fr":"1fr"}}document.addEventListener("nav",c);
+</script><script type="module" data-persist="true">function E(a,e){if(!a)return;function t(o){o.target===this&&(o.preventDefault(),o.stopPropagation(),e())}function n(o){o.key.startsWith("Esc")&&(o.preventDefault(),e())}a?.addEventListener("click",t),window.addCleanup(()=>a?.removeEventListener("click",t)),document.addEventListener("keydown",n),window.addCleanup(()=>document.removeEventListener("keydown",n))}function f(a){for(;a.firstChild;)a.removeChild(a.firstChild)}var m=class{constructor(e,t){this.container=e;this.content=t;this.setupEventListeners(),this.setupNavigationControls(),this.resetTransform()}isDragging=!1;startPan={x:0,y:0};currentPan={x:0,y:0};scale=1;MIN_SCALE=.5;MAX_SCALE=3;cleanups=[];setupEventListeners(){let e=this.onMouseDown.bind(this),t=this.onMouseMove.bind(this),n=this.onMouseUp.bind(this),o=this.onTouchStart.bind(this),r=this.onTouchMove.bind(this),i=this.onTouchEnd.bind(this),s=this.resetTransform.bind(this);this.container.addEventListener("mousedown",e),document.addEventListener("mousemove",t),document.addEventListener("mouseup",n),this.container.addEventListener("touchstart",o,{passive:!1}),document.addEventListener("touchmove",r,{passive:!1}),document.addEventListener("touchend",i),window.addEventListener("resize",s),this.cleanups.push(()=>this.container.removeEventListener("mousedown",e),()=>document.removeEventListener("mousemove",t),()=>document.removeEventListener("mouseup",n),()=>this.container.removeEventListener("touchstart",o),()=>document.removeEventListener("touchmove",r),()=>document.removeEventListener("touchend",i),()=>window.removeEventListener("resize",s))}cleanup(){for(let e of this.cleanups)e()}setupNavigationControls(){let e=document.createElement("div");e.className="mermaid-controls";let t=this.createButton("+",()=>this.zoom(.1)),n=this.createButton("-",()=>this.zoom(-.1)),o=this.createButton("Reset",()=>this.resetTransform());e.appendChild(n),e.appendChild(o),e.appendChild(t),this.container.appendChild(e)}createButton(e,t){let n=document.createElement("button");return n.textContent=e,n.className="mermaid-control-button",n.addEventListener("click",t),window.addCleanup(()=>n.removeEventListener("click",t)),n}onMouseDown(e){e.button===0&&(this.isDragging=!0,this.startPan={x:e.clientX-this.currentPan.x,y:e.clientY-this.currentPan.y},this.container.style.cursor="grabbing")}onMouseMove(e){this.isDragging&&(e.preventDefault(),this.currentPan={x:e.clientX-this.startPan.x,y:e.clientY-this.startPan.y},this.updateTransform())}onMouseUp(){this.isDragging=!1,this.container.style.cursor="grab"}onTouchStart(e){if(e.touches.length!==1)return;this.isDragging=!0;let t=e.touches[0];this.startPan={x:t.clientX-this.currentPan.x,y:t.clientY-this.currentPan.y}}onTouchMove(e){if(!this.isDragging||e.touches.length!==1)return;e.preventDefault();let t=e.touches[0];this.currentPan={x:t.clientX-this.startPan.x,y:t.clientY-this.startPan.y},this.updateTransform()}onTouchEnd(){this.isDragging=!1}zoom(e){let t=Math.min(Math.max(this.scale+e,this.MIN_SCALE),this.MAX_SCALE),n=this.content.getBoundingClientRect(),o=n.width/2,r=n.height/2,i=t-this.scale;this.currentPan.x-=o*i,this.currentPan.y-=r*i,this.scale=t,this.updateTransform()}updateTransform(){this.content.style.transform=`translate(${this.currentPan.x}px, ${this.currentPan.y}px) scale(${this.scale})`}resetTransform(){let t=this.content.querySelector("svg").getBoundingClientRect(),n=t.width/this.scale,o=t.height/this.scale;this.scale=1,this.currentPan={x:(this.container.clientWidth-n)/2,y:(this.container.clientHeight-o)/2},this.updateTransform()}},T=["--secondary","--tertiary","--gray","--light","--lightgray","--highlight","--dark","--darkgray","--codeFont"],y;document.addEventListener("nav",async()=>{let e=document.querySelector(".center").querySelectorAll("code.mermaid");if(e.length===0)return;y||=await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.esm.min.mjs");let t=y.default,n=new WeakMap;for(let r of e)n.set(r,r.innerText);async function o(){for(let s of e){s.removeAttribute("data-processed");let c=n.get(s);c&&(s.innerHTML=c)}let r=T.reduce((s,c)=>(s[c]=window.getComputedStyle(document.documentElement).getPropertyValue(c),s),{}),i=document.documentElement.getAttribute("saved-theme")==="dark";t.initialize({startOnLoad:!1,securityLevel:"loose",theme:i?"dark":"base",themeVariables:{fontFamily:r["--codeFont"],primaryColor:r["--light"],primaryTextColor:r["--darkgray"],primaryBorderColor:r["--tertiary"],lineColor:r["--darkgray"],secondaryColor:r["--secondary"],tertiaryColor:r["--tertiary"],clusterBkg:r["--light"],edgeLabelBackground:r["--highlight"]}}),await t.run({nodes:e})}await o(),document.addEventListener("themechange",o),window.addCleanup(()=>document.removeEventListener("themechange",o));for(let r=0;r<e.length;r++){let v=function(){let g=l.querySelector("#mermaid-space"),h=l.querySelector(".mermaid-content");if(!h)return;f(h);let w=i.querySelector("svg").cloneNode(!0);h.appendChild(w),l.classList.add("active"),g.style.cursor="grab",u=new m(g,h)},M=function(){l.classList.remove("active"),u?.cleanup(),u=null},i=e[r],s=i.parentElement,c=s.querySelector(".clipboard-button"),d=s.querySelector(".expand-button"),p=window.getComputedStyle(c),L=c.offsetWidth+parseFloat(p.marginLeft||"0")+parseFloat(p.marginRight||"0");d.style.right=`calc(${L}px + 0.3rem)`,s.prepend(d);let l=s.querySelector("#mermaid-container");if(!l)return;let u=null;d.addEventListener("click",v),E(l,M),window.addCleanup(()=>{u?.cleanup(),d.removeEventListener("click",v)})}});
+</script><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/copy-tex.min.js" type="application/javascript" data-persist="true"></script><script src="../postscript.js" type="module" data-persist="true"></script></html>

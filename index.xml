@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>DriveZero: End-to-End Driving Beyond Human Demonstrations</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2609-DriveZero</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2609-DriveZero</guid>
+    <description><![CDATA[ Summary 把端到端驾驶拆成动作模型与感知模型分别在各自最适合的训练范式下预训练，再用蒸馏重新合并。动作侧 DriveRL 是一个 5.7M 参数的特权策略，在由真实 nuPlan 日志初始化的 mixed-agent 交互世界中从零开始用 PPO 训练，输入结构化场景状态与两点 goal，输出 jerk 与 steering-rate 的 Beta 分布；推理时用 critic 做 value-guided test-time action search（TTS）。感知侧 DriveVFM 把 DINOv3、SigLIP2、SAM、Depth Anything V2 四个冻结 found... ]]></description>
+    <pubDate>Mon, 19 Oct 2026 09:02:08 GMT</pubDate>
+  </item><item>
     <title>DiffusionDrive: Truncated Diffusion Model for End-to-End Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2411-DiffusionDrive</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2411-DiffusionDrive</guid>
@@ -58,12 +64,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</guid>
     <description><![CDATA[ Summary WorldDrive 试图消除”生成未来”和”决定未来”之间的表征割裂：先训练一个 Trajectory-aware Driving World Model (TA-DWM)，以轨迹词表作为运动条件生成可控未来视频；再把冻结的视觉与轨迹编码器继承给多模态 planner；最后用 Future-aware Rewarder (FAR) 在训练期从冻结世界模型蒸馏未来 latent，推理期无需生成视频即可对候选轨迹重新打分。在 NAVSIM navtest 上以单前视相机取得 88.1 PDMS（非 † 设置下 camera-only 方法中最高，与多视角 DiffusionDri... ]]></description>
-    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
-  </item><item>
-    <title>Judge, Then Drive: A Critic-Centric Vision Language Action Framework for Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-CriticVLA</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2604-CriticVLA</guid>
-    <description><![CDATA[ Summary CriticVLA 主张 VLA 不该只是”从多模态输入直接回归控制信号”的 action generator，而应先”判断”再”驾驶”。它提出一个 two-stage、critic-centric 框架：Stage-1 用 VLA 生成一条 rough trajectory，Stage-2 复用同一个 VLA（充当 multimodal critic）对该轨迹做结构化自然语言风险分析并输出纠正建议，再由 query-based delta adaptor 把建议转成对轨迹的精细化修正。配套构建 CriticDrive——1290 万条带标注轨迹的大规模合成数据集。在 Benc... ]]></description>
     <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
   </item>
     </channel>
