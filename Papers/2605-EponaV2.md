@@ -153,7 +153,7 @@ $$
 
 ## Pipeline
 
-![EponaV2 两阶段框架](https://arxiv.org/html/2605.14696v1/pipeline.png)
+![EponaV2 两阶段框架](../images/EponaV2-architecture.png)
 
 1. **编码**：历史前视视频逐帧经冻结 DINO-Tok 编码为 $\{F_i\}$，与相对运动 $\{\Delta A_i\}$ 交错拼接。
 2. **World model 前向**：causal attention 下推断未来表征 $\{F'_i,\Delta A'_i\}$。
