@@ -44,11 +44,16 @@ date_added: 2026-10-19
 + **Policy network**：agent、ego kinematics、map 分别用独立 encoder 编码为 256 维 token；两个 goal 点经 sinusoidal positional encoding + 共享 MLP，再 mean-pool 成一个 goal feature。以 ego token 为唯一 query，先做 2 层 ego-to-agent cross-attention，再做 1 层 ego-to-map cross-attention；拼接 ego token、goal、kinematics、map context 后经 MLP 融合进入 policy head。总参数 5.7M。
 + **动作分布**：jerk 与 tire steering-angle rate 各用一个独立 Beta 分布，shape 参数用 $\operatorname{softplus}(x)+1$ 约束到 $(1,\infty)$，保证单峰并抑制极端动作。训练时采样，评测时取解析 mode $(\alpha-1)/(\alpha+\beta-2)$，再经 affine transform 映射到物理范围，由 kinematic bicycle model 执行。
 + **Mixed-agent 仿真**：每个背景 actor 通过统一的 physical state–action 接口挂载独立 behavior provider，支持 log replay、IDM、前车急刹与 learned policy（self-play）。训练配置中背景车用 batched IDM，少量车辆可被 front-vehicle braking 覆盖，行人保持 log replay。晚进入场景的 actor 只有在 ego 位姿距日志位姿 5 m / 0.35 rad 以内且不会碰撞时才被释放，避免 ego 偏离日志后出现不合理插入。
-+ **奖励**：硬事件惩罚 $h_t$、一次性到达奖励 $g_t$、六项软质量分数 $q_{t,k}\in[0,1]$：
++ **奖励**：硬事件惩罚 $h_t$、一次性到达奖励 $g_t$、六项软质量分数 $q_{t,k}\in[0,1]$。每步奖励定义为
 
-$$\mathcal{L}_{\text{PPO}}\ \text{optimizes}\quad r_t=h_t+(1-d_t)\left(g_t+\frac{1}{H}\prod_{k\in\mathcal{K}}q_{t,k}\right),\qquad \mathcal{K}=\{\text{cross-lane},\text{centerline},\text{curb},\text{comfort},\text{TTC},\text{overspeed}\}$$
+$$
+\begin{aligned}
+r_t &= h_t+(1-d_t)\left(g_t+\frac{1}{H}\prod_{k\in\mathcal{K}}q_{t,k}\right),\\
+\mathcal{K} &= \{\text{cross-lane},\ \text{centerline},\ \text{curb},\ \text{comfort},\ \text{TTC},\ \text{overspeed}\},
+\end{aligned}
+$$
 
-  其中 $H=110$ 为 rollout 长度，$d_t$ 表示硬终止。乘积形式要求六项软指标**同时**满足，防止某一项的高分掩盖另一项的严重缺陷。碰撞罚 $-1.0$，off-road 终止并按速度给 base $-2.0$ 的惩罚；1.5 m 内首次到达给一次性 $+0.5$，goal arrival 不终止 rollout。
+PPO 直接以该 $r_t$ 为目标优化策略。其中 $H=110$ 为 rollout 长度，$d_t$ 表示硬终止。乘积形式要求六项软指标**同时**满足，防止某一项的高分掩盖另一项的严重缺陷。碰撞罚 $-1.0$，off-road 终止并按速度给 base $-2.0$ 的惩罚；1.5 m 内首次到达给一次性 $+0.5$，goal arrival 不终止 rollout。
 + **八通道 critic**：把标量回报拆成 hard、goal 与六个 soft 通道，soft 通道按 deficit $b_{t,k}=\max(1-q_{t,k},0)$ 归一化分配，保证 $\sum_c r_{t,c}=r_t$。每个通道独立做 GAE 与 clipped value loss；actor 使用八通道 advantage 之和。由于 reward 与折扣因子一致，该分解在数学上等价于对标量回报做 GAE，只是让 critic 监督更有结构。
 + **训练规模**：从 nuPlan trainval 取 922,703 个场景，10 Hz 导出、每两帧取一帧得到 5 Hz；12 节点 96 GPU，每 rank 2,048 worlds，全局 196,608 worlds 并行，110 步 rollout。每 rank 225,280 transitions，切成 11 个 20,480 的 minibatch，跑 4 个 PPO epoch，即每次 update 44 步；共 2,400 updates，约 21 小时。优化器 Muon，$\gamma=0.99$，$\lambda=0.95$，clip 0.2/0.2，entropy 0.01，value 0.5，grad clip 0.5，lr $3\times10^{-4}$ cosine 无 warmup。
 
@@ -79,10 +84,15 @@ $$\mathcal{L}_{\mathrm{DriveVFM}}=\sum_{k\in\mathcal{T}}\left(\lambda_k^{\mathrm
 
 $$\mathcal{L}_{\mathrm{traj}}=\min_m\operatorname{dist}\left(\hat{\tau}_m,\tau^T\right)$$
 
-  $\operatorname{dist}$ 为逐点 $L_1$ 平均。该 WTA 分配让不同 query 捕获不同驾驶模式，选择交给 scoring branch。
+$\operatorname{dist}$ 为逐点 $L_1$ 平均。该 WTA 分配让不同 query 捕获不同驾驶模式，选择交给 scoring branch。
 + **Proposal scoring**：六项分量用 PDM 目标做 BCE，候选轨迹在进入 scoring 前 detach，使生成与排序解耦：
 
-$$\mathcal{L}_{\mathrm{score}}=\frac{1}{M}\sum_{m=1}^{M}\sum_{k=1}^{6}\mathrm{BCE}\left(\sigma(\hat{s}_{mk}),s_{mk}\right),\qquad \mathcal{L}_{\mathrm{DriveZero}}=\lambda_{\mathrm{traj}}\mathcal{L}_{\mathrm{traj}}+\lambda_{\mathrm{score}}\mathcal{L}_{\mathrm{score}}$$
+$$
+\begin{aligned}
+\mathcal{L}_{\mathrm{score}} &= \frac{1}{M}\sum_{m=1}^{M}\sum_{k=1}^{6}\mathrm{BCE}\left(\sigma(\hat{s}_{mk}),s_{mk}\right),\\
+\mathcal{L}_{\mathrm{DriveZero}} &= \lambda_{\mathrm{traj}}\mathcal{L}_{\mathrm{traj}}+\lambda_{\mathrm{score}}\mathcal{L}_{\mathrm{score}}.
+\end{aligned}
+$$
 
 + **Goal augmentation**：日志只有一条已实现轨迹，但 teacher 是 goal-conditioned 的。训练时先增广 route intent 与对应导航 command，再让 teacher 生成轨迹；同一增广 route 也用于评估 student proposal 的分数，保证 command、teacher 轨迹与 proposal score 三者一致。这样每个 logged scene 被扩展成多个有效监督目标。
 + **推理**：选预测总分最高的 proposal，不需要 teacher，也不需要渲染或闭环仿真。
