@@ -180,6 +180,16 @@
       "survey": "EmbodiedAI-Survey",
       "paper": "Papers\\2606-PriorEye.md",
       "added_at": "2026-10-19"
+    },
+    {
+      "survey": "VLM-Survey",
+      "paper": "Papers\\2605-CoPhy.md",
+      "added_at": "2026-10-19"
+    },
+    {
+      "survey": "WorldModel-Survey",
+      "paper": "Papers\\2605-CoPhy.md",
+      "added_at": "2026-10-19"
     }
   ],
   "unrouted": [
