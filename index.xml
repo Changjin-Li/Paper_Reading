@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>PriorEye: Geospatial Visual Priors for End-to-End Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-PriorEye</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-PriorEye</guid>
+    <description><![CDATA[ Summary PriorEye 提出 geospatial visual priors：把离线采集的街景图像按行驶路线锚定成可检索的记忆，通过 model-agnostic 的 dual-memory 模块与 adaptive gate 注入现有 end-to-end planner，使模型在传感器视野之外获得视觉-空间预判。方法不改 baseline 架构、不增加额外损失，在 NAVSIM-v2 的四个 E2E baseline 上一致提升 EPDMS（navhard-two-stage 上 GTRS-Dense 44.9→48.6），并改善传感器损坏与先验损坏下的鲁棒性。 Problem... ]]></description>
+    <pubDate>Mon, 19 Oct 2026 03:23:59 GMT</pubDate>
+  </item><item>
     <title>EponaV2: Driving World Model with Comprehensive Future Reasoning</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</guid>
@@ -58,12 +64,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-HybridDriveVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-HybridDriveVLA</guid>
     <description><![CDATA[ Summary 针对传统驾驶 VLA 的两个痛点——① 用 image-to-text + 文本 CoT 推理，把连续高维的视觉场景离散成文本符号，损失空间信息（modality gap）；② 只预测单条 waypoint 序列、同时兼顾多维度，缺乏逐维度的 deliberation——HybridDriveVLA 把推理整体搬到视觉域：用 Visual Chain-of-Thought（V-CoT）自回归预测未来场景图作为 goal，再用 Tree-of-Thought-inspired 的 waypoint 评估（ToT-Evaluation）生成并逐点打分 N 条候选序列，按 safet... ]]></description>
-    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
-  </item><item>
-    <title>LWDrive: Layer-Wise World-Model-Guided Vision-Language Model Planning for Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-LWDrive</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-LWDrive</guid>
-    <description><![CDATA[ Summary LWDrive 不把 VLM 输出的轨迹当最终结果，而是当作 intent-aware coarse plan：先由 Qwen2.5-VL-3B 生成粗轨迹并输出分层 hidden states，再用 Foresight Cascade Planner (FCP) 围绕它扩展候选池，按 Qwen action layer 逐级注入分层特征、并用多视角 BEV 特征做残差修正，最后由 score head 选出最优轨迹。世界模型在训练期以未来帧 latent 去噪的方式监督 VLM hidden states（推理不需要未来图），使分层特征带上前瞻动力学。在 NAVSIM 上取得... ]]></description>
     <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
   </item>
     </channel>
