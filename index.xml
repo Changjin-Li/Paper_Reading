@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>EponaV2: Driving World Model with Comprehensive Future Reasoning</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</guid>
+    <description><![CDATA[ Summary 在 perception-free driving world model 上补足”未来推理”：除预测下一帧图像外，还要求模型从推断出的未来表征中解码未来 metric depth 与 SAM3 文本对齐语义特征图，用 foundation model 伪标签监督；再用 flow matching GRPO 微调轨迹规划器。backbone 为 Qwen3-VL 4B 语言部分（总参数 6.7B），输入仅为前视视频与相对运动。NAVSIMv1 navtest 90.4 PDMS，NAVSIMv2 navtest 88.9 EPDMS，navhard Stage 1 36.1 E... ]]></description>
+    <pubDate>Mon, 19 Oct 2026 03:11:37 GMT</pubDate>
+  </item><item>
     <title>DriveVLM: The Convergence of Autonomous Driving and Large Vision-Language Models</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2402-DriveVLM</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2402-DriveVLM</guid>
@@ -46,12 +52,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-SpanVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2604-SpanVLA</guid>
     <description><![CDATA[ Summary 针对驾驶 VLA 的两个痛点——autoregressive action decoding 延迟高、且仅用正样本监督导致长尾鲁棒性不足——SpanVLA 提出 efficient action bridge（稀疏 KV-cache 条件 + 历史轨迹初始化的 flow-matching action expert）与 NR-RFT（基于 GRPO 的负样本惩罚 / 恢复奖励后训练），并发布首个同时含 negative 与 expert recovery 样本的真实世界驾驶数据集与 benchmark nuReasoning-NR。方法在 NAVSIM v1/v2、nuReas... ]]></description>
-    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
-  </item><item>
-    <title>EponaV2: Driving World Model with Comprehensive Future Reasoning</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</guid>
-    <description><![CDATA[ Summary 在 perception-free driving world model 上补足”未来推理”：除预测下一帧图像外，还要求模型从推断出的未来表征中解码未来 metric depth 与 SAM3 文本对齐语义特征图，用 foundation model 伪标签监督；再用 flow matching GRPO 微调轨迹规划器。backbone 为 Qwen3-VL 4B 语言部分（总参数 6.7B），输入仅为前视视频与相对运动。NAVSIMv1 navtest 90.4 PDMS，NAVSIMv2 navtest 88.9 EPDMS，navhard Stage 1 36.1 E... ]]></description>
     <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
   </item><item>
     <title>HybridDriveVLA: Vision-Language-Action Model with Visual CoT reasoning and ToT Evaluation for Autonomous Driving</title>
