@@ -6,65 +6,65 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
-    <title>DreamerAD: Efficient Reinforcement Learning via Latent World Model for Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</guid>
-    <description><![CDATA[ Summary 把驾驶 world model 的生成过程压到 1 步，并在 latent 空间里完成 RL：SF-WM 用 shortcut forcing 把采样从 100 步降到 1 步，AD-RM 在 latent 上逐 horizon 预测 8 维奖励，GRPO 在轨迹词表的 Gaussian 邻域内采样。NAVSIM v2 navtest 上 87.7 EPDMS（Epona 基线 85.1），单帧推理 0.03 s。 Problem &amp; Motivation 真实世界做 RL 试错成本与安全风险不可接受；传统仿真器有 sim-to-real gap，于是用 video w... ]]></description>
-    <pubDate>Sun, 18 Oct 2026 09:31:16 GMT</pubDate>
-  </item><item>
-    <title>Bridging Scene Generation and Planning: Driving with World Model via Unifying Vision and Motion Representation</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</guid>
-    <description><![CDATA[ Summary WorldDrive 试图消除”生成未来”和”决定未来”之间的表征割裂：先训练一个 Trajectory-aware Driving World Model (TA-DWM)，以轨迹词表作为运动条件生成可控未来视频；再把冻结的视觉与轨迹编码器继承给多模态 planner；最后用 Future-aware Rewarder (FAR) 在训练期从冻结世界模型蒸馏未来 latent，推理期无需生成视频即可对候选轨迹重新打分。在 NAVSIM navtest 上以单前视相机取得 88.1 PDMS（非 † 设置下 camera-only 方法中最高，与多视角 DiffusionDri... ]]></description>
-    <pubDate>Sun, 18 Oct 2026 03:53:17 GMT</pubDate>
-  </item><item>
-    <title>LWDrive: Layer-Wise World-Model-Guided Vision-Language Model Planning for Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-LWDrive</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-LWDrive</guid>
-    <description><![CDATA[ Summary LWDrive 不把 VLM 输出的轨迹当最终结果，而是当作 intent-aware coarse plan：先由 Qwen2.5-VL-3B 生成粗轨迹并输出分层 hidden states，再用 Foresight Cascade Planner (FCP) 围绕它扩展候选池，按 Qwen action layer 逐级注入分层特征、并用多视角 BEV 特征做残差修正，最后由 score head 选出最优轨迹。世界模型在训练期以未来帧 latent 去噪的方式监督 VLM hidden states（推理不需要未来图），使分层特征带上前瞻动力学。在 NAVSIM 上取得... ]]></description>
-    <pubDate>Sun, 18 Oct 2026 03:14:54 GMT</pubDate>
-  </item><item>
     <title>DriveVLM: The Convergence of Autonomous Driving and Large Vision-Language Models</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2402-DriveVLM</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2402-DriveVLM</guid>
     <description><![CDATA[ Summary 针对城市自动驾驶最难的一环——理解复杂与长尾场景（恶劣天气、复杂道路布局、细微的人类行为），DriveVLM 把一个 VLM（默认 Qwen-VL）改造成带 Chain-of-Thought 的三模块驾驶系统：Scene Description（环境 + 关键物体）→ Scene Analysis（关键物体的静态属性 / 运动状态 / 特殊行为 + 对 ego 的影响）→ Hierarchical Planning（17 类 meta-action → decision description → waypoints）。针对 VLM 空间 grounding 弱、算力大两点局限... ]]></description>
-    <pubDate>Sun, 18 Oct 2026 03:08:16 GMT</pubDate>
+    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
   </item><item>
     <title>AutoVLA: A Vision-Language-Action Model for End-to-End Autonomous Driving with Adaptive Reasoning and Reinforcement Fine-Tuning</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2506-AutoVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2506-AutoVLA</guid>
     <description><![CDATA[ Summary AutoVLA 提出一个面向端到端自动驾驶的 VLA 模型，试图用单一自回归模型同时解决两个此前割裂的问题：①物理动作生成（连续轨迹难以直接放入语言模型的输出空间）与 ②自适应推理（何时需要长 CoT、何时只需快速出动作）。核心做法是把动作离散化为一个由 K-disk 聚类得到的 action codebook（K = 2048 个 token，每个 token 为 (\Delta x, \Delta y, \Delta\theta)，覆盖 0.5 s），从而让”推理文本 + 动作 token”统一在同一个自回归序列里；再用两阶段训练——SFT 学推理与动作，GRPO-base... ]]></description>
-    <pubDate>Sun, 18 Oct 2026 03:08:16 GMT</pubDate>
+    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
   </item><item>
     <title>ColaVLA: Leveraging Cognitive Latent Reasoning for Hierarchical Parallel Trajectory Planning in Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2512-ColaVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2512-ColaVLA</guid>
     <description><![CDATA[ Summary 针对驾驶 VLA 的三个痛点——离散文本 reasoning 与连续控制不匹配、autoregressive CoT 解码带来高延迟、以及规划器非因果 / 解码低效——ColaVLA 把 reasoning 从文本 CoT 迁移到统一的 latent 空间，并用 hierarchical parallel decoding 一次性并行产出多尺度轨迹。方法由两部分构成：Cognitive Latent Reasoner（仅需 2 次 VLM 前向即可完成 scene comprehension → critical entity recognition → latent reth... ]]></description>
-    <pubDate>Sun, 18 Oct 2026 03:08:16 GMT</pubDate>
+    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
+  </item><item>
+    <title>DreamerAD: Efficient Reinforcement Learning via Latent World Model for Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</guid>
+    <description><![CDATA[ Summary 把驾驶 world model 的生成过程压到 1 步，并在 latent 空间里完成 RL：SF-WM 用 shortcut forcing 把采样从 100 步降到 1 步，AD-RM 在 latent 上逐 horizon 预测 8 维奖励，GRPO 在轨迹词表的 Gaussian 邻域内采样。NAVSIM v2 navtest 上 87.7 EPDMS（Epona 基线 85.1），单帧推理 0.03 s。 Problem &amp; Motivation 真实世界做 RL 试错成本与安全风险不可接受；传统仿真器有 sim-to-real gap，于是用 video w... ]]></description>
+    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
+  </item><item>
+    <title>Bridging Scene Generation and Planning: Driving with World Model via Unifying Vision and Motion Representation</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</guid>
+    <description><![CDATA[ Summary WorldDrive 试图消除”生成未来”和”决定未来”之间的表征割裂：先训练一个 Trajectory-aware Driving World Model (TA-DWM)，以轨迹词表作为运动条件生成可控未来视频；再把冻结的视觉与轨迹编码器继承给多模态 planner；最后用 Future-aware Rewarder (FAR) 在训练期从冻结世界模型蒸馏未来 latent，推理期无需生成视频即可对候选轨迹重新打分。在 NAVSIM navtest 上以单前视相机取得 88.1 PDMS（非 † 设置下 camera-only 方法中最高，与多视角 DiffusionDri... ]]></description>
+    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
   </item><item>
     <title>Judge, Then Drive: A Critic-Centric Vision Language Action Framework for Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-CriticVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2604-CriticVLA</guid>
     <description><![CDATA[ Summary CriticVLA 主张 VLA 不该只是”从多模态输入直接回归控制信号”的 action generator，而应先”判断”再”驾驶”。它提出一个 two-stage、critic-centric 框架：Stage-1 用 VLA 生成一条 rough trajectory，Stage-2 复用同一个 VLA（充当 multimodal critic）对该轨迹做结构化自然语言风险分析并输出纠正建议，再由 query-based delta adaptor 把建议转成对轨迹的精细化修正。配套构建 CriticDrive——1290 万条带标注轨迹的大规模合成数据集。在 Benc... ]]></description>
-    <pubDate>Sun, 18 Oct 2026 03:08:16 GMT</pubDate>
+    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
   </item><item>
     <title>SpanVLA: Learning from Negative-Recovery Samples with Fast Action Bridging for Vision-Language-Action Model</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-SpanVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2604-SpanVLA</guid>
     <description><![CDATA[ Summary 针对驾驶 VLA 的两个痛点——autoregressive action decoding 延迟高、且仅用正样本监督导致长尾鲁棒性不足——SpanVLA 提出 efficient action bridge（稀疏 KV-cache 条件 + 历史轨迹初始化的 flow-matching action expert）与 NR-RFT（基于 GRPO 的负样本惩罚 / 恢复奖励后训练），并发布首个同时含 negative 与 expert recovery 样本的真实世界驾驶数据集与 benchmark nuReasoning-NR。方法在 NAVSIM v1/v2、nuReas... ]]></description>
-    <pubDate>Sun, 18 Oct 2026 03:08:16 GMT</pubDate>
+    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
+  </item><item>
+    <title>EponaV2: Driving World Model with Comprehensive Future Reasoning</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</guid>
+    <description><![CDATA[ Summary 在 perception-free driving world model 上补足”未来推理”：除预测下一帧图像外，还要求模型从推断出的未来表征中解码未来 metric depth 与 SAM3 文本对齐语义特征图，用 foundation model 伪标签监督；再用 flow matching GRPO 微调轨迹规划器。backbone 为 Qwen3-VL 4B 语言部分（总参数 6.7B），输入仅为前视视频与相对运动。NAVSIMv1 navtest 90.4 PDMS，NAVSIMv2 navtest 88.9 EPDMS，navhard Stage 1 36.1 E... ]]></description>
+    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
   </item><item>
     <title>HybridDriveVLA: Vision-Language-Action Model with Visual CoT reasoning and ToT Evaluation for Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-HybridDriveVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-HybridDriveVLA</guid>
     <description><![CDATA[ Summary 针对传统驾驶 VLA 的两个痛点——① 用 image-to-text + 文本 CoT 推理，把连续高维的视觉场景离散成文本符号，损失空间信息（modality gap）；② 只预测单条 waypoint 序列、同时兼顾多维度，缺乏逐维度的 deliberation——HybridDriveVLA 把推理整体搬到视觉域：用 Visual Chain-of-Thought（V-CoT）自回归预测未来场景图作为 goal，再用 Tree-of-Thought-inspired 的 waypoint 评估（ToT-Evaluation）生成并逐点打分 N 条候选序列，按 safet... ]]></description>
-    <pubDate>Sun, 18 Oct 2026 03:08:16 GMT</pubDate>
+    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
   </item><item>
-    <title>SimWAM: A Simple World Action Model for End-to-End Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2608-SimWAM</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2608-SimWAM</guid>
-    <description><![CDATA[ Summary SimWAM 把未来视频预测从”推理时必须生成”降级为仅训练期的监督信号：用 joint flow matching 联合训练一个预训练 video expert（Wan2.2-5B）和一个轻量 action expert，并用 isolated attention mask 让 action token 与 future-frame token 彼此不可见、只共同 attend 当前帧表示 z(o_t)，因此推理与 RL 都不需要 rollout 未来帧。方法还通过把确定性 flow ODE 改写成 SDE、只在最后 3 步注入噪声并用 GRPO 优化组合式驾驶 reward... ]]></description>
-    <pubDate>Sun, 18 Oct 2026 03:08:16 GMT</pubDate>
+    <title>LWDrive: Layer-Wise World-Model-Guided Vision-Language Model Planning for Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2606-LWDrive</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2606-LWDrive</guid>
+    <description><![CDATA[ Summary LWDrive 不把 VLM 输出的轨迹当最终结果，而是当作 intent-aware coarse plan：先由 Qwen2.5-VL-3B 生成粗轨迹并输出分层 hidden states，再用 Foresight Cascade Planner (FCP) 围绕它扩展候选池，按 Qwen action layer 逐级注入分层特征、并用多视角 BEV 特征做残差修正，最后由 score head 选出最优轨迹。世界模型在训练期以未来帧 latent 去噪的方式监督 VLM hidden states（推理不需要未来图），使分层特征带上前瞻动力学。在 NAVSIM 上取得... ]]></description>
+    <pubDate>Mon, 19 Oct 2026 03:05:20 GMT</pubDate>
   </item>
     </channel>
   </rss>
