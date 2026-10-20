@@ -205,6 +205,36 @@
       "survey": "WorldModel-Survey",
       "paper": "Papers\\2604-ExploreVLA.md",
       "added_at": "2026-10-19"
+    },
+    {
+      "survey": "WorldModel-Survey",
+      "paper": "Papers\\2512-DiffusionDriveV2.md",
+      "added_at": "2026-10-20"
+    },
+    {
+      "survey": "VLA-Survey",
+      "paper": "Papers\\2609-DiffAdapterVLA.md",
+      "added_at": "2026-10-20"
+    },
+    {
+      "survey": "VLM-Survey",
+      "paper": "Papers\\2609-DiffAdapterVLA.md",
+      "added_at": "2026-10-20"
+    },
+    {
+      "survey": "WorldModel-Survey",
+      "paper": "Papers\\2609-DiffAdapterVLA.md",
+      "added_at": "2026-10-20"
+    },
+    {
+      "survey": "VLA-Survey",
+      "paper": "Papers\\2608-WAMDiff2.md",
+      "added_at": "2026-10-20"
+    },
+    {
+      "survey": "WorldModel-Survey",
+      "paper": "Papers\\2608-WAMDiff2.md",
+      "added_at": "2026-10-20"
     }
   ],
   "unrouted": [
