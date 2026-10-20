@@ -218,19 +218,6 @@ date_added: 2026-10-18
 
 - FID 最低；FVD 131.7 高于 `Drive-WM` 的 122.7，而后者分辨率更低（192×384），两者不能直接横比。
 
-**Critical reading**
-
-- **增益归因**：真正的大头是"用 CogVideoX VAE 初始化"（+53.5），"统一视觉与运动表征"只贡献 +2.0（+0.9 视觉、+1.1 运动）。论文的叙事重心在后者，但消融数字更支持"强视频先验 + 轻量继承"这一解释。无预训练时 31.4 PDMS 也说明该 planner 极度依赖冻结的预训练编码器，本身并不能从零学起。
-- **FAR 的评测泄漏风险**：FAR 的偏好监督来自 NAVSIM 的 simulation/PDMS 分数，而最终评测也是 PDMS。+1.2 的增益可能部分来自把评测规则蒸馏进 reward model，而不是真正利用了未来 latent 的动力学信息。要证明前瞻有用，需要与"只用仿真分数训练的同容量 reranker"做对照，论文没有提供这个 baseline。
-- **候选池与选择器的差距**：best-of-6 oracle 93.6 vs FAR 88.1，差 5.5 PDMS。这既证明候选集多模态，也说明**选择才是瓶颈**；FAR 只回收了其中一小部分。论文把它当作上界分析，但没有进一步分析 FAR 在哪些场景选错。
-- **navhard 的领先结构不均衡**：EP 60.5/53.1 远低于 LTF 与 DiffusionDrive 的 84–86，EC 也只有 60 左右；EPDMS 更高主要来自 NC/DAC/DDC/TTC 等安全与合规项。需要确认 EPDMS 的加权方式，以及这是否是"用慢速/保守换安全"。
-- **开环不是全面领先**：nuScenes L2 最低，但 CR 0.38/0.16 不及 SparseDrive 的 0.18/0.08；论文措辞是 "highly competitive"，与数字一致。
-- **可控性证据偏弱**：motion sensitivity 只用"latent cosine similarity 随轨迹几何距离下降"来证明，没有报告生成视频中自车轨迹与条件轨迹的几何误差（如 ADE），也没有验证生成场景中他车/车道几何是否物理一致。
-- **单目约束**：TA-DWM 以单前视视频训练，planner 也只能用单前视输入。NAVSIM 的 SV 设置下这是公平评测，但真实部署的侧后方感知、遮挡场景未验证；论文的 "vision-only" 实际是 camera-only 且 single-view，和表中 MV 方法不是同一感知条件。
-- **"closed-loop" 措辞**：NAVSIM v1 本身是非反应式 pseudo-simulation，NAVSIM-v2 才是带反应式交通的 pseudo closed-loop；论文把两者都称为 closed-loop，容易 overclaim。
-- **关键细节缺失**：没有参数量、FAR 训练时 $z_k$ 的采样方式（是否为每个候选跑完整扩散、采样步数多少）、偏好数据规模；也没有生成质量对下游 planning 的因果消融（例如降低 FVD 是否提升 PDMS）。
-- **† 的含义不完整**：caption 只说 † 用 full navtrain，但未说明非 † 设置具体用了哪个子集/多少数据；Table 6 中 WorldDrive 的 89.0 实际对应 † 模型，非 † 的 88.1 模型延迟没有单独报告。
-
 ## Strengths & Weaknesses
 
 **Strengths**
@@ -244,13 +231,17 @@ date_added: 2026-10-18
 
 **Weaknesses**
 
-- **核心增益的归因不利**：统一表征只带来 +2.0 PDMS，远小于通用视频预训练的 +53.5；"representation unification" 的独立价值没有被干净地隔离出来。
-- **FAR 与评测指标耦合**：用 PDMS/仿真分数构造偏好、又在 PDMS 上评测，存在 metric leakage；缺少"同容量、只用仿真分数"的 reranker 对照。
-- **选择器是瓶颈**：oracle 与 FAR 相差 5.5 PDMS，说明候选质量足够但 reward model 不够好；论文没有分析失败模式。
-- **navhard 的 EP/EC 明显偏弱**：安全项强、效率项弱，EPDMS 的领先可能被指标权重放大。
+- **核心增益的归因不利**：统一表征只带来 +2.0 PDMS，远小于通用视频预训练的 +53.5；去掉预训练只剩 31.4 PDMS，说明方法高度依赖冻结编码器，"representation unification" 的独立价值没有被干净隔离。
+- **FAR 与评测指标耦合**：用 PDMS/仿真分数构造偏好、又在 PDMS 上评测，存在 metric leakage；缺少"同容量、只用仿真分数"的 reranker 对照，也没有 FVD → PDMS 的因果消融。
+- **选择器是瓶颈**：oracle 93.6 与 FAR 88.1 相差 5.5 PDMS，说明候选质量足够但 reward model 不够好；论文没有分析失败模式。
+- **navhard 上效率项明显偏弱**：安全项强、EP/EC 弱，EPDMS 的领先可能被指标权重放大；† 标记含义不完整，非 † 的 88.1 对应的推理延迟没有单独报告。
+- **开环并非全面领先**：nuScenes 上 CR 0.38/0.16 不及 SparseDrive 的 0.18/0.08，说明碰撞指标并非一致占优。
+- **"closed-loop" 措辞强于实际**：NAVSIM v1 是非反应式评测，不能支撑闭环交互的结论。
+- **可控性证据不足**：只用 latent cosine 证明运动条件被遵循，没有 ADE、几何一致性或采样步数/生成延迟的量化。
+- **生成评估不完整**：FVD 不是最低，且跨分辨率比较不公平。
 - **单目限制**：无法利用多视角，真实场景的侧后方与遮挡问题未覆盖。
-- **生成评估不完整**：FVD 不是最低，跨分辨率比较不公平；没有报告采样步数、生成延迟与可控性几何误差。
-- **方法新颖性偏工程组合**：轨迹词表、打分头、simulation reward 均沿用 WoTE，主要新意集中在 inheritance + FAR；两阶段、多冻结策略也增加了复现复杂度。
+- **复现信息不足**：参数量、$z_k$ 的采样方式、偏好数据规模均未报告；两阶段与多冻结策略进一步提高了复现成本。
+- **方法新颖性偏工程组合**：轨迹词表、打分头、simulation reward 均沿用 WoTE，主要新意集中在 inheritance + FAR。
 
 ## Notes
 

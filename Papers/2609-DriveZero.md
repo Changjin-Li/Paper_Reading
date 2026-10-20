@@ -265,25 +265,6 @@ $$
 
 + self-play 在 nuPlan 上没有稳定优势（最高 93.11 vs 93.01），作者归因于 nuPlan 闭环评测用 IDM 驱动背景车，不奖励更自然的交互。self-play 只用于实车部署配置。
 
-## Critical reading
-
-- **"Beyond human demonstrations" 的边界被标题放大**：DriveRL 的世界仍由人类日志初始化，训练 goal 也来自日志中的未来 ego 位置，日志只"seed scenes and goals"不等于完全不用人类数据。真正新增的是 goal-conditioned teacher 能回答反事实查询，而不是行为完全脱离日志分布。
-- **Table 7 削弱了核心叙事**：纯 DriveRL 轨迹监督 93.61 < 人类轨迹 93.92。作者诚实地报告了这一点，但这也说明 RL 轨迹本身并不比人类轨迹更有信息量；+0.49 的最终优势完全依赖 goal augmentation。把"teacher 更好"与"监督更多"混在一个对照里，无法分解各自贡献。
-- **goal augmentation 的对照天然不对称**：人类轨迹基线无法做同样的意图增广（日志里没有反事实人类轨迹），因此这不是同等数据量下的公平比较。缺少"人类轨迹 + 其他增广（如翻转/扰动）"或"teacher 不做 goal aug. 但数据量匹配"的对照。
-- **Headline 95.3 依赖额外的 237K OOD 仿真数据**：不加 SimScale 的 DriveZero 是 94.8，恰好与 Human 持平，而不是超过。摘要用 95.3 讲"surpassing the human driver"，但正文 Table 4 的 base 模型并没有超过；且 SimScale 数据的生成管线本身可能使用了人类数据训练的模型，需要辨析"without human trajectory supervision"的严格程度。
-- **navhard 的"超过所有只用 navtrain 的方法"不成立为严格领先**：DriveZero 51.5 与 GuideFlow 51.5 完全持平，而 GuideFlow 使用人类示范。领先 GigaPixel 1.4 是事实，但"all methods"的措辞过强。
-- **Stage 1/Stage 2 的 trade-off 未被讨论**：加 SimScale 后 Stage 1 EPDM 降 1.8，Stage 2 升 8.3，总 EPDMS 提升。这说明 OOD 仿真数据提升了扰动鲁棒性但损害了 nominal 精度；论文只把它当作正面结果，没有分析哪些场景变差。
-- **交通灯合规是明确的安全缺口**：正式 teacher 的奖励不含红灯违规，Table A9 显示加入该奖励会把违规率减半但总分下降 1.2~3.1。作者选择优化 benchmark 分数而非合规性；在实车部署语境下这是需要正面讨论的取舍，而不应只放在附录。
-- **TTS 的收益集中在非反应式场景**：Hard R 在 $N=16/32$ 时低于 baseline，$N=64$ 也只是回到 89.15（baseline 89.18）。这说明短 horizon rollout + 恒定转向率外推的背景车模型不足以处理交互式场景；论文却用平均分 93.57 讲"policy improvement"。
-- **TTS 的推理成本没有数字**：$N=64$ 意味着每个 planner step 做 64 条 5 步闭环 rollout，计算量约为单次前向的数百倍；论文只说"primarily enlarges parallel computation"，没有给延迟、显存或吞吐，无法判断实车可行性。
-- **奖励尺度与碰撞惩罚偏弱**：碰撞罚 $-1.0$，而六项 soft 项乘积除以 110 后在 110 步上的累计回报可达约 0.7，加上 goal 0.5，硬安全事件与软质量的量级接近；论文没有做 reward scale 或惩罚强度的敏感性分析。
-- **Beta 分布单峰限制 teacher 的多模态性**：每步动作分布被约束为单峰，多模态只体现在 student 的 64 条 proposal 上。teacher 本身无法表达"左转或直行都合理"这类离散意图以外的多峰连续控制，可能限制蒸馏上限。
-- **消融只在 ViT-S + 无 SimScale 下做**：主表用 ViT-L + SimScale，Table 7 的 +0.53/+0.72/+0.49 能否外推到主配置未知；ViT scaling 表（A13）只报 PDMS，没有重复监督消融。
-- **关键训练细节缺失**：$\lambda_{\mathrm{traj}}$、$\lambda_{\mathrm{score}}$、goal augmentation 的具体意图采样分布与每条场景的增广数量、teacher rollout 的目标速度/舒适性筛选标准都没有给出，复现难度高。
-- **实车验证只有定性描述**：3.3 节说在小车队上部署 DriveRL、在拥挤城市道路闭环演示，但没有接管率、里程、碰撞/违规统计，也没有说明安全员介入情况。这是系统报告里最有价值却最不量化的部分。
-- **真闭环只有 HUGSIM 一个 benchmark，绝对分数低**：Hard 24.7 / Extreme 27.6 的 HD-Score 说明长尾场景仍远未解决；NAVSIMv1/v2 都是 pseudo closed-loop（背景车 log replay 或 IDM），不能等同于真实反应式交互。
-- **训练成本未与 baseline 对齐**：DriveRL 96 GPU × 21 h、DriveVFM 800K iter × batch 2,048、DriveZero 16 H20 × 38 h；论文没有报告总 GPU-hours，也没有与 DrivoR、GigaPixel 等 baseline 的训练成本做对比，"scalable" 的论点缺少成本维度。
-
 ## Strengths & Weaknesses
 
 **Strengths**
@@ -298,15 +279,19 @@ $$
 
 **Weaknesses**
 
-- **核心 claim 的证据链不闭合**：标题说 "beyond human demonstrations"，但 (a) 训练世界与 goal 来自日志，(b) 纯 RL 监督不如人类监督，(c) 超过人类只在加 237K OOD 仿真数据后成立。三点叠加使"超越"更像是数据与增广的胜利，而非行为范式的胜利。
+- **"Beyond human demonstrations" 的证据链不闭合**：标题的 claim 有三点支撑不足——(a) DriveRL 的训练世界与 goal 仍来自人类日志，"seed scenes and goals" 不等于脱离人类数据；(b) Table 7 里纯 DriveRL 轨迹监督 93.61 < 人类轨迹 93.92，RL 轨迹本身并不比人类轨迹更有信息量；(c) 超过人类只在加 237K SimScale 后成立（94.8 持平 → 95.3 超越），而 SimScale 生成管线可能用到人类数据训练的模型。真正新增的是 goal-conditioned teacher 能回答反事实查询，而非行为范式本身的胜利。
+- **Table 7 无法分解"teacher 更好"与"监督更多"**：+0.49 的最终优势完全依赖 goal augmentation，但两者混在一个对照里；且该对照天然不对称——人类轨迹基线无法做同样的意图增广（日志里没有反事实人类轨迹）。缺少"人类轨迹 + 其他增广"或"teacher 不做 goal aug. 但数据量匹配"的对照。
 - **goal augmentation 缺少可复现定义**：如何采样替代意图、如何保证新 goal 在路网中可达、每条场景增广几次、增广后如何过滤不合理轨迹，全部没有说明；这是方法最关键的组件，却最不透明。
+- **navhard 的"超过所有只用 navtrain 的方法"措辞过强**：DriveZero 51.5 与 GuideFlow 51.5 完全持平，而 GuideFlow 使用人类示范；领先 GigaPixel 1.4 是事实，但不构成 "all methods" 级别的领先。
+- **Stage 1 / Stage 2 的 trade-off 未被讨论**：加 SimScale 后 Stage 1 EPDM 降 1.8、Stage 2 升 8.3，说明 OOD 仿真数据以 nominal 精度换取扰动鲁棒性；论文只把它当作正面结果，没有分析哪些场景变差。
 - **没有多模态 teacher**：Beta 单峰策略无法表达同一状态下多个连续控制模式；student 的 64 proposal 只是事后覆盖，不能恢复 teacher 从未产生的模式。
-- **安全合规被 benchmark 分数绑架**：红灯违规不入奖励、碰撞惩罚量级偏弱、EP 高于人类而 NC 低于人类；这些取舍在论文中偏附录化，缺少"部署时如何补救"的讨论。
-- **推理成本不透明**：TTS 的 $N=64$ 与 DriveVFM ViT-L 的实际延迟、显存、吞吐均未报告，无法评估实时性；这是端到端驾驶论文的基本信息。
-- **真闭环证据薄弱**：HUGSIM 只有 4 个场景来源、绝对 HD-Score 低，且"zero-shot"只表示不做 HUGSIM 微调；训练数据与 HUGSIM 场景是否存在重叠没有说明。
-- **消融与主实验不同配置**：ViT-S vs ViT-L、有无 SimScale 的差异使消融结论的外推性受限；缺少主配置上的逐项消融。
-- **实车部分是定性 demo**：没有接管率、里程、违规统计与安全员介入记录，"real-world application" 的说服力远低于 benchmark 部分。
-- **复现信息不足**：两个 loss 权重、goal augmentation 协议、teacher rollout 的过滤规则、DriveVFM 各教师 loss 权重均缺失；代码/权重是否开源也未在正文明确。
+- **安全合规被 benchmark 分数绑架**：红灯违规不入奖励（Table A9 显示加入后违规率减半但降 1.2~3.1）、碰撞罚仅 $-1.0$ 与 soft 项量级接近、EP 高于人类而 NC 低于人类；缺少 reward scale / 惩罚强度敏感性分析，也缺少"部署时如何补救"的讨论。
+- **TTS 的收益集中在非反应式场景**：Hard R 在 $N=16/32$ 时低于 baseline，$N=64$ 只回到 89.15（baseline 89.18），说明短 horizon rollout + 恒定转向率外推不足以处理交互式场景；论文仍用平均分 93.57 讲 "policy improvement"。
+- **推理与训练成本都不透明**：$N=64$ 意味着每个 planner step 做 64 条 5 步闭环 rollout，计算量约为单次前向的数百倍，但没有延迟、显存、吞吐；训练侧 DriveRL 96 GPU × 21 h、DriveVFM 800K iter × batch 2,048、DriveZero 16 H20 × 38 h 也未折算成 GPU-hours 或与 DrivoR、GigaPixel 对比，"scalable" 缺成本维度。
+- **真闭环证据薄弱**：HUGSIM 只有 4 个场景来源、绝对 HD-Score 低（Hard 24.7 / Extreme 27.6），"zero-shot" 只表示不做 HUGSIM 微调，训练数据与 HUGSIM 场景是否重叠未说明；NAVSIMv1/v2 仍是 pseudo closed-loop（log replay 或 IDM 背景车），不能等同于真实反应式交互。
+- **消融与主实验不同配置**：ViT-S vs ViT-L、有无 SimScale 的差异使 Table 7 的 +0.53/+0.72/+0.49 能否外推未知；ViT scaling 表（A13）只报 PDMS，没有在主配置上重复监督消融。
+- **实车部分是定性 demo**：3.3 节的小车队部署没有接管率、里程、碰撞/违规统计与安全员介入记录，"real-world application" 的说服力远低于 benchmark 部分。
+- **复现信息不足**：$\lambda_{\mathrm{traj}}$、$\lambda_{\mathrm{score}}$、goal augmentation 协议、teacher rollout 的目标速度/舒适性筛选、DriveVFM 各教师 loss 权重均缺失；代码/权重是否开源也未在正文明确。
 
 ## Notes
 

@@ -226,24 +226,6 @@ Stage 1 分两步：先用 GT 未来动作作为输入、只做图像生成预�
 + UniAD 协议下 L2 0.77 差于 OpenDriveVLA（0.67）与 AutoVLA（0.70），collision 未报告，无法判断安全性。
 + 作者把这一组称为 "competitive"，但按 L2 排序属于中游；nuScenes 的结论更像"能用"，而非"更好"。
 
-**Critical reading**
-
-- 标题的核心卖点是 exploration，但 Table 4 显示 image-only 奖励只值 +0.03 PDMS，与 PDMS 奖励合用只比纯 PDMS 多 +0.17。Stage 2 的收益几乎全部来自标准 GRPO + PDMS，而不是世界模型熵。
-- 93.7 的 headline 依赖 best-of-6：不采样是 90.4，与 DriveVLA-W0 的 90.2 持平。论文没有说明 best-of-6 用什么打分准则选轨迹，也没有说明 Table 2 的 88.8 是否同样用了 best-of-6。
-- NAVSIM 是 non-reactive pseudo-simulation，但 Table 1 / Table 2 的标题写作 "closed-loop metrics" 与 "extended closed-loop metrics"，措辞比实际设定强。
-- 动作如何条件化世界模型完全没有形式化：正文说"condition the world model on $\tau_i$"，但式 (2)(3) 的条件集只有图像 token、文本、ego status，token 词表也只有这三类。SFT 阶段图像生成条件的是 GT 动作还是预测动作，同样未说明。
-- 轨迹损失没有公式：式 (1) 只定义 $\tau=\mathrm{MLP}(h)$，全文没有 $L_{\text{traj}}$，也没有 $L_{\text{MTP}}$ 与轨迹损失的组合权重，轨迹监督不可复现。
-- GRPO 作用在连续 waypoint 回归上，但策略似然 $\pi_\theta(\tau)$、重要性比率、clip 与 KL 项都没有定义；附录给了 $\beta=0.01$、$\epsilon=0.1$，正文却没有对应目标函数。
-- 式 (5) 的熵写法有误：$p_j$ 被定义为"image token $j$ 的预测概率"这一标量，而真正的熵应在每个位置对 codebook 分布求和，按原文写法该量不是熵。归一化函数 $f(\cdot)$ 也只用"bounds to $[0,1]$"一句带过。
-- Stage 2 的 PDMS 奖励从哪来未说明：NAVSIM 是离线 non-reactive benchmark，训练时如何为采样轨迹在线获得 PDMS 没有交代，这是整套 RL 能否成立的前提。
-- 视觉监督与规划 horizon 不匹配：只预测 0.5 秒后的单帧 RGB/depth，却要支撑 4 秒的轨迹规划；中间的时间跨度如何桥接没有讨论。
-- Figure 3 声称 exploration bonus 与 L2 error 正相关，这恰恰说明它与"偏离 GT"并不正交；而"L2 失效时仍能捕捉新颖性"只有单例定性展示，没有统计量。
-- 生成质量只有定性图，没有 FID / PSNR / LPIPS 等任何指标，却以 "dense supervision" 为核心贡献之一。
-- 全文没有重复实验、种子或置信区间；消融精确到 0.01，但 +0.17 的差异无法与随机波动区分。
-- 单目前视相机是明确的限制，作者也在 Limitations 中承认；但 Table 1 里与之对比的多数强 baseline 是多相机 + LiDAR。
-- 同一 baseline 在 Table 1 写作 DriveSuprim、Table 2 写作 DriveSuprem，命名不统一。
-- 代码与 demo 仍为"will be publicly available"，当前不可复现。
-
 ## Strengths & Weaknesses
 
 **Strengths**
@@ -256,12 +238,17 @@ Stage 1 分两步：先用 GT 未来动作作为输入、只做图像生成预�
 
 **Weaknesses**
 
-- 核心创新（exploration bonus）的实证支撑很弱：+0.17 PDMS，且无方差报告。真正有效的是 GRPO + PDMS 这一常规组合。
-- headline 数字依赖 best-of-6，而选择准则未公开；去掉采样后与 DriveVLA-W0 持平。
-- 动作条件化、轨迹损失、GRPO 目标函数三处关键机制缺失形式化定义，方法不可复现。
-- 世界模型只预测 0.5 s 后的单帧，与 4 s 规划 horizon 之间的监督缺口没有处理。
-- nuScenes 上是中游水平，且只做 Stage 1，无法验证 RL 部分的跨数据集有效性。
-- 没有生成质量指标，"稠密监督更丰富"只有下游 PDMS 间接支持。
+- **exploration bonus 的实证支撑很弱**：Table 4 中 image-only 奖励只值 +0.03 PDMS，与 PDMS 奖励合用也只比纯 PDMS 多 +0.17，Stage 2 的收益几乎全部来自标准 GRPO + PDMS；全文无重复实验与置信区间，+0.17 无法与随机波动区分。
+- **headline 数字依赖 best-of-6**：93.7 由 best-of-6 得到，不采样是 90.4，与 DriveVLA-W0 的 90.2 持平；best-of-6 的打分准则未公开，Table 2 的 88.8 是否同样用了 BoN 也未声明。
+- **三处关键机制缺形式化定义**：动作条件化（式 (2)(3) 的条件集只有图像 token、文本与 ego status，SFT 阶段条件的是 GT 还是预测动作未说明）、轨迹损失（无 $L_{\text{traj}}$ 及其与 $L_{\text{MTP}}$ 的组合权重）、GRPO 目标（似然 $\pi_\theta(\tau)$、重要性比率、clip 与 KL 均未定义，只在附录给出 $\beta=0.01$、$\epsilon=0.1$），方法不可复现。
+- **熵的定义与归一化有问题**：式 (5) 把 $p_j$ 定义为单个 image token 的预测概率这一标量后直接求和，按原文写法该量不是熵；归一化函数 $f(\cdot)$ 也只用 "bounds to $[0,1]$" 一句带过。
+- **Stage 2 的 PDMS 奖励来源未说明**：NAVSIM 是离线非反应式 benchmark，训练时如何为采样轨迹在线获得 PDMS 没有交代，而这是整套 RL 能否成立的前提。
+- **视觉监督与规划 horizon 不匹配**：只预测 0.5 s 后的单帧 RGB/depth，却要支撑 4 s 的轨迹规划，中间时间跨度如何桥接没有讨论。
+- **"closed-loop" 措辞强于实际设定**：Table 1 / Table 2 标题写作 "closed-loop metrics" 与 "extended closed-loop metrics"，实际是 non-reactive pseudo-simulation。
+- **Figure 3 的正相关反而削弱了 novelty 论点**：exploration bonus 与 L2 error 正相关，说明它与"偏离 GT"并不正交；"L2 失效时仍能捕捉新颖性"只有单例定性展示，没有统计量。
+- **生成质量没有任何量化指标**：只有定性图，没有 FID / PSNR / LPIPS，却把 "dense supervision" 列为核心贡献之一。
+- **输入条件不对等，跨数据集结论有限**：单目前视相机对比的多数强 baseline 是多相机 + LiDAR；nuScenes 上只做 Stage 1，L2 0.44 / 0.77 属于中游，RL 部分未跨数据集验证。
+- **命名与可复现性不足**：同一 baseline 在 Table 1 写作 DriveSuprim、Table 2 写作 DriveSuprem；代码与 demo 仍是 "will be publicly available"。
 
 ## Notes
 

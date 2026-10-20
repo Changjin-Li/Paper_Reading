@@ -233,22 +233,6 @@ Stage 1 用感知多任务损失（语义分割、深度、BEV 分割、3D 检�
 + 42.8 ms 与 DiffusionDrive 的 39.1 ms 同量级，远低于 GoalFlow 的 66.8 ms；参数量 105M 大于 DiffusionDrive，但 backbone 更强（V2-99 vs ResNet-34），比较不完全同条件。
 + 需要注意 §D.2 正文写的是 60M 参数，与 Table 8 的 105M 相差近一倍，论文内部未对齐。
 
-**Critical reading**
-
-- Table 2 的对比混合了输入模态：DiffE2E 与 GoalFlow、DiffusionDrive 用 camera + LiDAR，Hydra-MDP++ 只用 camera。表注未区分，PDMS 的领先幅度因此不能直接归因于方法。
-- 92.7 仍低于人类 94.8，且 NAVSIM 是非反应式开环 benchmark，log replay 下其他 agent 不会对自车行为作出反应，安全类指标的结论外推有限。
-- 闭环证据只有 CARLA Longest6 与 Town05，均为单次运行，未报告种子方差或置信区间；DS 83 与 82.9 的差异在 CARLA 常见波动范围内。
-- 两阶段训练实际上是"冻结感知 + 训练规划"，并非端到端联合优化。§4.1 与 §B.1.1 明确写 freeze，§A.1 的损失描述又写联合训练，两处矛盾。
-- Table 4 把 batch size 标为 one-stage 256 / two-stage 16，而 §B.1.1 正文写 Stage 1 = 16、Stage 2 = 256，方向相反。
-- Table 8 的 105M 与 §D.2 正文的 60M 不一致。
-- GRU 是消融中影响最大的组件（去掉掉 16 DS），但 Method 完全没有描述它的位置、输入与作用，读者无法复现。
-- 只用 2 步 DDIM 且只输出单条轨迹，因此"建模多模态分布"的能力没有被验证：没有报告采样多样性、mode coverage 或多轨迹选择策略。这一点与 DiffusionDrive 的 truncated diffusion + mode selection 形成对照。
-- 混合监督的任务在两个 benchmark 上不同（CARLA 是速度分类，NAVSIM 是 agent detection），消融只在 CARLA 做，无法判断监督任务类型对 NAVSIM 结果的影响。
-- $\lambda_{\text{sup}}$ 没有敏感性分析：CARLA 固定 1.0，NAVSIM 固定 0.1，为什么是这个量级、换一个值会怎样，均未讨论。
-- 去噪步数消融用"以 92.705 为零基线、1e4 缩放"的方式呈现，没有给原始 DS 值，可读性差。
-- "first" claim 的限定是"直接生成轨迹 + 在 CARLA 闭环中验证"，与 DiffusionDrive 的差异需要更精确的界定，否则容易被读成首次将 diffusion 用于端到端驾驶。
-- 论文未给出代码链接，复现性存疑。
-
 ## Strengths & Weaknesses
 
 **Strengths**
@@ -260,12 +244,17 @@ Stage 1 用感知多任务损失（语义分割、深度、BEV 分割、3D 检�
 
 **Weaknesses**
 
-- 两阶段训练消解了"端到端"的核心卖点，one-stage 崩溃（18.2）说明感知与规划的联合优化问题并未解决，只是被绕开。
-- 多模态性只在训练目标层面存在，推理时单条输出，没有任何多样性或 mode selection 的证据。
-- 关键组件 GRU 未在 Method 中描述，复现性差。
-- 多处内部数字与设定不一致（105M vs 60M、batch size 方向、freeze vs joint），审稿层面的严谨性不足。
-- 缺少 camera-only 版本，无法与纯视觉方法在同等输入下比较。
-- 未开源。
+- **"端到端"的卖点被两阶段训练消解**：one-stage 训练崩溃（18.2 DS）说明感知与规划的联合优化问题并未解决，只是被拆开绕开；论文的核心卖点与最终方案之间存在张力。
+- **缺少 camera-only 版本**：主表最佳结果是 camera + LiDAR 口径，无法与纯视觉方法在同等输入下比较；NAVSIM 上 camera-only 与混合输入的差距没有单独拆出。
+- **多模态性只存在于训练目标**：推理时仍输出单条轨迹，2 步 DDIM 下没有任何采样多样性、mode 数量或 mode selection 的证据。
+- **关键结果低于人类上界，且评测非反应式**：CARLA 上 92.7 仍低于人类 94.8；NAVSIM 为开环非反应式协议，交互密集场景的表现未知。
+- **关键组件 GRU 缺席 Method 描述**：消融显示去掉 GRU 掉 16 DS，是除混合结构外最重要的组件，但正文完全没有交代其位置与作用，复现性差。
+- **内部数字与设定自相矛盾**：Table 8 写 105M 而 §D.2 写 60M；Table 4 与 §B.1.1 的 batch size 方向相反；§4.1/§B.1.1 说 freeze 而 §A.1 说 joint。这类不一致直接降低对其他数字的信任度。
+- **单次运行、无方差报告**：CARLA 上 DS 83 与 82.9 的差距不具统计意义，全文没有种子或置信区间。
+- **两个 benchmark 的监督任务不同，消融只在 CARLA**：CARLA 用速度分类、NAVSIM 用 agent detection，监督分支的贡献无法跨 benchmark 归因。
+- **$\lambda_{\text{sup}}$ 无敏感性分析**：CARLA 取 1.0、NAVSIM 取 0.1，相差一个数量级，选择依据与稳健性均未说明。
+- **去噪步数消融不可核验**：用 92.705 作为零基线并放大约 $10^4$ 倍展示，没有给出原始 DS 数值。
+- **"first" 类表述的限定不精确，且未开源**：论文给出的优先级 claim 缺少明确限定条件，也没有代码链接可供核对实现细节。
 
 ## Notes
 

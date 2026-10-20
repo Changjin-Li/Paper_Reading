@@ -192,16 +192,6 @@ $$
 
 + **Runtime**（Table 6，GTRS-Dense）：57.9 ms → 67.2 ms，其中 GPU +5.6 ms、CPU 检索 +3.7 ms，仍在 10 Hz 预算内。
 
-**Critical reading**
-
-- **增益高度依赖 baseline，缺少"何时有效"的判据**：navhard 上从 +31.2%（LTF）到 +1.4%（DrivoR），navtest 上 GTRS-DP 只有 +0.3。作者把原因归为 baseline 已充分利用场景上下文，但没有给出可用先验的信息量度量，也没有预测增益的指标，实际部署时无法判断是否值得建库。
-- **主实验与消融不同源**：所有消融在 LTF + validation split（81.7→84.4）上完成，主表却报另外三个 baseline 的 navhard 结果，且 navhard 用的 $N=20$ 不是 Appendix 0.E 中最好的 $N=10$（49.5 vs 48.6）。读者无法确认哪个超参组合对应哪个主表数字。
-- **per-metric 存在安全—效率 trade-off**：Stage 1 tokens 上 EP +3.3、EC +11.6，但 NC -0.9、TTC -1.1。作者解释为"更自信的 progress 压缩了安全裕度"，却没有给出碰撞率或危险场景子集上的统计；EPDMS 的增益部分来自 EC 的 11.6，而 EC 是乘性项，单项解释力有限。
-- **先验损坏实验只覆盖"错位"，未覆盖"过期"**：随机 500 m 替换模拟的是检索错误，但真实部署更常见的是道路改建、施工、季节变化导致同一位置外观失效。论文没有构造"位置正确但外观错误"的对照，因此 persistent memory 的回退能力只验证了一半。
-- **memory bank 的维护成本被低估**：939 MB / 6.5 km² 意味着城市级部署是 TB 量级，且街景来自 Google Street View API，许可、更新频率、道路变更后的重建流程均未讨论；Limitations 只提到检索依赖 ego 位置。
-- **HD map 对照是自实现 baseline**：vectorized / rasterized HD map 变体由作者自行接入，未与公开 map-aware planner 对齐训练预算，46.4 / 47.1 不能直接当作 HD map 方法的上限。
-- **没有真实闭环或跨城市实验**：全部结果来自 NAVSIM-v2 的 open-loop / 伪闭环协议，navhard-two-stage 的 Stage 2 只报合并 EPDMS，缺少交互场景下的失败分析。
-
 ## Strengths & Weaknesses
 
 **Strengths**
@@ -214,13 +204,15 @@ $$
 
 **Weaknesses**
 
-- 依赖部署区域的 lane connectivity graph 与离线街景库。6.5 km² 需要 939 MB，换城市或道路更新都要重建；街景来自 Google Street View API，实际部署的许可、更新频率与长期维护成本未讨论。
-- 检索只用 ego 位置（作者在 Limitations 中承认），没有定位噪声或地图错位的定量实验；而实际部署中定位误差可能直接导致检索到错误路段。
-- 先验只编码静态外观，不包含动态 agent。per-metric 显示 NC -0.9、TTC -1.1，作者解释为"更自信的 progress 压缩了安全裕度"，但这一安全性 trade-off 没有进一步量化。
-- 主表提升跨度很大（+1.4% 到 +31.2%），且 GTRS-DP 在 navtest 仅 +0.3；收益明显依赖 baseline 是否已充分利用场景上下文，论文没有给出"何时有效"的判据。
-- 消融全部在 LTF + validation split 上完成，主实验的绝对增益只在大模型 baseline 上报告，二者不可直接互推。
-- 与 HD map 的对比只在 GTRS-Dense 上做，且 HD map baseline 是作者自行实现，未与已有 map-based planner 比较。
-- 评测仍是 NAVSIM-v2 的 open-loop / 伪闭环协议，没有真实闭环部署或跨城市泛化实验。
+- **增益高度依赖 baseline，缺少"何时有效"的判据**：navhard 上从 +31.2%（LTF）到 +1.4%（DrivoR），navtest 上 GTRS-DP 只有 +0.3；作者归因于 baseline 已充分利用场景上下文，但没有给出先验信息量的度量，也没有能预测增益的指标，部署时无法判断是否值得建库。
+- **主实验与消融不同源**：所有消融在 LTF + validation split（81.7→84.4）上完成，主表却报另外三个 baseline 的 navhard 结果；且 navhard 用 $N=20$ 而非 Appendix 0.E 中最优的 $N=10$（49.5 vs 48.6），读者无法确认哪组超参对应哪个主表数字。
+- **安全—效率 trade-off 未量化**：Stage 1 tokens 上 EP +3.3、EC +11.6，但 NC −0.9、TTC −1.1；没有碰撞率或危险场景子集的统计，而 EPDMS 增益部分来自 EC 这个乘性项，单项解释力有限。
+- **先验只编码静态外观，不含动态 agent**：per-metric 的 NC/TTC 下降即为代价，论文只用"更自信的 progress 压缩了安全裕度"解释，未做进一步验证。
+- **先验损坏实验只覆盖"错位"，未覆盖"过期"**：随机 500 m 替换模拟的是检索错误，真实部署更常见的是改建、施工、季节变化导致的"位置正确但外观失效"，persistent memory 的回退能力只验证了一半。
+- **memory bank 的维护成本被低估**：939 MB / 6.5 km² 意味着城市级部署是 TB 量级；街景来自 Google Street View API，许可、更新频率、道路变更后的重建流程均未讨论。
+- **检索只用 ego 位置**：作者在 Limitations 中承认，但没有定位噪声或地图错位的定量实验，而实际定位误差会直接导致检索到错误路段。
+- **HD map 对照是自实现 baseline**：vectorized / rasterized 变体由作者自行接入，未与公开 map-aware planner 对齐训练预算，46.4 / 47.1 不能当作 HD map 方法的上限。
+- **没有真实闭环或跨城市实验**：全部结果来自 NAVSIM-v2 的 open-loop / 伪闭环协议，navhard-two-stage 的 Stage 2 只报合并 EPDMS，缺少交互场景下的失败分析。
 
 ## Notes
 

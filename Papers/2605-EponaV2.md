@@ -249,19 +249,6 @@ $$
 
 + 1.0 PDMS 中 EP 贡献 +1.2、DAC +0.6、TTC +0.4、C +0.1，NC 不变。
 
-**Critical reading**
-
-- **三个 benchmark 的增益口径不同**：摘要写 "+1.3 PDMS, +5.5 EPDMS"，前者是 NAVSIMv1 navtest 相对 DriveLaW，后者是 navhard **Stage 1** 相对 DriveLaW。在最常被引用的 NAVSIMv2 navtest 上只领先 0.3（88.9 vs 88.6），且 EC 与 DriveLaW 持平（77.4）。"SOTA" 仅在 perception-free 子集内成立。
-- **navhard Stage 2 退化了但未讨论**：NC 下降 13.7、LK 下降 47.2，所有方法都有类似趋势；论文没有分析原因，也没有报 Stage 2 的 EPDMS，读者无法判断方法在反应式闭环中的真实排序。
-- **仍未超越 perception-based**：v1 上 SafeDrive 91.6、ReCogDrive 90.8、AutoDrive-P3 90.6 更高；navhard 上 RAP 39.6 更高。作者在 Conclusion 中把原因归给 Depth-Anything-V3 与 SAM3 伪标签的不精确，但没有给出标签质量的定量分析。
-- **消融只在 3.5B 缩尺模型上做**：全量 6.7B 没有逐项消融，无法确认 +1.3/+0.5 等增益在更大模型上是否保持；也没有全量与缩尺的同口径对比。
-- **语义头的监督目标较弱**：预测的是 SAM3 的 text-aligned feature map，而非可直接解释的分割 mask；prompt 只有 `car` 与 `human`，对交通灯、路牌、骑行者等规划关键类别没有覆盖。"semantic map" 的表述容易让读者高估其语义覆盖范围。
-- **GRPO 的奖励偏 imitation**：奖励是 GT 轨迹与模拟车辆轨迹的偏差，本质上仍在拟合 GT；因此 +1.0 PDMS 主要来自 EP（+1.2），NC 完全不变，安全相关指标没有改善。
-- **缺少延迟数字**：论文声称 depth/semantic head 不参与推理、无额外开销，但没有给出参数量、显存或单帧延迟；"no extra computational cost" 只是结构性论证。
-- **关键超参缺失**：GRPO 的 $a$、$\gamma$、$\lambda_{il}$、组大小 $G$、去噪步数 $T$ 均未给出；depth loss 的 $\lambda_c$ 也未给出，影响复现。
-- **单次运行、无方差**：所有结果都是单点数值，没有随机种子或多次评测的置信区间；NAVSIM 场景数有限，0.3 EPDMS 级别的差距不足以支撑强结论。
-- **训练成本高**：约 10 天 × 64 H20 只完成两阶段训练，Stage 2 还需要在 navtrain 上做 RL；"perception-free 更易 scale" 的论点是关于标注成本，不是算力成本。
-
 ## Strengths & Weaknesses
 
 **Strengths**
@@ -275,13 +262,17 @@ $$
 
 **Weaknesses**
 
-- **提升幅度有限且口径分散**：核心卖点 "+1.3/+5.5" 分别来自两个不同的 benchmark 和不同的对比对象；在最有代表性的 NAVSIMv2 navtest 上仅 +0.3，难以支撑"comprehensive future reasoning 带来质变"的强 claim。
-- **消融规模与主实验不一致**：所有 loss 消融都在 3.5B 模型上完成，主模型 6.7B 的增益来源无法拆解；GRPO 消融倒是在全量模型上做的，但只有 w/o 一组。
-- **伪标签是性能上限**：作者自己承认未超越 perception-based 模型的原因是伪标签不精确，却没有测量伪标签误差、也没有做"用 GT depth/semantic 监督"的上界实验来量化这一瓶颈。
-- **语义监督的表达偏弱**：只预测两个类别的 text-aligned feature，既不是 mask 也不是 instance-level 表示；"semantic map" 的说法与实现不完全一致。
-- **GRPO 奖励与评测同源**：奖励来自模拟车辆与 GT 轨迹的偏差，评测也用 NAVSIM 的规则指标；缺少对奖励设计（如加入碰撞/舒适项）的消融，也没有与 best-of-N 上界对比。
-- **复现信息不足**：GRPO 超参、depth loss 权重、伪标签生成细节（分辨率、阈值）都缺失；没有代码级超参表。
-- **Stage 2 闭环退化未解释**：这是 navhard 评测最显著的现象，论文只用 Stage 1 数字讲结论，回避了反应式闭环下的行为分析。
+- **增益口径分散，最强的 claim 落在最小的对照上**：摘要的 "+1.3 PDMS" 是 NAVSIMv1 navtest 相对 DriveLaW、"+5.5 EPDMS" 是 navhard Stage 1；在最常被引用的 NAVSIMv2 navtest 上只领先 0.3（88.9 vs 88.6），EC 与 DriveLaW 持平（77.4）。"SOTA" 仅在 perception-free 子集内成立。
+- **仍未超越 perception-based 方法**：v1 上 SafeDrive 91.6、ReCogDrive 90.8、AutoDrive-P3 90.6 更高，navhard 上 RAP 39.6 更高；作者把原因归给 Depth-Anything-V3 与 SAM3 伪标签不精确，却没有给出标签质量的定量分析。
+- **伪标签是性能上限，但上限没有被测量**：没有做"用 GT depth/semantic 监督"的上界实验，无法量化这一瓶颈到底吃掉多少 PDMS。
+- **消融规模与主实验不一致**：所有 loss 消融都在 3.5B 缩尺模型上完成，6.7B 主模型没有逐项消融，也没有全量与缩尺的同口径对比；GRPO 消融虽在全量模型上做，但只有 w/o 一组。
+- **语义监督的表达偏弱**：预测的是 SAM3 的 text-aligned feature map 而非可解释的分割 mask，prompt 只有 `car` 与 `human`，未覆盖交通灯、路牌、骑行者等规划关键类别，"semantic map" 的表述容易高估其覆盖范围。
+- **GRPO 奖励与评测同源且偏 imitation**：奖励是模拟车辆与 GT 轨迹的偏差，评测也用 NAVSIM 规则指标；+1.0 PDMS 中 EP 贡献 +1.2、NC 完全不变，缺少奖励项消融与 best-of-N 上界对比。
+- **Stage 2 闭环退化未解释**：navhard Stage 2 上 NC 下降 13.7、LK 下降 47.2，论文没有分析原因，也没有报 Stage 2 的 EPDMS，只用 Stage 1 数字讲结论。
+- **"no extra computational cost" 只是结构性论证**：depth/semantic head 不参与推理，但没有参数量、显存或单帧延迟数字。
+- **关键超参缺失**：GRPO 的 $a$、$\gamma$、$\lambda_{il}$、组大小 $G$、去噪步数 $T$，以及 depth loss 权重 $\lambda_c$ 与伪标签生成的分辨率/阈值都未给出。
+- **单次运行、无方差**：全部为单点数值，NAVSIM 场景数有限，0.3 EPDMS 级别的差距不足以支撑强结论。
+- **训练成本与叙事不匹配**：约 10 天 × 64 H20 只完成两阶段训练，Stage 2 还要在 navtrain 上做 RL；"perception-free 更易 scale" 说的是标注成本，不是算力成本。
 
 ## Notes
 

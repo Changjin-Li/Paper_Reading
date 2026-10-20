@@ -241,21 +241,6 @@ $$
 + 在 CARLA Longest6 上训练，但 anchor 直接来自 NAVSIM 的 K-Means，DS 从 Transfuser 的 47.30 升到 64.27，说明 anchor 作为驾驶先验可以跨数据集迁移。
 + 该实验只有一组对比、一个 anchor 来源，未比较 CARLA 自身聚类 anchor 的效果。
 
-**Critical reading**
-
-- **Table 4 的 EP 数值自相矛盾**：3 步时 EP 写 92.2，而 1/2 步分别为 82.1/82.2，PDMS 又完全不变。PDMS 是子指标的加权组合，EP 跳变 10 而 PDMS 纹丝不动在数学上不成立，几乎可以确定是 82.2 的笔误。
-- **正文表号引用错误**：§4.5 的 "Denoising step number"、"Cascade stages"、"Number of sampled noises" 三段都写 "Tab. 6 shows"，但对应表格分别是 Table 4、Table 5、Table 6，只有最后一段引用正确。
-- **主结果未用最佳配置**：Table 6 显示 $N_{\text{infer}}=40$ 时 PDMS 88.2、NC 98.5、EP 82.5，均优于主表中的 20 条（88.1/98.2/82.2）。作者为速度选择 20 条可以理解，但摘要中的 "88.1" 并非该方法的上限。
-- **"实时"是相对 diffusion baseline**：45 FPS 低于 Transfuser 的 60 FPS，规划模块 7.6 ms 是 MLP 的 38 倍。若把"实时"理解为不慢于原确定性规划器，这个 claim 不成立；它只说明比 20 步 diffusion 快 6×。
-- **Diversity score 不衡量质量**：$D$ 只算轨迹两两之间的 mIoU，完全可能通过输出互相远离但都不可行的轨迹刷高。Table 2 中 Transfuser$_{\text{TD}}$ 的 $D$ 已达 70%，与最终模型 74% 很接近，但 PDMS 相差 2.4，说明 $D$ 与规划质量并不强相关。top-10 的合理性只有 Fig. 2 的定性展示。
-- **多模态主张缺少标准指标**：只报 top-1 PDMS，没有 minADE/minFDE、mode recall 或 best-of-N 上界；无法判断 20 条候选中是否真的覆盖了 GT 所在的模式，也无法与 VADv2 的多模态能力做定量比较。
-- **评测面偏窄**：只在 NAVSIM v1 navtest 上做非反应式评测，没有 navhard、NAVSIMv2，也没有 CARLA 闭环的完整对比（Table 9 只有一组 DS/RC/IS）。"closed-loop" 的说法容易让读者高估其闭环交互能力。
-- **与 Hydra-MDP-W-EP 不同口径**：对方使用 rule-based evaluator 的额外监督与 weighted confidence 后处理，DiffusionDrive 只有行为克隆。+1.6 PDMS 的优势不能简单归因于生成式 policy；反过来，作者也没有给出"同样加 EP 监督/后处理"的对照。
-- **关键超参缺失**：分类损失权重 $\lambda$、K-Means 的 anchor 数量选择依据、cascade 中间层维度均未给出；也没有 anchor 数量的消融（20 是否最优、10/40 会怎样）。
-- **训练成本未对齐**：8×4090、100 epochs 从头训练，而 Transfuser baseline 的训练配方与成本没有并列给出；+4.1 PDMS 中有多少来自更长训练/更大 batch 无法区分。
-- **单次运行无方差**：NAVSIM 所有结果都是单点值，没有随机种子或置信区间；只有 CARLA 的 Table 9 给了 ±。88.1 与 88.2 这类差距不应被赋予实质意义。
-- **Anchor 的分布假设**：K-Means 在训练集 GT 上聚类，anchor 自然覆盖常见行为，但长尾/ OOD 场景（施工区、紧急避让）可能没有对应 anchor；Table 8 只比较了"多 anchor vs 单外推"，没有分析 anchor 覆盖不足时的失效模式。
-
 ## Strengths & Weaknesses
 
 **Strengths**
@@ -269,13 +254,15 @@ $$
 
 **Weaknesses**
 
-- **"实时"叙事有水分**：45 FPS 仍慢于 Transfuser 60 FPS，规划模块 7.6 ms vs 0.2 ms；方法是用更多规划算力换精度，而不是"既快又准"。
-- **多模态能力没有被严格评测**：只有 $D$ 与几张定性图，缺少 mode-level 指标与 best-of-N 上界；"diverse and plausible" 的后半句证据不足。
-- **表格与正文存在数值/引用错误**：Table 4 的 EP 92.2、§4.5 连续三处 "Tab. 6" 都说明论文校对不够仔细，降低了对其他数字的信任度。
-- **评测协议单一**：NAVSIM v1 navtest 非反应式 + nuScenes 简单场景，缺少 navhard/v2 与完整 CARLA 闭环；对交互密集场景的结论未知。
-- **先验依赖训练集分布**：anchor 由 K-Means 得到，长尾行为可能不在 anchor 覆盖范围内；论文没有分析 anchor 数量、初始化方式与 OOD 失效。
-- **超参与成本不透明**：$\lambda$、anchor 数选择、训练成本对比均缺失，复现与公平比较困难。
-- **比较口径不完全一致**：与 Hydra-MDP-W-EP 的对比中对方有额外监督与后处理，作者虽在表注说明，但没有做同口径对照来隔离 policy 本身的贡献。
+- **"实时"叙事有水分**：45 FPS 仍慢于 Transfuser 的 60 FPS，规划模块 7.6 ms 是 Transfuser MLP（0.2 ms）的 38 倍；方法本质是用更多规划算力换精度，而非"既快又准"。
+- **多模态能力没有被严格评测**：只有 diversity score $D$ 与几张定性图，而 $D$ 只衡量离散度不衡量质量（Transfuser$_{\text{TD}}$ 的 $D$=70%、最终模型 74%，PDMS 却差 2.4）；缺少 minADE/minFDE、mode recall、best-of-N 上界与 top-k 候选的碰撞分析。
+- **候选数口径自相矛盾**：主表用 20 条候选，而 Table 6 的 $N_{\text{infer}}=40$ 给出 88.2/98.5/82.5、主表为 88.1/98.2/82.2，两处数字无法同时成立。
+- **表格与正文存在数值/引用错误**：Table 4 的 EP 92.2 与 1/2 步的 82.1/82.2 自相矛盾而 PDMS 不变；§4.5 连续三处 "Tab. 6 shows" 误引。校对不仔细直接降低对其他数字的信任度。
+- **评测协议单一**：只跑 NAVSIM v1 navtest（非反应式），缺 navhard/v2；CARLA 侧 Table 9 只有一组配置，没有完整闭环。
+- **先验依赖训练集分布**：anchor 由 K-Means 得到，长尾行为可能落在覆盖范围之外；论文既没有 anchor 数量消融（5/10/20/40/80），也没有 OOD 失效模式分析。
+- **架构与超参细节不透明**：$\lambda$、anchor 数依据、cascade decoder 的维度配置均未给出，复现只能靠猜。
+- **训练成本与公平性未对齐**：8×4090、100 epochs 的配方只给了自己一侧，Transfuser 的训练预算与调参强度没有并列，且结果均为单点、无方差。
+- **比较口径不完全一致**：与 Hydra-MDP-W-EP 的对比中对方带额外监督与后处理，作者虽在表注说明，但没有做同口径对照来隔离 policy 本身的贡献。
 
 ## Notes
 

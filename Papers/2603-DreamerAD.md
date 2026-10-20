@@ -243,20 +243,6 @@ $$
 
 + 作者据此认为奖励模型只需少量数据即可学到好坏驾驶行为的差异。
 
-**Critical reading**
-
-- **benchmark 口径是最大的问题**：论文只报 136 场景的 navtest（v1 与 v2 的扩展指标版），没有 navhard。因此 87.7 EPDMS 不能与 navhard 榜单上的数值（例如 WorldDrive 的 34.9 EPDMS）直接比较；"SOTA" 也只是在 Table 1 这 11 个自行选取的方法内成立。
-- **v1 的 88.7 并非全表最佳**：RecogDrive 90.8、AutoVLA 89.1 更高。论文把 claim 限定在 world-model-based 方法，措辞上没有问题，但摘要与结论的 "state-of-the-art" 容易被误读为全表第一。
-- **增益拆分后每一项都不大**：+2.6 EPDMS 中 SF-WM +1.3、AD-RM +0.7、采样方式 +0.7；相对 Epona 的提升更像是三个工程改进的叠加，而非某个机制带来质变。
-- **EP 的方向在 v1/v2 上相反**：v2 上 EP −0.8 被解释为 safety-first 取舍，v1 上 EP 却 +2.7。这个不一致没有被讨论，可能说明 v2 的 EP 与安全项权重之间存在更强的拉锯。
-- **奖励模型是 PDM 的代理，存在 metric overfitting 风险**：监督标签直接来自 NavSim PDM 仿真器，RL 实际优化的是学到的 surrogate。论文没有报告奖励模型在 held-out 轨迹上的校准/准确率，也没有与 "用真 PDM 分数做 best-of-N" 的上界对比。
-- **20% 与 100% 数据几乎无差别**（87.5 vs 87.7）有两种解释：奖励信号鲁棒，或该信号本身信息量有限、很快饱和。缺少奖励模型准确率曲线，无法区分。
-- **1 步与 16 步 EPDMS 相同**说明最终规划对 world model 保真度不敏感；"80× 加速" 是真实的工程收益，但也削弱了 "高保真 world model 是 RL 关键" 的叙事。视觉质量只有定性图（Fig. 4），没有 FVD/FID。
-- **内部口径不一致**：0–4.0 s、步长 0.5 s 应得 9 个时间点，原文写 8 个；式 (18) 用 $t \in \{0,\dots,7\}$，式 (19) 却从 $t=1$ 加到 8。属于写作疏漏，但会影响复现。
-- **关键细节缺失**：$g_1$、$g_2$、$\sigma$、奖励模型参数量、每个场景过滤后剩多少条轨迹、RL 多种子方差均未给出。
-- **预训练数据与测试集的关系未说明**：Epona 在 nuPlan 上预训练，而 NavSim 由 nuPlan 构建。navtrain/navtest 是否与 Epona 的预训练场景重叠、重叠程度如何，论文没有交代；这会影响对 85.1 基线与最终 87.7 的解释。
-- **计算成本不低**：32 张 H20，奖励模型训练约一周；"efficient" 指的是推理（0.03 s/帧），不是训练。
-
 ## Strengths & Weaknesses
 
 **Strengths**
@@ -269,12 +255,16 @@ $$
 
 **Weaknesses**
 
-- 只在 navtest 上验证，缺少 navhard 与真正的 long-tail / 反应式场景；而论文的 motivation 正是 long-tail。
-- 奖励模型蒸馏 PDM，评测也用 PDM/EPDMS，闭环里存在指标自洽但外部效度未知的问题；没有真人偏好、闭环反应式或实车验证。
-- 相对基线的绝对提升有限，且部分来自 baseline 选择（Epona 微调后的 85.1 是否已包含 NavSim 适配并不完全清楚）。
-- "first latent world model framework" 的说法偏强：Dreamer 系列与若干 latent driving world model 已经在 latent 空间做 rollout，本文更准确的定位是 "first 1-step latent WM + dense latent reward for driving RL"。
-- 复现信息不足：采样超参、奖励模型规模、数据过滤后的词表分布、随机种子方差都缺失。
-- 训练成本（32×H20、奖励模型一周）与 "efficient" 的标题形成反差，实际收益集中在推理侧。
+- **只在 navtest 上验证**：缺少 navhard 与真正的 long-tail / 反应式场景，而论文的 motivation 正是 long-tail；"SOTA" 实际只覆盖 Table 1 自选的 11 个方法，87.7 也不能与 navhard 上的 34.9 直接比较。
+- **奖励与评测同源**：奖励模型蒸馏 PDM、评测又用 PDM/EPDMS，闭环内指标自洽但外部效度未知；没有真人偏好、反应式闭环或实车验证。
+- **绝对提升有限且部分来自 baseline 选择**：+2.6 可拆为 SF-WM 1.3 + AD-RM 0.7 + 采样 0.7；v1 上 88.7 并非全表最佳（RecogDrive 90.8、AutoVLA 89.1），Epona 微调后的 85.1 是否已含 NavSim 适配也未说明；EP 方向在 v1/v2 相反（+2.7 vs −0.8）。
+- **"first latent world model framework" 说法偏强**：Dreamer 系列与若干 latent driving world model 已在 latent 空间做 rollout，更准确的定位是 "first 1-step latent WM + dense latent reward for driving RL"。
+- **内部口径不一致**：0–4.0 s 按 0.5 s 应为 9 个点却写 8 个；式(18) 取 $t\in\{0,\dots,7\}$，式(19) 却从 1 加到 8。
+- **关键超参与规模缺失**：$g_1$、$g_2$、$\sigma$、奖励模型参数量、过滤后轨迹数、多种子方差均未报告。
+- **"1 步与 16 步等价"的证据较弱**：EPDMS 相同，但生成质量只有定性图，不足以说明 shortcut forcing 无损。
+- **奖励数据效率结论偏乐观**：20% 与 100% 奖励数据给出 87.5 / 87.7，几乎无差别，既可能是奖励信号已被饱和，也可能是评测分辨率不足，论文未区分。
+- **预训练数据重叠未说明**：Epona 在 nuPlan 上预训练而 NavSim 由 nuPlan 构建，场景重叠程度直接影响 85.1 → 87.7 的解释。
+- **训练成本与 "efficient" 反差**：32×H20、奖励模型约一周，效率收益实际集中在推理侧。
 
 ## Notes
 

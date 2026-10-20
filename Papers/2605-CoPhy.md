@@ -239,18 +239,6 @@ $$
 
 + 无定量指标，只有 Fig. 7 的两个定性例子：默认策略在红灯前减速，收到 "I'm in an urgent situation, accelerate and run the red light!" 后加速通过路口；跟车场景收到 "Do not tailgate. Change lanes to an open lane." 后执行左变道。作者强调 world model rollout 仍在执行物理安全约束。
 
-**Critical reading**
-
-- **SOTA 的来源是安全项，不是全面领先**：v2 上 NC/TTC/TL 三项第一，但 DDC 97.3 为表中最低、EP 83.6 低于 DriveSuprim 88.4、EC 80.0 低于 ResAD 88.2。EPDMS 的乘性结构让 TL=100 与 TTC=99.1 的增益覆盖了 DDC/C/EC 的损失，因此"leading safety-critical sub-scores"成立，但不宜读成所有维度都更好。
-- **physical reward 来自 world model 自己的预测**：$\mathcal{R}_{\text{NC}}$、$\mathcal{R}_{\text{DAC}}$、$\mathcal{R}_{\text{TTC}}$ 都定义在想象出的语义地图上，而不是真实环境。论文没有报告 future BEV semantic map 的 IoU/mAP，也没有比较 predicted-metric reward 与 GT-metric reward 的相关性，因此无法排除 reward 自我实现：world model 若系统性漏检障碍，策略会得到虚高的安全奖励。
-- **cognitive reward 可能退化为 imitation**：InfoNCE 的正样本是专家轨迹，cognitive scorer 本质上被训练成"专家轨迹与 $\mathbf{C}$ 更相似"。RL 阶段再用它作奖励，等于把专家对齐包装成认知合规。B1 的增益主要来自 EP（+1.0）与 NC（+0.5），与"更懂交通语义"的解释并不完全吻合。
-- **intent control 缺少规则层级**：示例中用户可以让车辆闯红灯，论文把这当作能力展示，但未讨论交通法规与用户命令冲突时的优先级、否决机制或安全兜底。"world model 仍保证物理安全"只能防碰撞，防不了规则违规。
-- **VLM-free 只有结构性论证**：用 $\mathrm{BE}(\mathbf{B}_0)$ 替代 $\mathbf{C}$ 的零开销结论来自蒸馏目标，但论文没有给出"用 VLM vs 不用 VLM"同口径的 PDMS/EPDMS 与延迟对比，也没有报告参数量或显存。
-- **base 架构未明确命名**：physical score 与候选轨迹设计沿用 WoTE，但论文没有说明 CoPhy 建在哪个公开 baseline 上。A0 已有 87.1 PDMS，读者无法判断增益中有多少来自新模块、多少来自 base 本身。
-- **复现信息缺口**：候选数 $N$、轨迹原型数、认知阈值 $\psi$、InfoNCE 温度 $\epsilon$、world model 层数与参数量、RL epoch 数、spatial decoder 结构均未给出；没有代码链接。
-- **写作层面的编号错误**：§4.3 多处把组件消融与 VLM 微调表引用为 "Tab. 5"（实际为 Table 3 / Table 4），t-SNE 分析引用 "Fig. 7"（实际为 Figure 6）。数值本身与表格一致，但引用会误导读者。
-- **单次评测、无方差**：NAVSIM 只有 136 个测试场景，v2 上 0.6 EPDMS 的领先幅度没有置信区间支撑。
-
 ## Strengths & Weaknesses
 
 **Strengths**
@@ -264,13 +252,15 @@ $$
 
 **Weaknesses**
 
-- **性能提升集中在安全指标**：EP/EC/C/DDC 均不占优，说明方法更像"把安全约束加满"，而不是整体驾驶质量提升；DDC 最低这一点论文完全没讨论。
-- **奖励与被奖励的对象同源**：physical reward 由 world model 的预测地图计算，而 world model 又是 IL 阶段用同一批数据训练的。缺少 world model 精度的独立评估，奖励信号的可信度无法判断。
-- **cognitive 分支的独立价值未被证明**：cognitive score 以专家轨迹为正样本，与 imitation 目标高度重合；没有实验区分"语义合规"与"更像专家"。
-- **intent control 的安全边界未定义**：可以命令车辆闯红灯，却没有规则优先级或拒绝机制；在 safety-critical 系统里这是产品级风险，不只是 demo。
-- **零推理开销缺少测量**：没有延迟、显存、参数量数字，"zero cost" 目前只是架构论证。
-- **base 不透明**：不说明建在哪个 baseline 上，也没有与 base 的同口径对照，外部无法判断方法的真实增量。
-- **复现性不足**：关键超参缺失、无代码、单次运行、无方差；表号与图号还有多处笔误。
+- **SOTA 的来源是安全项，不是全面领先**：v2 上 NC/TTC/TL 三项第一，但 DDC 97.3 为表中最低、EP 83.6 低于 DriveSuprim 88.4、EC 80.0 低于 ResAD 88.2；EPDMS 的乘性结构让 TL=100 与 TTC=99.1 的增益覆盖了 DDC/C/EC 的损失，"leading safety-critical sub-scores" 成立，但不宜读成所有维度都更好，DDC 最低这一点论文完全没讨论。
+- **physical reward 来自 world model 自己的预测，存在自我实现风险**：$\mathcal{R}_{\text{NC}}$、$\mathcal{R}_{\text{DAC}}$、$\mathcal{R}_{\text{TTC}}$ 都定义在想象出的语义地图上，论文没有报告 future BEV semantic map 的 IoU/mAP，也没有比较 predicted-metric 与 GT-metric reward 的相关性；world model 若系统性漏检障碍，策略会得到虚高的安全奖励。
+- **cognitive 分支的独立价值未被证明**：InfoNCE 的正样本是专家轨迹，cognitive scorer 本质上被训练成"更像专家"，RL 再用它作奖励等于把专家对齐包装成认知合规；B1 的增益主要来自 EP +1.0 与 NC +0.5，与"更懂交通语义"的解释并不吻合。
+- **intent control 的安全边界未定义**：示例中用户可以命令车辆闯红灯，论文把这当作能力展示，却未讨论法规与用户命令冲突时的优先级、否决机制或安全兜底；"world model 仍保证物理安全"只能防碰撞，防不了规则违规。
+- **零推理开销缺少测量**：没有"用 VLM vs 不用 VLM"同口径的 PDMS/EPDMS 与延迟对比，也没有参数量或显存数字，"zero cost" 目前只是架构论证。
+- **base 不透明**：physical score 与候选轨迹设计沿用 WoTE，但论文没有说明 CoPhy 建在哪个公开 baseline 上；A0 已有 87.1 PDMS，外部无法判断增益中有多少来自新模块、多少来自 base 本身。
+- **复现信息缺口大**：候选数 $N$、轨迹原型数、认知阈值 $\psi$、InfoNCE 温度 $\epsilon$、world model 层数与参数量、RL epoch 数、spatial decoder 结构均未给出，且没有代码链接。
+- **表号与图号引用错误**：§4.3 多处把组件消融与 VLM 微调表引用为 "Tab. 5"（实际为 Table 3 / Table 4），t-SNE 分析引用 "Fig. 7"（实际为 Figure 6），会误导读者。
+- **单次评测、无方差**：NAVSIM 只有 136 个测试场景，v2 上 0.6 EPDMS 的领先幅度没有置信区间支撑。
 
 ## Notes
 
