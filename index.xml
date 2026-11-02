@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>VPFlow: Value-Predictive Planning with Imperfect World Models for Offline Goal Reaching</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2610-VPFlow</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2610-VPFlow</guid>
+    <description><![CDATA[ Summary Offline goal-conditioned RL 里有一个被普遍忽略的结构：在 hindsight relabeling 下，任意状态到同一轨迹上未来 goal 的稀疏奖励 Monte Carlo return 有闭式解，只取决于两者之间的时间距离 d。VPFlow 把这个闭式 return 当作 latent world model 的唯一监督——observation encoder、latent dynamics、goal-conditioned value head 联合训练，imagined latent 被要求预测 goal-reaching value 而不... ]]></description>
+    <pubDate>Mon, 02 Nov 2026 03:57:39 GMT</pubDate>
+  </item><item>
     <title>DiffusionDriveV2: Reinforcement Learning-Constrained Truncated Diffusion Modeling in End-to-End Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2512-DiffusionDriveV2</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2512-DiffusionDriveV2</guid>
@@ -58,12 +64,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2605-CoPhy</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2605-CoPhy</guid>
     <description><![CDATA[ Summary CoPhy 把 VLM 的语义认知蒸馏进 BEV encoder，训练后丢弃 VLM，实现零推理开销的 cognitive channel；同时用 auto-regressive BEV world model 在候选轨迹条件下 rollout 未来语义地图，作为可解释的物理沙盒。策略用 GRPO 优化，奖励由 world model rollout 导出的物理安全项与 language-aligned cognitive scorer 组成。NAVSIM v1 navtest 91.4 PDMS、v2 navtest 86.1 EPDMS，均为表中最高，并支持用自然语言命令做... ]]></description>
-    <pubDate>Tue, 20 Oct 2026 09:26:52 GMT</pubDate>
-  </item><item>
-    <title>EponaV2: Driving World Model with Comprehensive Future Reasoning</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2605-EponaV2</guid>
-    <description><![CDATA[ Summary 在 perception-free driving world model 上补足”未来推理”：除预测下一帧图像外，还要求模型从推断出的未来表征中解码未来 metric depth 与 SAM3 文本对齐语义特征图，用 foundation model 伪标签监督；再用 flow matching GRPO 微调轨迹规划器。backbone 为 Qwen3-VL 4B 语言部分（总参数 6.7B），输入仅为前视视频与相对运动。NAVSIMv1 navtest 90.4 PDMS，NAVSIMv2 navtest 88.9 EPDMS，navhard Stage 1 36.1 E... ]]></description>
     <pubDate>Tue, 20 Oct 2026 09:26:52 GMT</pubDate>
   </item>
     </channel>
