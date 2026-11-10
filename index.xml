@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>DriveMLP: When Training Strategy Outperforms Model Complexity in Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2610-DriveMLP</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2610-DriveMLP</guid>
+    <description><![CDATA[ Summary DriveMLP 的核心发现是一个反直觉的结论：训练策略比模型复杂度对自动驾驶规划的闭环性能影响更大。作者通过同一 MLP 架构下四种训练方法的受控对照实验，证明 Expert-Guided RL（EGRL）——把 RL 当作优化工具、用 expert trajectory distance reward 在 non-reactive simulator 里训练——在 nuPlan Val14 Reactive 上达到 86.51，比 BC 高出 54 个点，比 BC-RL 高 8.46 个点。EGRL 的关键设计是：其他 agent 按日志回放（保证 expert traje... ]]></description>
+    <pubDate>Tue, 10 Nov 2026 07:12:47 GMT</pubDate>
+  </item><item>
     <title>VPFlow: Value-Predictive Planning with Imperfect World Models for Offline Goal Reaching</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2610-VPFlow</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2610-VPFlow</guid>
@@ -58,12 +64,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-ExploreVLA</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2604-ExploreVLA</guid>
     <description><![CDATA[ Summary ExploreVLA 把”世界模型”同时当作稠密监督与探索信号，用在 VLA 驾驶模型上。监督侧，模型在预测未来轨迹之外，还生成 0.5 秒后的前视 RGB 与 depth，两者都用 MAGVIT-v2 离散 token 上的 masked token prediction 训练，迫使规划 backbone 学到外观与几何表示。探索侧，作者把世界模型对未来图像 token 的预测熵当作候选轨迹相对训练分布的新颖度：熵高说明该轨迹的视觉后果在专家数据中少见，若同时安全就值得鼓励。该熵经归一化后作为 exploration bonus，与 PDMS 组合成安全门控奖励 R_i=\m... ]]></description>
-    <pubDate>Tue, 20 Oct 2026 09:26:52 GMT</pubDate>
-  </item><item>
-    <title>Distill to Think, Foresee to Act: Cognitive-Physical Reinforcement Learning for Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2605-CoPhy</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2605-CoPhy</guid>
-    <description><![CDATA[ Summary CoPhy 把 VLM 的语义认知蒸馏进 BEV encoder，训练后丢弃 VLM，实现零推理开销的 cognitive channel；同时用 auto-regressive BEV world model 在候选轨迹条件下 rollout 未来语义地图，作为可解释的物理沙盒。策略用 GRPO 优化，奖励由 world model rollout 导出的物理安全项与 language-aligned cognitive scorer 组成。NAVSIM v1 navtest 91.4 PDMS、v2 navtest 86.1 EPDMS，均为表中最高，并支持用自然语言命令做... ]]></description>
     <pubDate>Tue, 20 Oct 2026 09:26:52 GMT</pubDate>
   </item>
     </channel>
