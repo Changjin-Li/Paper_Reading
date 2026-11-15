@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>DriftingPlanner: Drifting Generative Models for One-Step Trajectory Planning in End-to-End Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-DriftingPlanner</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-DriftingPlanner</guid>
+    <description><![CDATA[ Summary Drifting model 把扩散的”迭代”从推理搬到训练：生成器 g_\theta 一次前向就把噪声映射成样本，训练时用一个核场把生成样本拉向正样本、推离其他生成样本，收敛后 q_\theta = p。DriftingPlanner 是这套框架在轨迹规划上的第一次适配，它必须解决两个规划特有的困难。第一，图像生成里有离散类别，同一类的多张图共享目标分布；规划里每个 scene 就是自己的条件，只有一个 GT 轨迹，所以场必须逐 scene 计算。第二，逐 scene 计算只剩一个正样本，吸引项把 N 条生成轨迹拉向同一点、互斥项把它们推开，结果它们停在一个以 GT 为球心的... ]]></description>
+    <pubDate>Sun, 15 Nov 2026 02:57:22 GMT</pubDate>
+  </item><item>
     <title>DriveMLP: When Training Strategy Outperforms Model Complexity in Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2610-DriveMLP</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2610-DriveMLP</guid>
@@ -58,12 +64,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</guid>
     <description><![CDATA[ Summary WorldDrive 试图消除”生成未来”和”决定未来”之间的表征割裂：先训练一个 Trajectory-aware Driving World Model (TA-DWM)，以轨迹词表作为运动条件生成可控未来视频；再把冻结的视觉与轨迹编码器继承给多模态 planner；最后用 Future-aware Rewarder (FAR) 在训练期从冻结世界模型蒸馏未来 latent，推理期无需生成视频即可对候选轨迹重新打分。在 NAVSIM navtest 上以单前视相机取得 88.1 PDMS（非 † 设置下 camera-only 方法中最高，与多视角 DiffusionDri... ]]></description>
-    <pubDate>Tue, 20 Oct 2026 09:26:52 GMT</pubDate>
-  </item><item>
-    <title>ExploreVLA: Dense World Modeling and Exploration for End-to-End Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2604-ExploreVLA</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2604-ExploreVLA</guid>
-    <description><![CDATA[ Summary ExploreVLA 把”世界模型”同时当作稠密监督与探索信号，用在 VLA 驾驶模型上。监督侧，模型在预测未来轨迹之外，还生成 0.5 秒后的前视 RGB 与 depth，两者都用 MAGVIT-v2 离散 token 上的 masked token prediction 训练，迫使规划 backbone 学到外观与几何表示。探索侧，作者把世界模型对未来图像 token 的预测熵当作候选轨迹相对训练分布的新颖度：熵高说明该轨迹的视觉后果在专家数据中少见，若同时安全就值得鼓励。该熵经归一化后作为 exploration bonus，与 PDMS 组合成安全门控奖励 R_i=\m... ]]></description>
     <pubDate>Tue, 20 Oct 2026 09:26:52 GMT</pubDate>
   </item>
     </channel>
