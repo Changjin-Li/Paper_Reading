@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>RiSE-Drive: Risk-Sensitive Long-Horizon Candidate Evaluation for End-to-End Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-RiSEDrive</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-RiSEDrive</guid>
+    <description><![CDATA[ Summary 候选式端到端规划里，评估器把候选质量压成一个确定性标量，于是”名义分数接近、但其中一条藏着灾难性尾部”的情况无法被区分。RiSE-Drive 只改评估阶段：先用未来条件生成器给出 L=4 条分支，对每个候选-分支对做潜空间后果传播（GRU 式逐步更新，把逐时刻结果与终止结果按 \gamma=0.99 折扣累加成一条长期结果样本），用 M=10 个有序分位数估计该候选的结果分布，最后按均值 − 尾部缺口 − 跨条件波动排序。在完全对齐的 DrivoR 管线上，只增加 0.1M 可训练参数（18.8M → 18.9M）就把 NAVSIM-v1 navtest PDMS 从 93.1... ]]></description>
+    <pubDate>Mon, 16 Nov 2026 03:36:28 GMT</pubDate>
+  </item><item>
     <title>Trajectory Evaluation via Rollout-Free World Model for End-to-end Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-RFWorld</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-RFWorld</guid>
@@ -58,12 +64,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2505-DiffE2E</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2505-DiffE2E</guid>
     <description><![CDATA[ Summary DiffE2E 提出一种混合 action diffusion 与监督策略的端到端驾驶框架，核心是把 diffusion 去噪与监督任务放在同一个 Transformer decoder 里联合执行：将带噪轨迹 token 与若干监督 query token 拼接后共享 self-attention / cross-attention，再按位置切分为扩散分支与监督分支，使生成式建模与判别式监督在同一 latent 空间中互相约束。模型直接预测干净轨迹 \mathbf{x}_0 而非噪声，配合 100 步前向扩散与 2 步 DDIM 反去噪，在保持单次前向可实时（42.8 ms）... ]]></description>
-    <pubDate>Tue, 20 Oct 2026 09:26:52 GMT</pubDate>
-  </item><item>
-    <title>DreamerAD: Efficient Reinforcement Learning via Latent World Model for Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</guid>
-    <description><![CDATA[ Summary 把驾驶 world model 的生成过程压到 1 步，并在 latent 空间里完成 RL：SF-WM 用 shortcut forcing 把采样从 100 步降到 1 步，AD-RM 在 latent 上逐 horizon 预测 8 维奖励，GRPO 在轨迹词表的 Gaussian 邻域内采样。NAVSIM v2 navtest 上 87.7 EPDMS（Epona 基线 85.1），单帧推理 0.03 s。 Problem &amp; Motivation 真实世界做 RL 试错成本与安全风险不可接受；传统仿真器有 sim-to-real gap，于是用 video w... ]]></description>
     <pubDate>Tue, 20 Oct 2026 09:26:52 GMT</pubDate>
   </item>
     </channel>
