@@ -85,7 +85,8 @@ ReadPaperMachine/
 ├── Workbench/           # Researcher 工作状态
 │   ├── agenda.md        #   研究议程
 │   ├── memory/          #   蒸馏后的记忆
-│   ├── queue.json       #   持久任务队列（summarize_paper / review_insight 等）
+│   ├── queue.json       #   活动任务队列，只持有 pending（summarize_paper / review_insight 等）
+│   ├── queue-archive.jsonl  # 已完成与被容量淘汰的任务（append-only；done 不占 max_queue_size 配额）
 │   ├── runs/            #   多阶段 research run manifest 与 checkpoint
 │   ├── logs/            #   每日操作日志
 │   ├── survey-updates.json  # digest→survey 记账（paper-digest 写，survey-refresh 消费）
@@ -169,8 +170,9 @@ ReadPaperMachine/
 
 ### 5.6 Evidence 与 Research Run 不变量
 
-- 新 Paper note 必须声明 `content_scope` 与 `verification_status`，并为数字、SOTA/novelty、benchmark 比较、license/code、因果/机制等高风险 claim 维护 `## Evidence Ledger`。
-- `source-verified` 只表示 primary source 确实包含该信息，不表示结果已独立复现。Finder/Digest 不得验证自己的 claim。
+- 新 Paper note 必须声明 `content_scope` 与 `verification_status`；笔记不设 `## Evidence Ledger` 表格（与 `Papers/` 现存笔记一致），核验结论落在 `Workbench/logs/` 的 `verification:` 行。
+- 数字、SOTA/novelty、benchmark 比较、license/code、因果/机制等高风险 claim 仍须由独立 verifier 回源核对；`source-verified` 只表示 primary source 确实包含该信息，不表示结果已独立复现。Finder/Digest 不得验证自己的 claim。
+- 核验后无法支撑的 claim 须在笔记中删除或就地降级（写成条件、口径或"原文未给出"），不得保留为事实口吻。
 - 多 Agent 工作流只并行读取、提取和 reviewer 工作；Papers、queue、日志、BibTeX、survey-updates、Survey/DomainMap 由 coordinator 串行 commit。
 - 多阶段工作在 `Workbench/runs/{run_id}.json` checkpoint；达到预算或部分失败时保留 partial artifact 与 unresolved gaps，不从头重跑，也不允许整轮无产物。
 - Memory 的独立证据按 canonical source identity 计数，不按日期、agent 或 run 计数；DomainMap 晋升必须经过 queue.json 的 `review_insight` Human gate。

@@ -9,13 +9,25 @@ def text(path):
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_paper_contract_has_claim_level_provenance():
+def test_paper_note_format_and_verification_contract():
     template = text("Templates/Paper.md")
     digest = text("skills/1-literature/paper-digest/SKILL.md")
 
+    # 笔记结构：7 节固定序列，与 Papers/ 现存笔记一致
+    headings = [line.strip() for line in template.splitlines() if line.startswith("## ")]
+    assert headings == [
+        "## Summary",
+        "## Problem & Motivation",
+        "## Method",
+        "## Pipeline",
+        "## Key Results",
+        "## Strengths & Weaknesses",
+        "## Notes",
+    ]
     assert "verification_status:" in template
-    assert "## Evidence Ledger" in template
-    assert "Source locator" in template
+
+    # 核验流程留在 skill 层，结论只进 verification_status 与日志
+    assert "不写 Evidence Ledger" in digest
     assert "--prepare-only" in digest
     assert "Finder ≠ Verifier" in digest
     assert "source-verified" in digest

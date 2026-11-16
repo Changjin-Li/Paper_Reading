@@ -75,9 +75,12 @@ daily-papers / news-digest / literature-survey 的关键词打分均从该文件
 
 **语言**：中文撰写，技术术语（模型名、方法名、数据集名等）保持英文不翻译。
 
-**Notes 约定**：论文笔记的 `## Notes` 只写论文自身定位、可迁移点与待跟进问题，不写"与 notebook 内其他论文的关系"这类跨笔记对比。
+**论文笔记格式**：章节序列固定为 Summary → Problem & Motivation → Method → Pipeline → Key Results → Strengths & Weaknesses → Notes，写法以 `Templates/Paper.md` 的注释为准（`Papers/` 现存 24 篇笔记均为此骨架）。
 
-**Mind Map 约定**：论文笔记不再写 `## Mind Map` 一节，章节序列以 Summary → Problem & Motivation → Method → Pipeline → Key Results → Strengths & Weaknesses → Notes 为准。
+- 不加 `## Mind Map`、`## Evidence Ledger`、`## Critical reading` 等额外二级标题；批评性阅读逐条并入 `## Strengths & Weaknesses` 的 Weaknesses，写到具体表格、数字或口径上。
+- 证据核验仍然要做（claim package + 独立 verifier），但结果落在 frontmatter `verification_status` 与 `Workbench/logs/` 的 `verification:` 行，不在笔记里立表格；`unsupported` / `contradicted` 的 claim 就地删除或降级表述。
+- 公式一律独立 `$$ ... $$` 块，不用 `$` 包裹、不用 `\begin{aligned}`；解释公式的句子写进公式所在 bullet，不另起段落。
+- `## Notes` 只写论文自身定位、可迁移点与待跟进问题，不写"与 notebook 内其他论文的关系"这类跨笔记对比。
 
 认真维护和使用你的 notebook！
 

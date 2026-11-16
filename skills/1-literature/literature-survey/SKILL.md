@@ -102,7 +102,7 @@ python3 scripts/lexmount_fetch.py extract "<url>" --format markdown
 
 对 Step 3 筛选出的每篇论文，执行 paper-digest：
 
-1. 读取 `skills/1-literature/paper-digest/SKILL.md`。每个并行 worker 以论文 arXiv URL（优先）或标题运行 `paper-digest --prepare-only`，返回带 Evidence Ledger 的 artifact envelope，禁止共享写入。
+1. 读取 `skills/1-literature/paper-digest/SKILL.md`。每个并行 worker 以论文 arXiv URL（优先）或标题运行 `paper-digest --prepare-only`，返回带 verification 报告的 artifact envelope（笔记本身不设 Evidence Ledger），禁止共享写入。
 2. 从 `team-config.json` 读取 global / prepare 并发与 checkpoint；nested verifier 计入 global limit（默认 global=4、prepare=2），coordinator 按顺序串行执行 paper-digest Step 5-6 commit contract。
 3. **跳过规则**：
    - 若 paper-digest 的去重检查发现 vault 已有该笔记，跳过。
@@ -114,8 +114,8 @@ python3 scripts/lexmount_fetch.py extract "<url>" --format markdown
 
 在写 survey 前建立高影响 claim matrix。优先收集：Key Results 数字、SOTA/novelty、跨论文 benchmark 比较、因果/机制结论、license/code 状态、Open Problem 的 closest-prior-art 判断。
 
-1. 新 digest 笔记直接读取 Evidence Ledger。既有 legacy 笔记若没有 ledger，标为 `legacy-unverified`；不得因它已在 vault 就自动视为已核查。
-2. 对会进入 Overview / benchmark 表 / Key Takeaways / Open Problems 的高影响 claim，派发独立 verifier。Verifier 只接收 primary source + claim matrix，不接收 Finder/Digest reasoning 或拟写 survey 结论。`scope: vault-only` 不联网，只消费现有 Evidence Ledger；缺 ledger 的 claim 保持 legacy-unverified，不临时抓外部来源。
+1. 新 digest 笔记读取 `verification_status` 与 `Workbench/logs/` 的 `verification:` 记录，`source-checked` 的数字可直接使用。既有笔记若 `verification_status` 为空或为 `unverified`，标为 `legacy-unverified`；不得因它已在 vault 就自动视为已核查。
+2. 对会进入 Overview / benchmark 表 / Key Takeaways / Open Problems 的高影响 claim，派发独立 verifier。Verifier 只接收 primary source + claim matrix，不接收 Finder/Digest reasoning 或拟写 survey 结论。`scope: vault-only` 不联网，只消费笔记已有的核验状态；核验状态缺失的 claim 保持 legacy-unverified，不临时抓外部来源。
 3. 统一状态为 `source-verified / unsupported / contradicted / not-checkable / abstract-only`。只有 source-verified claim 可以无保留进入关键结论；其他状态必须删除、纠正或明确降级。
 4. 跨论文比较还要核对 environment、verifier、step budget、backbone、dataset split 与 cost setting；设置不可比时禁止写成横向胜负。
 5. 将 claim counts、争议项和修订记录写入 run manifest。高影响分歧不能解决时标 `needs-human`，不要用多数投票制造确定性。
@@ -137,7 +137,7 @@ python3 scripts/lexmount_fetch.py extract "<url>" --format markdown
 - **区分四态**：显式区分 已知共识 / 活跃争议 / 作者推测 / 未知；出现冲突结果时不强行选"正确答案"，而是记录冲突并分析来源（数据分布/任务定义/指标/实现/规模/统计功效/隐含假设不同）。
 - **Full-text before strong conclusion**：核心方法、实验结论、机制、失败条件必须溯到全文 Paper 笔记；仅有 abstract 的笔记不得作强结论证据。
 - **引用 ≠ 继承/支持**：后续论文引用前作不等于继承或支持它；关系判断以内容为准。
-- **Claim-level provenance**：关键数字与比较必须能回到 Paper Evidence Ledger 的 claim ID / source locator；wikilink 到整篇笔记不再自动满足强 claim 的可溯性要求。
+- **Claim-level provenance**：关键数字与比较必须能回到笔记的具体位置（Table/section + 数值行）与对应日志的 `verification:` 记录；只 wikilink 到整篇笔记不满足强 claim 的可溯性要求。
 - **验证边界**：`source-verified` 只表示 primary source 包含该说法，不等于结果已独立复现；涉及可复现性时必须另有独立 paper/experiment 证据。
 - **Evidence Matrix**：Overview、benchmark 横向判断、Key Takeaways 与 Open Problems 的高影响 claim 必须登记到 Survey 的 Key Evidence Matrix，显式写 state、claim IDs/locators、反例与边界。
 
@@ -165,6 +165,8 @@ Topic 名称根据主题生成（CamelCase，如 `VLA-Manipulation`、`Diffusion
 7. **表格优先**：凡"维度 × 对象"的对比（能力矩阵/需求分层/用途分化）一律表格化——表格是 survey 最高价值资产。
 8. **章节成段叙事，不做罗列**（Supervisor 2026-07-21 补充）：每章开篇设"发展进程与研究现状"叙事段，章末有待解决问题段；概念分类、发展阶段、风险面等内容写成按因果链组织的完整段落（每一步解决了什么、又暴露了什么），不做方法名的 bullet 罗列。表格保留，但每张表前需 1-3 句框架段说明它回答什么问题，重要谱系表后加综合段。第 4 条的"演进链竖排"仅适用于单一机制的紧凑 lineage，不适用于章节级发展叙事。
 9. **正文零内部痕迹**（Supervisor 2026-07-24 review 确立）：(a) 给作者的写作要求不入正文（"避免按 X 罗列""以下不是质量排序"——文章要实现要求，不是写出要求）；(b) 作者论断用综述语言标示（"本文进一步论证 X；支撑证据集中于 §m/§n，尚缺独立复现"），不写"本综述提出一个作者综合论断……该论断不是领域共识"式官僚自指，hedge 保留但必须落在具体章节/证据指针上；(c) 内部工具词（vault/库内/本轮/paper-digest/verification_status/见 gaps）与比喻黑话（水位/押注/战场/收束/裸比）不入正文——内部记账只留在 Key Evidence Matrix 与调研日志；"库内暂无独立验证"的正文写法是"尚未见独立验证"，且范围限定词不可丢。
+
+以上 9 条管结构与论证纪律。**句子级的机器味**（模糊归属、意义膨胀、格言体、导览铺垫、增量锚定等）另见 `references/writing-style.md` §A——定稿前按其四组清单过一遍。注意该文件 §B 的反向规则：hedge 不删，只删跟不上条件/数字/检验方式的空 hedge。
 
 #### 7a.5 结构配图
 
@@ -218,7 +220,7 @@ Survey 定稿前为核心脉络配 1-3 张结构图，帮读者 5 秒抓住全�
 - [ ] **展开度**：Takeaway 中每条预测/新概念/反直觉论断都有 2-4 句 self-contained 解释，可脱离对话独立读懂
 - [ ] **成段叙事**：各章有发展进程/研究现状叙事段与章末待解决问题段；无孤立 bullet 罗列；每张表前有框架段
 - [ ] **证据完整性**：至少跑过矛盾/负结果检索；综合中区分共识/争议/推测/未知；无未经验证的"首次/无人研究"表述
-- [ ] **可溯性**：关键 claim 可溯到全文 Paper Evidence Ledger 的 claim ID + locator（非仅 abstract）；Open Problems 每条标注 Observed Tension 或 Validated Gap
+- [ ] **可溯性**：关键 claim 可溯到全文 Paper 笔记的 Table/section + 数值行与日志 verification 记录（非仅 abstract）；Open Problems 每条标注 Observed Tension 或 Validated Gap
 - [ ] **独立验证**：高影响 claims 由不同于 Finder/Digest 的 verifier 检查；unsupported/contradicted 未进入强结论
 - [ ] **后置补洞**：deep gap pass 在 verification 后执行且未超过 3 query / 1 loop；vault-only 仅记录 gaps
 - [ ] **可恢复性**：run manifest 有 stage/checkpoint/claim counts；partial run 仍产出带边界的 survey/report

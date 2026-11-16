@@ -13,7 +13,7 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, WebSearch, WebFetch, Agent
 2. **快速分流** → 确定必读论文
 3. **每篇必读论文**：Digest preparer 生成已 source-check 的 draft → coordinator 串行 commit → 独立 reviewer 基于笔记写点评 → 主 agent 汇总
 
-> **关键设计**：Finder / Digest / Reviewer 分离。Reviewer 只接收已落库笔记及其 Evidence Ledger，不接收 digest agent 的推理过程；context 节省通过 `paper-digest --prepare-only` 的紧凑 artifact envelope 和 bounded batch 实现，不以作者自审替代独立判断。
+> **关键设计**：Finder / Digest / Reviewer 分离。Reviewer 只接收已落库笔记与日志中的核验记录（笔记不设 Evidence Ledger），不接收 digest agent 的推理过程；context 节省通过 `paper-digest --prepare-only` 的紧凑 artifact envelope 和 bounded batch 实现，不以作者自审替代独立判断。
 
 ## Steps
 
@@ -106,7 +106,9 @@ python3 skills/1-literature/daily-papers/queue_ops.py enqueue \
   --ids <id1> <id2> ...
 ```
 
-脚本自动去重（已有笔记或已在队列的跳过）、自清理历史遗留的“已有笔记但仍 pending”任务，并按 `max_queue_size` 裁剪。正常路径由 Step 3 coordinator 在 artifact 安全 commit 后调用 `queue_ops.py complete` 标记 done。
+脚本自动去重（已有笔记、已在队列、或已在归档中完成的跳过）、自清理历史遗留的“已有笔记但仍 pending”任务，把 done 移入 `Workbench/queue-archive.jsonl`，再按 `max_queue_size` 裁剪。正常路径由 Step 3 coordinator 在 artifact 安全 commit 后调用 `queue_ops.py complete` 标记 done。
+
+`max_queue_size` 只丈量 pending——done 已归档，不占配额；淘汰对象只有 pending 的 `summarize_paper`，`review_insight` 是 Human gate 永不淘汰。若 stdout 出现 `DROPPED` 行，说明 backlog 仍然溢出、有未消化论文被挤出（已记入归档可重新入队），需在日志 gaps 中点名，不得当作正常裁剪略过。
 
 ### Step 3：每篇要精读论文 → Prepare、串行 Commit、独立点评
 
@@ -136,9 +138,9 @@ python3 skills/1-literature/daily-papers/queue_ops.py enqueue \
 
 对每篇已 commit 或已存在的必读论文，派发**不同于 digest preparer 的 reviewer agent**：
 
-1. 只提供 Paper note、Evidence Ledger、研究兴趣；不提供 Finder/Digest 的 reasoning、rating 或原点评。
+1. 只提供 Paper note、该论文日志中的 `verification:` 记录、研究兴趣；不提供 Finder/Digest 的 reasoning、rating 或原点评。
 2. 基于全文笔记而非候选摘要，按点评原则生成点评。
-3. Evidence Ledger 中 `unsupported` / `contradicted` / `not-checkable` 的 claim 不得包装成肯定结论；必要时在锐评中明确指出 evidence boundary。
+3. 日志 verification 记录中 `unsupported` / `contradicted` / `not-checkable` 的 claim 不得包装成肯定结论；`verification_status` 为 `partial` / `unverified` 的笔记要明确指出证据边界。
 4. Reviewer 不修改 Paper note 或共享状态，只返回点评块。
 
 **范围控制**：仅对"要精读" 论文执行，"可跳过"不派发 subagent。
@@ -242,7 +244,7 @@ tags: [daily-papers, tag1, tag2, ...]
 - **并发有界**：所有 preparer + nested verifier 不得突破 global `parallel_limit`，必须给 verifier 和 coordinator 留槽位；不得把候选无界并发派发。
 - **`--collect-only` 只收集**：返回分流结果与稳定 paper_key 后停止，禁止 enqueue 与 Step 3-5。
 - **partial 也要产出**：单篇 commit 失败不回滚已成功论文；不得因尾部 agent 超时让整轮无产物——输出 `run_status: partial` + 失败清单。
-- **evidence boundary 不包装**：Evidence Ledger 中 `unsupported` / `contradicted` / `not-checkable` 的 claim 不得写成肯定结论。
+- **evidence boundary 不包装**：日志 verification 记录中标为 `unsupported` / `contradicted` / `not-checkable` 的 claim 不得写成肯定结论。
 - **公众号解读不当论文点评写**；搜狗限流时跳过公众号步骤，不阻塞主流程。
 - **Subagent prompt 完整性**：点评 subagent 必须携带完整的点评模板与点评原则，不得省略。
 
@@ -253,6 +255,6 @@ tags: [daily-papers, tag1, tag2, ...]
 - [ ] 评分表中的 `[[#{短标题}]]` 链接与论文点评的 `### {短标题}` 完全匹配
 - [ ] 要精读论文笔记已生成，论文点评基于笔记内容
 - [ ] Digest preparer 使用 `--prepare-only`，共享状态由 coordinator 串行 commit
-- [ ] 每篇点评由不同于 Digest/Finder 的 reviewer 生成，且只依赖笔记 + Evidence Ledger
+- [ ] 每篇点评由不同于 Digest/Finder 的 reviewer 生成，且只依赖笔记 + 日志 verification 记录
 - [ ] run manifest 包含 stage/checkpoint/失败清单；partial run 仍有可读总结
 - [ ] 日志已追加到 `Workbench/logs/YYYY-MM-DD.md`

@@ -36,10 +36,10 @@ Key Takeaways / Open Questions。
 对 pending 中每篇，用 Read 读取 `Papers/` 笔记全文，提取：核心贡献、关键数据、
 与 survey 现有分类的关系（落入哪个既有小节？是否挑战某个既有结论？是否开辟新分类？）。
 
-同时读取 `content_scope`、`verification_status` 与 `## Evidence Ledger`：
+同时读取 `content_scope`、`verification_status` 与该论文在 `Workbench/logs/` 中的 `verification:` 记录（笔记正文不设 Evidence Ledger）：
 
-- `source-checked`：可使用 ledger 中 `source-verified` 的 claim，但仍只能表述为“原文一致性已核查”，不能写成独立复现。
-- `partial`：只使用 source-verified 行；其他 claim 必须降级或省略。
+- `source-checked`：可使用其已核验的数字，但仍只能表述为“原文一致性已核查”，不能写成独立复现。
+- `partial`：只使用日志中记为 source-verified 的部分；其他 claim 必须降级或省略。
 - `unverified` / 缺少字段的 legacy note：可作为论文存在性与主题归类证据，但不得凭它新增关键数字、共识、Key Takeaway 或 Validated Gap。
 - `abstract-only`：不得支撑机制、失败条件、benchmark 横向比较或强 novelty claim。
 
@@ -75,7 +75,7 @@ Key Takeaways / Open Questions。
 `CUA-Survey` 的额外更新规则：
 
 - 按 canonical 六层结构落位，不新建按单篇论文或临时热词命名的平行 taxonomy。
-- Benchmark 数字必须对应 Evidence Ledger 中 `source-verified` 的 claim row，并同时写清 environment setting、verifier、step budget（笔记有记录时）与是否同 backbone 对照。
+- Benchmark 数字必须来自 `verification_status: source-checked` 的笔记（日志可查核验记录），并同时写清 environment setting、verifier、step budget（笔记有记录时）与是否同 backbone 对照。
 - 只有新论文改变已有判断时才修改 Key Takeaways / Open Problems；普通增量只更新 primary subsection 或矩阵。
 - `papers_analyzed` 按唯一 `Papers/` wikilink 口径机械复核，不把 redirect survey 的旧统计相加。
 
@@ -129,7 +129,7 @@ python3 scripts/survey_updates.py clear --survey {survey-name} --papers "Papers/
 - 只 clear 本轮实际处理（并入或跳过）的条目；未处理的留在 pending。
 - **引用 ≠ 继承/支持**：并入新论文时，其与既有工作的关系以内容判断（introduces/extends/contradicts/fails-to-reproduce…），不因它引用了某篇就自动记为支持或继承。
 - **不升格未验证结论**：本 skill 不做外部检索；库内无独立验证的结论标"库内暂无独立验证"，不得表述为共识或写"首次/无人研究"。
-- **Legacy note 限权**：缺 Evidence Ledger 的旧笔记可以保持既有引用，但本轮不得仅据它升级共识、关键数字或 Validated Gap；需要升级时交由下一次 full literature-survey 的 verification gate。
+- **Legacy note 限权**：`verification_status` 缺失或为 `unverified` 的旧笔记可以保持既有引用，但本轮不得仅据它升级共识、关键数字或 Validated Gap；需要升级时交由下一次 full literature-survey 的 verification gate。
 
 ## Verify
 
@@ -138,9 +138,11 @@ python3 scripts/survey_updates.py clear --survey {survey-name} --papers "Papers/
 - [ ] survey-updates.json 中本轮条目（含跳过的）已清除
 - [ ] 日志已追加（merged/skipped/changes/domain_map 四项齐全）
 - [ ] 并入的关键结论可溯到全文笔记；未把仅 abstract 或单篇支持的结论表述为共识
-- [ ] 新增关键数字均对应 source-verified claim row；partial/unverified/legacy note 未被用于升级强结论
+- [ ] 新增关键数字均来自 `source-checked` 笔记；partial/unverified/legacy note 未被用于升级强结论
 - [ ] 若高层判断发生变化，Key Evidence Matrix 已同步；普通增量未制造冗余 claim rows
 - [ ] 若本轮有结构性变化：受影响章节的配图已新增/重画/撤下，无图文不一致
+- [ ] **并入的文字读不出"是后加的"**：按 `references/writing-style.md` §A4 检查——正文无"本轮/本次并入/新增了/相比上一版"这类增量锚定，新写的段落与原生章节在句式和密度上无差别；内部记账只留在调研日志与 Key Evidence Matrix
+- [ ] **无机器味残留**：按 `references/writing-style.md` §A3 检查新写段落——无格言体（"评测即共识"）、制造金句（三连短句）、导览铺垫、权威腔（"归根结底"）。注意 §B：hedge 不删，只删跟不上条件/数字/检验方式的空 hedge
 
 ## Examples
 

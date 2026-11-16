@@ -30,9 +30,9 @@ benchmark、训练基建）贡献主要在系统实现里，论文正文往往�
 - 输入是 `Papers/` 笔记路径 → 读 frontmatter `code` 字段取 repo URL。
 - 输入是 repo URL → Grep `Papers/` 找对应笔记；**无笔记则先跑 paper-digest**（本 skill
   不替代论文消化，代码分析必须有论文笔记作对照基准）。
-- 读取笔记的 Summary / Method / Key Results / Evidence Ledger，抽出 3-8 个
+- 读取笔记的 Summary / Method / Key Results / Strengths & Weaknesses，抽出 3-8 个
   「要到代码里核对的点」：核心机制、关键超参、benchmark 生成/评测逻辑、
-  论文声称的系统能力。
+  论文声称的系统能力，以及 Weaknesses 中已点出的缺口。
 
 ### Step 2：Clone 到 staging + 规模概览
 

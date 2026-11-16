@@ -90,7 +90,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, WebFetch, Agent
 | `expected_locator` | page / section / table / figure；暂时找不到填 `unknown` |
 | `source` | primary source URL 或本地 PDF 路径 |
 
-普通背景、作者明确标注的 speculation、以及个人评价不必逐句建 claim。高风险数字不得只从搜索摘要、二手报道或既有 Paper note 复制。
+普通背景、作者明确标注的 speculation、以及个人评价不必逐句建 claim。高风险数字不得只从搜索摘要、二手报道或既有 Paper note 复制。claim package 只是 verifier 的输入与日志 `verification:` 行的统计口径，**不写进笔记**（笔记不设 `## Evidence Ledger`）。
 
 ### Step 3：确定文件名和 tags
 
@@ -106,17 +106,17 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, WebFetch, Agent
 
 ### Step 4：生成笔记
 
-读取 `Templates/Paper.md`，按模板中的字段和 `%%` 注释指导填写所有内容。
+读取 `Templates/Paper.md`，按模板中的字段和 `%%` 注释指导填写所有内容。章节序列固定为 Summary → Problem & Motivation → Method → Pipeline → Key Results → Strengths & Weaknesses → Notes，与 `Papers/` 现存笔记一致。
 
 补充规则（模板未涵盖的）：
 - **rating**：必填，按模板中的 1-5 分制评分，基于内容质量和与当前研究方向的相关性综合判断
 - **未获取全文**：在受影响的章节开头加注 `> [未获取全文，仅基于 abstract]`，不得推测正文内容
 - **content_scope**：全文已读填 `full-text`；否则填 `abstract-only`
 - **verification_status**：由 Step 4.5 的结果填写；不得把 source check 写成“独立复现”或“结论已被验证”
-- **Evidence Ledger**：每个高风险 claim 一行；原文短摘录最多 25 words，并保留 page/section/table/figure locator
+- **不写 Evidence Ledger / Mind Map / Critical reading**：核验结论只进 Step 6 的日志 `verification:` 行；批评性阅读逐条并入 `## Strengths & Weaknesses` 的 Weaknesses
+- **公式**：独立 `$$ ... $$` 块，不用 `$` 包裹、不用 `\begin{aligned}`；解释公式的句子写进公式所在 bullet，不另起段落
 - **date_added**：填写今天日期，格式 `YYYY-MM-DD`
-- **配图**：Mind Map 一律用 Mermaid（笔记内原生渲染）；若论文架构复杂、Supervisor 明确要
-  出版级结构图，则在 digest 完成后另行调用 `academic-diagram`（不并入本轮，保持原子性）
+- **配图**：`## Pipeline` 用架构图（本地图存 `images/<ShortTitle>-architecture.png`，以 `![ShortTitle 整体架构](../images/<ShortTitle>-architecture.png)` 引用）；若论文架构复杂、Supervisor 明确要出版级结构图，则在 digest 完成后另行调用 `academic-diagram`（不并入本轮，保持原子性）
 
 ### Step 4.5：独立 Source Verification
 
@@ -142,6 +142,7 @@ claim_id | status | source_locator | evidence_excerpt | correction
 2. `not-checkable` / `abstract-only` 必须就地标明 evidence boundary。
 3. `verification_status`：全部高风险 claim 为 `source-verified` → `source-checked`；部分不可核查但已降级 → `partial`；没有完成独立 source check → `unverified`。
 4. verifier 与 Finder 有分歧时，由主 agent 只基于 source locator 裁决；高影响分歧无法解决则保留 `not-checkable`，不得多数投票硬判真。
+5. 核验明细（claim 总数、source-verified 数、被降级/被判 contradicted 的 claim 编号与原因）写进 Step 6 日志的 `verification:` 行；笔记里只保留订正后的表述，不建表格。
 
 ### Step 5：保存与引用身份
 
@@ -222,7 +223,7 @@ python3 scripts/survey_updates.py record "Papers/{文件名}.md"
 - **input**: <source 的原始内容>
 - **output**: [[Papers/YYMM-ShortTitle]]
 - **observation**: <一句话描述论文核心贡献>
-- **verification**: <source-checked / partial / unverified；verified/total claim 数>
+- **verification**: <source-checked / partial / unverified；verified/total claim 数；被判 unsupported / contradicted 的 claim 编号与原因>
 - **survey_updates**: <匹配列表 / none / failed>
 - **run_id**: <由上层 orchestrator 传入；独立调用填 standalone-YYYYMMDD-HHMM>
 - **status**: success / partial
@@ -246,7 +247,9 @@ python3 scripts/survey_updates.py record "Papers/{文件名}.md"
 - [ ] frontmatter 的 `content_scope` 与 `verification_status` 合法
 - [ ] **YAML 前置校验通过**：所有含冒号的字段值已加双引号（title、venue 等）
 - [ ] **direct 模式引用身份已固化**：frontmatter 的 `cite_key` 非空，`references/bibtex-cache.bib` 含该 key；prepare-only 保留空 cite_key 供 coordinator commit
-- [ ] **Evidence Ledger 完整**：Summary / Key Results 中的高风险数字与比较均有 claim row、locator 和状态
+- [ ] **格式与现存笔记一致**：只含 Summary / Problem & Motivation / Method / Pipeline / Key Results / Strengths & Weaknesses / Notes 七个二级标题，没有 `## Evidence Ledger` / `## Mind Map` / `## Critical reading`；批评性阅读在 Weaknesses 内
+- [ ] **公式排版**：全部为独立 `$$ ... $$` 块，无 `$` 包裹与 `\begin{aligned}`，解释公式的句子在 bullet 内
+- [ ] **高风险数字已核验**：Summary / Key Results 中的数字与比较都经过独立 verifier，核验结论写入日志 `verification:` 行；无法支撑的已删除或降级
 - [ ] **独立性**：source-verified claim 由不同于 Finder 的 verifier 检查；否则状态为 unverified
 - [ ] Summary 节非空且不超过 3 句话
 - [ ] **direct 模式**日志与 survey 记账已完成；**prepare-only** 未修改日志、queue、BibTeX 或 survey-updates
