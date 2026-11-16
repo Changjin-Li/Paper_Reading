@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>Trajectory Evaluation via Rollout-Free World Model for End-to-end Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-RFWorld</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-RFWorld</guid>
+    <description><![CDATA[ Summary 候选轨迹评估是候选式端到端规划的核心环节，而 model-based evaluator 的主流做法是”为每条候选轨迹分别预测未来状态”，即 rollout。RFWorld 的论点是这个做法与规划的真实需求错配：rollout 的推理代价随预测时域与候选数同时增长，递归预测还会累积误差，而规划真正需要的只是可供比较的未来相关信息，不是为每条候选重建一整个未来场景。于是它把评估重构成”构建一次共享场景记忆 + 各候选稀疏读取”：当前 BEV 特征经 Transformer 潜世界模型得到轨迹无关的共享记忆 \mathcal{M}_t；训练时用轻量的时间读出分支（时间嵌入做通道门控... ]]></description>
+    <pubDate>Mon, 16 Nov 2026 03:21:55 GMT</pubDate>
+  </item><item>
     <title>DriftingPlanner: Drifting Generative Models for One-Step Trajectory Planning in End-to-End Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-DriftingPlanner</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-DriftingPlanner</guid>
@@ -58,12 +64,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-DreamerAD</guid>
     <description><![CDATA[ Summary 把驾驶 world model 的生成过程压到 1 步，并在 latent 空间里完成 RL：SF-WM 用 shortcut forcing 把采样从 100 步降到 1 步，AD-RM 在 latent 上逐 horizon 预测 8 维奖励，GRPO 在轨迹词表的 Gaussian 邻域内采样。NAVSIM v2 navtest 上 87.7 EPDMS（Epona 基线 85.1），单帧推理 0.03 s。 Problem &amp; Motivation 真实世界做 RL 试错成本与安全风险不可接受；传统仿真器有 sim-to-real gap，于是用 video w... ]]></description>
-    <pubDate>Tue, 20 Oct 2026 09:26:52 GMT</pubDate>
-  </item><item>
-    <title>Bridging Scene Generation and Planning: Driving with World Model via Unifying Vision and Motion Representation</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2603-WorldDrive</guid>
-    <description><![CDATA[ Summary WorldDrive 试图消除”生成未来”和”决定未来”之间的表征割裂：先训练一个 Trajectory-aware Driving World Model (TA-DWM)，以轨迹词表作为运动条件生成可控未来视频；再把冻结的视觉与轨迹编码器继承给多模态 planner；最后用 Future-aware Rewarder (FAR) 在训练期从冻结世界模型蒸馏未来 latent，推理期无需生成视频即可对候选轨迹重新打分。在 NAVSIM navtest 上以单前视相机取得 88.1 PDMS（非 † 设置下 camera-only 方法中最高，与多视角 DiffusionDri... ]]></description>
     <pubDate>Tue, 20 Oct 2026 09:26:52 GMT</pubDate>
   </item>
     </channel>
