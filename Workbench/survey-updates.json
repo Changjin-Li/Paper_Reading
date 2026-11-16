@@ -235,6 +235,11 @@
       "survey": "WorldModel-Survey",
       "paper": "Papers\\2608-WAMDiff2.md",
       "added_at": "2026-10-20"
+    },
+    {
+      "survey": "WorldModel-Survey",
+      "paper": "Papers\\2611-RiSEDrive.md",
+      "added_at": "2026-11-16"
     }
   ],
   "unrouted": [
