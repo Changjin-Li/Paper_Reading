@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>Latent-WAM++: Shaping World and Action Representations for End-to-End Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-LatentWAMPP</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-LatentWAMPP</guid>
+    <description><![CDATA[ Summary 现有 WAM 大多只监督”预测的未来状态”或”最终动作”，夹在中间的 world representation 与 action representation 只被这些输出目标间接约束。Latent-WAM++ 的主张是给每种表示的监督匹配它在规划中的角色：WoRC 用 scene-ego 未来潜预测 + SIGReg 分布正则 + 冻结几何先验，得到”可预测、不塌缩、带几何”的世界表示（并去掉 EMA target encoder）；TrajMF 直接预测干净轨迹、但在 Improved MeanFlow 的诱导速度空间施加监督，一步采样出 K_p 条多模态 proposal... ]]></description>
+    <pubDate>Tue, 17 Nov 2026 03:41:59 GMT</pubDate>
+  </item><item>
     <title>PlanWAM: Planning-Shaped Future Representations for End-to-End Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2610-PlanWAM</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2610-PlanWAM</guid>
@@ -59,12 +65,6 @@
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2609-DiffAdapterVLA</guid>
     <description><![CDATA[ Summary 现有 driving VLM 的轨迹生成几乎都在 backbone 之外完成：要么外接一个 planner 读最终层 cache，要么等 VLM 形成完整 condition 后再由一个独立 denoiser 采样。DiffAdapterVLA 把显式 trajectory token 插入 VLM 最后 K=12 层，让轨迹状态在去噪的每一步都与不同深度的 driving condition 共同前向演化；每层后接一个轻量 DiffAdapter 负责轨迹更新，condition 侧保持冻结且看不到带噪轨迹。整个 8B Cosmos-Reason2 backbone 冻结，只... ]]></description>
     <pubDate>Tue, 20 Oct 2026 13:06:07 GMT</pubDate>
-  </item><item>
-    <title>DiffusionDrive: Truncated Diffusion Model for End-to-End Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2411-DiffusionDrive</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2411-DiffusionDrive</guid>
-    <description><![CDATA[ Summary 把机器人领域成熟的 conditional diffusion policy 搬到端到端自动驾驶，但不从纯 Gaussian 噪声开始去噪：先用 K-Means 在训练集轨迹上聚类出 20 个 anchor，只在 anchor 周围加少量噪声（训练 schedule 截断到 50/1000）构造 anchored Gaussian 分布，让网络学习”从 anchor 附近恢复到 GT 轨迹”。配合一个 transformer diffusion decoder（deformable spatial cross-attention + agent/map cross-attent... ]]></description>
-    <pubDate>Tue, 20 Oct 2026 09:26:52 GMT</pubDate>
   </item>
     </channel>
   </rss>
