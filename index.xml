@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>Reinforcing End-to-End Autonomous Driving Safety via Negative-Aware Planning in a Unified World-Action Model</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-NegWAM</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-NegWAM</guid>
+    <description><![CDATA[ Summary WAM 的动作分支仍由专家轨迹 imitation 主导，因此**“离专家很近但实际不安全”的那类轨迹从未被显式排除**——更强的世界建模并不自动产生安全边界。NegWAM 把这类近专家失败轨迹当作后训练信号，构造方式是从 GTRS 的 16K 轨迹词表里挑出与专家 ADE 在 [0.3,1.0) m、且用 NAVSIM v2 指标缓存判定为 0 EPDMS 的候选，形成场景专属负样本池；这些负样本同时以两种方式进入统一的 world-action DiT：作为排斥锚（distance-adaptive hinge 把一步解码轨迹推离），以及作为scene-conditione... ]]></description>
+    <pubDate>Tue, 17 Nov 2026 03:51:46 GMT</pubDate>
+  </item><item>
     <title>GuidedWAM: Training-Free Energy Guidance for World Action Models in Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-GuidedWAM</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-GuidedWAM</guid>
@@ -58,12 +64,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2512-DiffusionDriveV2</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2512-DiffusionDriveV2</guid>
     <description><![CDATA[ Summary DiffusionDrive 的 anchored truncated diffusion 用 GMM 先验保证多模态，但 imitation learning 每个场景只监督离 GT 最近的单个 anchor，负模态完全无约束，生成器因此产出大量碰撞轨迹并把筛选压力推给弱 selector。本文在预训练 DiffusionDrive 上做轨迹级 RL：把去噪链当作 MDP 用 REINFORCE 优化，探索噪声改为两个标量的乘性高斯，advantage 在单个 anchor 组内做 GRPO 标准化（Intra-Anchor），再用截断负 advantage 的方式引入跨 a... ]]></description>
-    <pubDate>Tue, 20 Oct 2026 13:06:07 GMT</pubDate>
-  </item><item>
-    <title>WAM-Diff2: Hierarchical AR-to-Diffusion Distillation for Highly Efficient Autonomous Driving VLA</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2608-WAMDiff2</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2608-WAMDiff2</guid>
-    <description><![CDATA[ Summary 自动驾驶 VLA 普遍用自回归解码，逐 token 生成带来线性延迟与 exposure bias；而从零训练的 diffusion policy 虽然能并行解码，却缺少多任务语义能力。WAM-Diff2 把已训练好的 Qwen3-VL 2B/8B 自回归 VLA 转成多任务离散扩散模型：attention 改为 block-causal（块内双向、块间因果），用三阶段蒸馏完成迁移——渐进扩大 block size 的 SFT、block-wise JSD 蒸馏、8B→2B 的跨规模 JSD 蒸馏。NAVSIM v1 88.3 PDMS、v2 88.6 EPDMS，加 scor... ]]></description>
     <pubDate>Tue, 20 Oct 2026 13:06:07 GMT</pubDate>
   </item>
     </channel>
