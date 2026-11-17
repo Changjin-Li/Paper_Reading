@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>PlanWAM: Planning-Shaped Future Representations for End-to-End Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2610-PlanWAM</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2610-PlanWAM</guid>
+    <description><![CDATA[ Summary 现有驾驶 world model 都在研究”怎么预测未来”和”怎么用未来”，却很少有人问哪种未来表示对规划真正有用——用像素重建或 DINO/JEPA/BEV 特征定义的未来潜空间，与轨迹决策目标之间存在错配。PlanWAM 把未来建模重述为 planning-oriented predictive representation learning：训练时用一个只看得到 GT 未来帧的 privileged posterior，把未来潜表示直接挂在轨迹生成与轨迹选择的损失上，使它被规划目标”塑形”；再用 Hindsight-to-Foresight Distillation 把这... ]]></description>
+    <pubDate>Tue, 17 Nov 2026 03:37:50 GMT</pubDate>
+  </item><item>
     <title>RiSE-Drive: Risk-Sensitive Long-Horizon Candidate Evaluation for End-to-End Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-RiSEDrive</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-RiSEDrive</guid>
@@ -58,12 +64,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2411-DiffusionDrive</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2411-DiffusionDrive</guid>
     <description><![CDATA[ Summary 把机器人领域成熟的 conditional diffusion policy 搬到端到端自动驾驶，但不从纯 Gaussian 噪声开始去噪：先用 K-Means 在训练集轨迹上聚类出 20 个 anchor，只在 anchor 周围加少量噪声（训练 schedule 截断到 50/1000）构造 anchored Gaussian 分布，让网络学习”从 anchor 附近恢复到 GT 轨迹”。配合一个 transformer diffusion decoder（deformable spatial cross-attention + agent/map cross-attent... ]]></description>
-    <pubDate>Tue, 20 Oct 2026 09:26:52 GMT</pubDate>
-  </item><item>
-    <title>DiffE2E: Rethinking End-to-End Driving with a Hybrid Action Diffusion and Supervised Policy</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2505-DiffE2E</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2505-DiffE2E</guid>
-    <description><![CDATA[ Summary DiffE2E 提出一种混合 action diffusion 与监督策略的端到端驾驶框架，核心是把 diffusion 去噪与监督任务放在同一个 Transformer decoder 里联合执行：将带噪轨迹 token 与若干监督 query token 拼接后共享 self-attention / cross-attention，再按位置切分为扩散分支与监督分支，使生成式建模与判别式监督在同一 latent 空间中互相约束。模型直接预测干净轨迹 \mathbf{x}_0 而非噪声，配合 100 步前向扩散与 2 步 DDIM 反去噪，在保持单次前向可实时（42.8 ms）... ]]></description>
     <pubDate>Tue, 20 Oct 2026 09:26:52 GMT</pubDate>
   </item>
     </channel>
