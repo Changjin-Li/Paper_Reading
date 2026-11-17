@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>GuidedWAM: Training-Free Energy Guidance for World Action Models in Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-GuidedWAM</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-GuidedWAM</guid>
+    <description><![CDATA[ Summary WAM 把驾驶策略与视觉世界模型耦合在同一个生成网络里，训练结束后驾驶目标就冻结了：想加”窄路多留边距&quot;&quot;行人周围更大净空&quot;&quot;分段限速”这类新目标，只能重新收集监督并重训十亿参数模型。GuidedWAM 把能量引导做成一个训练无关的控制通道：在每个采样步上，用冻结模型的一步干净估计 \hat\tau_0 评估可微能量，把它的梯度直接加到速度场上；由于梯度只对解析能量求、干净估计被 detach，整条链路只需要对冻结模型做前向。为了让这种 Jacobian-free 形式可用，论文给出三项稳定化措施——噪声水平上的梯形调度窗、逐能量归一化、... ]]></description>
+    <pubDate>Tue, 17 Nov 2026 03:45:49 GMT</pubDate>
+  </item><item>
     <title>Latent-WAM++: Shaping World and Action Representations for End-to-End Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-LatentWAMPP</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-LatentWAMPP</guid>
@@ -58,12 +64,6 @@
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2608-WAMDiff2</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2608-WAMDiff2</guid>
     <description><![CDATA[ Summary 自动驾驶 VLA 普遍用自回归解码，逐 token 生成带来线性延迟与 exposure bias；而从零训练的 diffusion policy 虽然能并行解码，却缺少多任务语义能力。WAM-Diff2 把已训练好的 Qwen3-VL 2B/8B 自回归 VLA 转成多任务离散扩散模型：attention 改为 block-causal（块内双向、块间因果），用三阶段蒸馏完成迁移——渐进扩大 block size 的 SFT、block-wise JSD 蒸馏、8B→2B 的跨规模 JSD 蒸馏。NAVSIM v1 88.3 PDMS、v2 88.6 EPDMS，加 scor... ]]></description>
-    <pubDate>Tue, 20 Oct 2026 13:06:07 GMT</pubDate>
-  </item><item>
-    <title>Planning in the Backbone: DiffAdapterVLA for Native Continuous Trajectory Generation with Driving VLMs</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2609-DiffAdapterVLA</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2609-DiffAdapterVLA</guid>
-    <description><![CDATA[ Summary 现有 driving VLM 的轨迹生成几乎都在 backbone 之外完成：要么外接一个 planner 读最终层 cache，要么等 VLM 形成完整 condition 后再由一个独立 denoiser 采样。DiffAdapterVLA 把显式 trajectory token 插入 VLM 最后 K=12 层，让轨迹状态在去噪的每一步都与不同深度的 driving condition 共同前向演化；每层后接一个轻量 DiffAdapter 负责轨迹更新，condition 侧保持冻结且看不到带噪轨迹。整个 8B Cosmos-Reason2 backbone 冻结，只... ]]></description>
     <pubDate>Tue, 20 Oct 2026 13:06:07 GMT</pubDate>
   </item>
     </channel>
