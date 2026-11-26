@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr"><head><title>Driving on Memory</title><meta charset="utf-8"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted Grotesk:wght@400;700&amp;family=Source Sans Pro:ital,wght@0,400;0,600;1,400;1,600&amp;family=IBM Plex Mono:wght@400;600&amp;display=swap"/><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="og:site_name" content="Paper Reading"/><meta property="og:title" content="Driving on Memory"/><meta property="og:type" content="website"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="Driving on Memory"/><meta name="twitter:description" content="Summary 这篇不是提出更强的规划器，而是对评测做一次压力测试：把被评测场景的相机输入整个删掉，换成”同一位置、过去行驶记录”里的场景 token。检索到的记忆只含静态信息（道路布局、地点相关规律），拿不到当前交通状态。结果相当反直觉——在 NAVSIM v1 上 MemoryDrivoR 拿到 91.1 PDMS，接近相机版 DrivoR 的 93.7；NAVSIM v2 navhard 上 45.0 EPDMS 对 46.7。也就是说，不观察当前场景也能接近榜首。但在 Bench2Drive 上同样替换只得到 34.7 DS / 9.5% SR（相机版 61.0 / 30.5），Rea..."/><meta property="og:description" content="Summary 这篇不是提出更强的规划器，而是对评测做一次压力测试：把被评测场景的相机输入整个删掉，换成”同一位置、过去行驶记录”里的场景 token。检索到的记忆只含静态信息（道路布局、地点相关规律），拿不到当前交通状态。结果相当反直觉——在 NAVSIM v1 上 MemoryDrivoR 拿到 91.1 PDMS，接近相机版 DrivoR 的 93.7；NAVSIM v2 navhard 上 45.0 EPDMS 对 46.7。也就是说，不观察当前场景也能接近榜首。但在 Bench2Drive 上同样替换只得到 34.7 DS / 9.5% SR（相机版 61.0 / 30.5），Rea..."/><meta property="og:image:alt" content="Summary 这篇不是提出更强的规划器，而是对评测做一次压力测试：把被评测场景的相机输入整个删掉，换成”同一位置、过去行驶记录”里的场景 token。检索到的记忆只含静态信息（道路布局、地点相关规律），拿不到当前交通状态。结果相当反直觉——在 NAVSIM v1 上 MemoryDrivoR 拿到 91.1 PDMS，接近相机版 DrivoR 的 93.7；NAVSIM v2 navhard 上 45.0 EPDMS 对 46.7。也就是说，不观察当前场景也能接近榜首。但在 Bench2Drive 上同样替换只得到 34.7 DS / 9.5% SR（相机版 61.0 / 30.5），Rea..."/><meta property="og:image" content="https://changjin-li.github.io/Paper_Reading/static/og-image.png"/><meta property="og:image:url" content="https://changjin-li.github.io/Paper_Reading/static/og-image.png"/><meta name="twitter:image" content="https://changjin-li.github.io/Paper_Reading/static/og-image.png"/><meta property="og:image:type" content="image/.png"/><meta property="twitter:domain" content="changjin-li.github.io/Paper_Reading"/><meta property="og:url" content="https://changjin-li.github.io/Paper_Reading/Papers/2608-DrivingOnMemory"/><meta property="twitter:url" content="https://changjin-li.github.io/Paper_Reading/Papers/2608-DrivingOnMemory"/><link rel="icon" href="../static/icon.png"/><meta name="description" content="Summary 这篇不是提出更强的规划器，而是对评测做一次压力测试：把被评测场景的相机输入整个删掉，换成”同一位置、过去行驶记录”里的场景 token。检索到的记忆只含静态信息（道路布局、地点相关规律），拿不到当前交通状态。结果相当反直觉——在 NAVSIM v1 上 MemoryDrivoR 拿到 91.1 PDMS，接近相机版 DrivoR 的 93.7；NAVSIM v2 navhard 上 45.0 EPDMS 对 46.7。也就是说，不观察当前场景也能接近榜首。但在 Bench2Drive 上同样替换只得到 34.7 DS / 9.5% SR（相机版 61.0 / 30.5），Rea..."/><meta name="generator" content="Quartz"/><link href="../index.css" rel="stylesheet" type="text/css" data-persist="true"/><style>.expand-button {
+  position: absolute;
+  display: flex;
+  float: right;
+  padding: 0.4rem;
+  margin: 0.3rem;
+  right: 0;
+  color: var(--gray);
+  border-color: var(--dark);
+  background-color: var(--light);
+  border: 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  transition: 0.2s;
+}
+.expand-button > svg {
+  fill: var(--light);
+  filter: contrast(0.3);
+}
+.expand-button:hover {
+  cursor: pointer;
+  border-color: var(--secondary);
+}
+.expand-button:focus {
+  outline: 0;
+}
+
+pre:hover > .expand-button {
+  opacity: 1;
+  transition: 0.2s;
+}
+
+#mermaid-container {
+  position: fixed;
+  contain: layout;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+#mermaid-container.active {
+  display: inline-block;
+}
+#mermaid-container > #mermaid-space {
+  border: 1px solid var(--lightgray);
+  background-color: var(--light);
+  border-radius: 5px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+#mermaid-container > #mermaid-space > .mermaid-content {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.1s ease;
+  overflow: visible;
+  min-height: 200px;
+  min-width: 200px;
+}
+#mermaid-container > #mermaid-space > .mermaid-content pre {
+  margin: 0;
+  border: none;
+}
+#mermaid-container > #mermaid-space > .mermaid-content svg {
+  max-width: none;
+  height: auto;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  color: var(--dark);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--bodyFont);
+  transition: all 0.2s ease;
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:hover {
+  background: var(--lightgray);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:active {
+  transform: translateY(1px);
+}
+#mermaid-container > #mermaid-space > .mermaid-controls .mermaid-control-button:nth-child(2) {
+  width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiL2hvbWUvcnVubmVyL3dvcmsvUGFwZXJfUmVhZGluZy9QYXBlcl9SZWFkaW5nL3dlYnNpdGUvcXVhcnR6L2NvbXBvbmVudHMvc3R5bGVzIiwic291cmNlcyI6WyJtZXJtYWlkLmlubGluZS5zY3NzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTtFQUNBOztBQUdGO0VBQ0U7RUFDQTs7QUFHRjtFQUNFOzs7QUFLRjtFQUNFO0VBQ0E7OztBQUlKO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTs7QUFFQTtFQUNFOztBQUdGO0VBQ0U7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTtFQUNBOztBQUdGO0VBQ0U7RUFDQTs7QUFJSjtFQUNFO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7O0FBRUE7RUFDRTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7RUFDQTtFQUNBOztBQUVBO0VBQ0U7O0FBR0Y7RUFDRTs7QUFJRjtFQUNFO0VBQ0E7RUFDQSIsInNvdXJjZXNDb250ZW50IjpbIi5leHBhbmQtYnV0dG9uIHtcbiAgcG9zaXRpb246IGFic29sdXRlO1xuICBkaXNwbGF5OiBmbGV4O1xuICBmbG9hdDogcmlnaHQ7XG4gIHBhZGRpbmc6IDAuNHJlbTtcbiAgbWFyZ2luOiAwLjNyZW07XG4gIHJpZ2h0OiAwOyAvLyBOT1RFOiByaWdodCB3aWxsIGJlIHNldCBpbiBtZXJtYWlkLmlubGluZS50c1xuICBjb2xvcjogdmFyKC0tZ3JheSk7XG4gIGJvcmRlci1jb2xvcjogdmFyKC0tZGFyayk7XG4gIGJhY2tncm91bmQtY29sb3I6IHZhcigtLWxpZ2h0KTtcbiAgYm9yZGVyOiAxcHggc29saWQ7XG4gIGJvcmRlci1yYWRpdXM6IDVweDtcbiAgb3BhY2l0eTogMDtcbiAgdHJhbnNpdGlvbjogMC4ycztcblxuICAmID4gc3ZnIHtcbiAgICBmaWxsOiB2YXIoLS1saWdodCk7XG4gICAgZmlsdGVyOiBjb250cmFzdCgwLjMpO1xuICB9XG5cbiAgJjpob3ZlciB7XG4gICAgY3Vyc29yOiBwb2ludGVyO1xuICAgIGJvcmRlci1jb2xvcjogdmFyKC0tc2Vjb25kYXJ5KTtcbiAgfVxuXG4gICY6Zm9jdXMge1xuICAgIG91dGxpbmU6IDA7XG4gIH1cbn1cblxucHJlIHtcbiAgJjpob3ZlciA+IC5leHBhbmQtYnV0dG9uIHtcbiAgICBvcGFjaXR5OiAxO1xuICAgIHRyYW5zaXRpb246IDAuMnM7XG4gIH1cbn1cblxuI21lcm1haWQtY29udGFpbmVyIHtcbiAgcG9zaXRpb246IGZpeGVkO1xuICBjb250YWluOiBsYXlvdXQ7XG4gIHotaW5kZXg6IDk5OTtcbiAgbGVmdDogMDtcbiAgdG9wOiAwO1xuICB3aWR0aDogMTAwdnc7XG4gIGhlaWdodDogMTAwdmg7XG4gIG92ZXJmbG93OiBoaWRkZW47XG4gIGRpc3BsYXk6IG5vbmU7XG4gIGJhY2tkcm9wLWZpbHRlcjogYmx1cig0cHgpO1xuICBiYWNrZ3JvdW5kOiByZ2JhKDAsIDAsIDAsIDAuNSk7XG5cbiAgJi5hY3RpdmUge1xuICAgIGRpc3BsYXk6IGlubGluZS1ibG9jaztcbiAgfVxuXG4gICYgPiAjbWVybWFpZC1zcGFjZSB7XG4gICAgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tbGlnaHRncmF5KTtcbiAgICBiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS1saWdodCk7XG4gICAgYm9yZGVyLXJhZGl1czogNXB4O1xuICAgIHBvc2l0aW9uOiBmaXhlZDtcbiAgICB0b3A6IDUwJTtcbiAgICBsZWZ0OiA1MCU7XG4gICAgdHJhbnNmb3JtOiB0cmFuc2xhdGUoLTUwJSwgLTUwJSk7XG4gICAgaGVpZ2h0OiA4MHZoO1xuICAgIHdpZHRoOiA4MHZ3O1xuICAgIG92ZXJmbG93OiBoaWRkZW47XG5cbiAgICAmID4gLm1lcm1haWQtY29udGVudCB7XG4gICAgICBwb3NpdGlvbjogcmVsYXRpdmU7XG4gICAgICB0cmFuc2Zvcm0tb3JpZ2luOiAwIDA7XG4gICAgICB0cmFuc2l0aW9uOiB0cmFuc2Zvcm0gMC4xcyBlYXNlO1xuICAgICAgb3ZlcmZsb3c6IHZpc2libGU7XG4gICAgICBtaW4taGVpZ2h0OiAyMDBweDtcbiAgICAgIG1pbi13aWR0aDogMjAwcHg7XG5cbiAgICAgIHByZSB7XG4gICAgICAgIG1hcmdpbjogMDtcbiAgICAgICAgYm9yZGVyOiBub25lO1xuICAgICAgfVxuXG4gICAgICBzdmcge1xuICAgICAgICBtYXgtd2lkdGg6IG5vbmU7XG4gICAgICAgIGhlaWdodDogYXV0bztcbiAgICAgIH1cbiAgICB9XG5cbiAgICAmID4gLm1lcm1haWQtY29udHJvbHMge1xuICAgICAgcG9zaXRpb246IGFic29sdXRlO1xuICAgICAgYm90dG9tOiAyMHB4O1xuICAgICAgcmlnaHQ6IDIwcHg7XG4gICAgICBkaXNwbGF5OiBmbGV4O1xuICAgICAgZ2FwOiA4cHg7XG4gICAgICBwYWRkaW5nOiA4cHg7XG4gICAgICBiYWNrZ3JvdW5kOiB2YXIoLS1saWdodCk7XG4gICAgICBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1saWdodGdyYXkpO1xuICAgICAgYm9yZGVyLXJhZGl1czogNnB4O1xuICAgICAgYm94LXNoYWRvdzogMCAycHggNHB4IHJnYmEoMCwgMCwgMCwgMC4xKTtcbiAgICAgIHotaW5kZXg6IDI7XG5cbiAgICAgIC5tZXJtYWlkLWNvbnRyb2wtYnV0dG9uIHtcbiAgICAgICAgZGlzcGxheTogZmxleDtcbiAgICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjtcbiAgICAgICAganVzdGlmeS1jb250ZW50OiBjZW50ZXI7XG4gICAgICAgIHdpZHRoOiAzMnB4O1xuICAgICAgICBoZWlnaHQ6IDMycHg7XG4gICAgICAgIHBhZGRpbmc6IDA7XG4gICAgICAgIGJvcmRlcjogMXB4IHNvbGlkIHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgICAgIGJhY2tncm91bmQ6IHZhcigtLWxpZ2h0KTtcbiAgICAgICAgY29sb3I6IHZhcigtLWRhcmspO1xuICAgICAgICBib3JkZXItcmFkaXVzOiA0cHg7XG4gICAgICAgIGN1cnNvcjogcG9pbnRlcjtcbiAgICAgICAgZm9udC1zaXplOiAxNnB4O1xuICAgICAgICBmb250LWZhbWlseTogdmFyKC0tYm9keUZvbnQpO1xuICAgICAgICB0cmFuc2l0aW9uOiBhbGwgMC4ycyBlYXNlO1xuXG4gICAgICAgICY6aG92ZXIge1xuICAgICAgICAgIGJhY2tncm91bmQ6IHZhcigtLWxpZ2h0Z3JheSk7XG4gICAgICAgIH1cblxuICAgICAgICAmOmFjdGl2ZSB7XG4gICAgICAgICAgdHJhbnNmb3JtOiB0cmFuc2xhdGVZKDFweCk7XG4gICAgICAgIH1cblxuICAgICAgICAvLyBTdHlsZSB0aGUgcmVzZXQgYnV0dG9uIGRpZmZlcmVudGx5XG4gICAgICAgICY6bnRoLWNoaWxkKDIpIHtcbiAgICAgICAgICB3aWR0aDogYXV0bztcbiAgICAgICAgICBwYWRkaW5nOiAwIDEycHg7XG4gICAgICAgICAgZm9udC1zaXplOiAxNHB4O1xuICAgICAgICB9XG4gICAgICB9XG4gICAgfVxuICB9XG59XG4iXX0= */</style><link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet" type="text/css" data-persist="true"/><script src="../prescript.js" type="application/javascript" data-persist="true"></script><script type="application/javascript" data-persist="true">const fetchData = fetch("../static/contentIndex.json").then(data => data.json())</script><link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://changjin-li.github.io/Paper_Reading/index.xml"/></head><body data-slug="Papers/2608-DrivingOnMemory"><div id="quartz-root" class="page"><div id="quartz-body"><div class="left sidebar"><h2 class="page-title"><a href="..">Paper Reading</a></h2><div class="spacer mobile-only"></div><div class="flex-component" style="flex-direction: row; flex-wrap: nowrap; gap: 1rem;"><div style="flex-grow: 1; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><div class="search"><button class="search-button"><svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title>Search</title><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"></path><circle cx="8" cy="8" r="7"></circle></g></svg><p>Search</p></button><div class="search-container"><div class="search-space"><input autocomplete="off" class="search-bar" name="search" type="text" aria-label="Search for something" placeholder="Search for something"/><div class="search-layout" data-preview="true"></div></div></div></div></div><div style="flex-grow: 0; flex-shrink: 1; flex-basis: auto; order: 0; align-self: center; justify-self: center;"><button class="darkmode"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="dayIcon" x="0px" y="0px" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35" xml:space="preserve" aria-label="Dark mode"><title>Dark mode</title><path d="M6,17.5C6,16.672,5.328,16,4.5,16h-3C0.672,16,0,16.672,0,17.5    S0.672,19,1.5,19h3C5.328,19,6,18.328,6,17.5z M7.5,26c-0.414,0-0.789,0.168-1.061,0.439l-2,2C4.168,28.711,4,29.086,4,29.5    C4,30.328,4.671,31,5.5,31c0.414,0,0.789-0.168,1.06-0.44l2-2C8.832,28.289,9,27.914,9,27.5C9,26.672,8.329,26,7.5,26z M17.5,6    C18.329,6,19,5.328,19,4.5v-3C19,0.672,18.329,0,17.5,0S16,0.672,16,1.5v3C16,5.328,16.671,6,17.5,6z M27.5,9    c0.414,0,0.789-0.168,1.06-0.439l2-2C30.832,6.289,31,5.914,31,5.5C31,4.672,30.329,4,29.5,4c-0.414,0-0.789,0.168-1.061,0.44    l-2,2C26.168,6.711,26,7.086,26,7.5C26,8.328,26.671,9,27.5,9z M6.439,8.561C6.711,8.832,7.086,9,7.5,9C8.328,9,9,8.328,9,7.5    c0-0.414-0.168-0.789-0.439-1.061l-2-2C6.289,4.168,5.914,4,5.5,4C4.672,4,4,4.672,4,5.5c0,0.414,0.168,0.789,0.439,1.06    L6.439,8.561z M33.5,16h-3c-0.828,0-1.5,0.672-1.5,1.5s0.672,1.5,1.5,1.5h3c0.828,0,1.5-0.672,1.5-1.5S34.328,16,33.5,16z     M28.561,26.439C28.289,26.168,27.914,26,27.5,26c-0.828,0-1.5,0.672-1.5,1.5c0,0.414,0.168,0.789,0.439,1.06l2,2    C28.711,30.832,29.086,31,29.5,31c0.828,0,1.5-0.672,1.5-1.5c0-0.414-0.168-0.789-0.439-1.061L28.561,26.439z M17.5,29    c-0.829,0-1.5,0.672-1.5,1.5v3c0,0.828,0.671,1.5,1.5,1.5s1.5-0.672,1.5-1.5v-3C19,29.672,18.329,29,17.5,29z M17.5,7    C11.71,7,7,11.71,7,17.5S11.71,28,17.5,28S28,23.29,28,17.5S23.29,7,17.5,7z M17.5,25c-4.136,0-7.5-3.364-7.5-7.5    c0-4.136,3.364-7.5,7.5-7.5c4.136,0,7.5,3.364,7.5,7.5C25,21.636,21.636,25,17.5,25z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="nightIcon" x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100" xml:space="preserve" aria-label="Light mode"><title>Light mode</title><path d="M96.76,66.458c-0.853-0.852-2.15-1.064-3.23-0.534c-6.063,2.991-12.858,4.571-19.655,4.571  C62.022,70.495,50.88,65.88,42.5,57.5C29.043,44.043,25.658,23.536,34.076,6.47c0.532-1.08,0.318-2.379-0.534-3.23  c-0.851-0.852-2.15-1.064-3.23-0.534c-4.918,2.427-9.375,5.619-13.246,9.491c-9.447,9.447-14.65,22.008-14.65,35.369  c0,13.36,5.203,25.921,14.65,35.368s22.008,14.65,35.368,14.65c13.361,0,25.921-5.203,35.369-14.65  c3.872-3.871,7.064-8.328,9.491-13.246C97.826,68.608,97.611,67.309,96.76,66.458z"></path></svg></button></div></div><div class="explorer" data-behavior="link" data-collapsed="collapsed" data-savestate="false" data-data-fns="{&quot;order&quot;:[&quot;filter&quot;,&quot;map&quot;,&quot;sort&quot;],&quot;sortFn&quot;:&quot;(a,b)=>{let order=[\&quot;DomainMaps\&quot;,\&quot;Papers\&quot;,\&quot;Topics\&quot;,\&quot;Ideas\&quot;,\&quot;Projects\&quot;],aIdx=order.indexOf(a.displayName),bIdx=order.indexOf(b.displayName);return aIdx!==-1&amp;&amp;bIdx!==-1?aIdx-bIdx:aIdx!==-1?-1:bIdx!==-1?1:a.slug?.startsWith(\&quot;Papers/\&quot;)&amp;&amp;b.slug?.startsWith(\&quot;Papers/\&quot;)?b.displayName.localeCompare(a.displayName):a.displayName.localeCompare(b.displayName)}&quot;,&quot;filterFn&quot;:&quot;node=>node.slugSegment!==\&quot;tags\&quot;&quot;,&quot;mapFn&quot;:&quot;node=>{node.isFolder||(node.displayName=node.slugSegment)}&quot;}"><button type="button" class="explorer-toggle mobile-explorer hide-until-loaded" data-mobile="true" aria-controls="explorer-33"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide-menu"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button><button type="button" class="title-button explorer-toggle desktop-explorer" data-mobile="false" aria-expanded="true"><h2>Explorer</h2><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div id="explorer-33" class="explorer-content" aria-expanded="false" role="group"><ul class="explorer-ul overflow" id="list-0"><li class="overflow-end"></li></ul></div><template id="template-file"><li><a href="#"></a></li></template><template id="template-folder"><li><div class="folder-container"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="5 8 14 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><polyline points="6 9 12 15 18 9"></polyline></svg><div><button class="folder-button"><span class="folder-title"></span></button></div></div><div class="folder-outer"><ul class="content"></ul></div></li></template></div></div><div class="center"><div class="page-header"><div class="popover-hint"><nav class="breadcrumb-container" aria-label="breadcrumbs"><div class="breadcrumb-element"><a href="../">Home</a><p> ❯ </p></div><div class="breadcrumb-element"><a href="../Papers/">Papers</a><p> ❯ </p></div><div class="breadcrumb-element"><a href>Driving on Memory</a></div></nav><h1 class="article-title">Driving on Memory</h1><div class="paper-meta"><span class="paper-venue">arXiv Preprint</span><span class="paper-institute"><span class="meta-sep">·</span>Bosch Research, Automated Driving, Bosch, University of Lübeck</span><span class="paper-authors"><span class="meta-sep">·</span>Christian Löwens <button class="et-al-btn" aria-expanded="false">et al.</button><span class="authors-full" style="display:none"><span>, Thorben Funke</span><span>, Alexandru Paul Condurache</span></span></span></div><p show-comma="true" class="content-meta"><time datetime="2026-11-26T04:45:46.000Z">Nov 26, 2026</time></p><ul class="tags"><li><a href="../tags/imitation-learning" class="internal tag-link">imitation-learning</a></li><li><a href="../tags/spatial-memory" class="internal tag-link">spatial-memory</a></li></ul></div></div><article class="popover-hint"><h2 id="summary">Summary<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#summary" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>这篇不是提出更强的规划器，而是对评测做一次<strong>压力测试</strong>：把被评测场景的相机输入整个删掉，换成”同一位置、过去行驶记录”里的场景 token。检索到的记忆只含静态信息（道路布局、地点相关规律），拿不到当前交通状态。结果相当反直觉——在 NAVSIM v1 上 MemoryDrivoR 拿到 91.1 PDMS，接近相机版 DrivoR 的 93.7；NAVSIM v2 navhard 上 45.0 EPDMS 对 46.7。也就是说，<strong>不观察当前场景也能接近榜首</strong>。但在 Bench2Drive 上同样替换只得到 34.7 DS / 9.5% SR（相机版 61.0 / 30.5），RealEngine 闭环也大幅下滑。结论是 NAVSIM 的高分很大程度上可以由初始 ego 状态 + 静态场景信息解释，而闭环长路线基准仍要求对动态场景做出反应。</p>
+<h2 id="problem--motivation">Problem &amp; Motivation<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#problem--motivation" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li>基准高分的默认解读是”模型看懂了当前场景”，但高分本身不能说明模型用了哪些信息；基准可能奖励了与目标能力相关、但更简单的线索。</li>
+<li>nuScenes 时代已经暴露过这个问题：只给 ego 状态（速度、导航命令）的 MLP 也能拿到不错的开环分数；NAVSIM / Bench2Drive 用仿真指标与更复杂操作设计来堵这个漏洞，但”堵住了多少”没有被量化。</li>
+<li>论文把相机输入拆成静态与动态两部分：静态是道路结构、地点相关的常态（如某个路口通常很堵），动态是当前车辆、信号灯、天气。要问的是：<strong>只用静态部分能拿到多少分？</strong></li>
+<li>为此需要一个”可控地只保留静态信息”的探针，而不是再训一个无感知基线——后者无法区分”架构强”与”信息够”。</li>
+<li>另一个要排除的解释是位置记忆（训练时见过测试地点），所以论文补了地理切分实验。</li>
+</ul>
+<h2 id="method">Method<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#method" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p><strong>0. 总体框架</strong></p>
+<ul>
+<li>基座是 DrivoR：ViT 编码单帧多视角图像为 register tokens，规划器含两个 transformer decoder（proposal 与 scoring），都对 scene tokens 做 cross-attention，取最高分轨迹。</li>
+<li>干预点在 planner 的 K/V：把相机产生的 scene tokens 替换为”从记忆库检索到的、带相对位姿编码的压缩记忆 token”，planner 结构本身完全不动。</li>
+<li>这是一个 <strong>analytic probe</strong>（解析探针）：模型仍然有强架构与预训练权重，只是被剥夺了当前场景的动态信息。</li>
+</ul>
+<p><strong>1. 记忆库构建</strong></p>
+<ul>
+<li>用冻结的 DrivoR ViT 对训练集的每一帧编码，存下 scene tokens 与全局位姿：</li>
+</ul>
+<span class="katex-display"><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.07153em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.0158em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathbb">R</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8213em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mbin mtight">×</span><span class="mord mathnormal mtight">c</span></span></span></span></span></span></span></span></span><span class="mspace"> </span><span class="mord text"><span class="mord cjk_fallback">（</span><span class="mord">n=64 </span><span class="mord cjk_fallback">个</span><span class="mord"> register token</span><span class="mord cjk_fallback">）</span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">ψ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span></span>
+<ul>
+<li>只存潜 token、不存原图，因此记忆是压缩的；库覆盖 navtrain 全部样本（Bench2Drive 用更大的 Full 训练集以保证覆盖）。</li>
+</ul>
+<p><strong>2. 检索</strong></p>
+<ul>
+<li>用当前 ego 位姿 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 在库中做最近邻：半径 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">20</span></span></span></span> m 内取至多 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.03148em;">k</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">10</span></span></span></span> 条，按距离排序；<strong>每条轨迹（traversal）至多取一条</strong>，避免同一段路重复采样造成冗余。</li>
+<li>NAVSIM 官方不提供绝对 ego pose，论文为此补上了位姿字段才能做基于位置的检索——这一点决定了方法只能用于”有重复行驶轨迹”的数据集。</li>
+</ul>
+<p><strong>3. 相对位姿编码与注入</strong></p>
+<ul>
+<li>记忆不是几何 warp 到当前视角，而是编码”这条记忆是在哪里被观察到的”：对记忆位姿 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">m</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 与当前位姿 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 计算相对变换</li>
+</ul>
+<span class="katex-display"><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.13889em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">m</span><span class="mrel mtight">→</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.1111em;vertical-align:-0.247em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.13889em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8641em;"><span style="top:-2.453em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.13889em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">m</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></span>
+<ul>
+<li>把平移按固定范围归一化、做正弦编码，再过两层 MLP 得到 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">c</span></span></span></span> 维嵌入，加到该记忆的每个 token 上；这样 planner 知道”这条路在前方 30 m、偏左 5°“这样的空间关系。</li>
+</ul>
+<p><strong>4. 压缩与替换 K/V</strong></p>
+<ul>
+<li>每条带位姿的记忆经 2 层 resampler（Perceiver 式）压到 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord">ℓ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">8</span></span></span></span> 个 token，再线性投影成 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.10903em;">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">m</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>；所有检索到的记忆拼接后作为两个 planner decoder 的 K/V。</li>
+<li>没有可用记忆时直接跳过对应 cross-attention 层，模型退化为只看 ego 状态——这给了论文一个干净的下界对照。</li>
+<li>resampler 的作用不只是省算力：它需要学会过滤记忆里<strong>过时的动态信息</strong>（例如上次经过时这里停着一辆车），否则会把旧场景当成当前场景。</li>
+</ul>
+<p><strong>5. 训练</strong></p>
+<ul>
+<li>pose embedder 与 resampler 从零训练；planner 用 DrivoR 权重初始化后在记忆 token 上微调（NAVSIM 5 epoch、Bench2Drive 20 epoch），损失保持 DrivoR 原样：候选轨迹的模仿损失 + 各子分数的 BCE。</li>
+<li>关键点：<strong>训练与推理都在记忆 token 上</strong>，不存在”训练用相机、测试用记忆”的错配，因此测到的是”这套信息够不够”，而不是”换输入导致的分布外失败”。</li>
+</ul>
+<p><strong>6. 实现细节</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">项目</th><th style="text-align:left;">设置</th></tr></thead><tbody><tr><td style="text-align:left;">基座</td><td style="text-align:left;">DrivoR（ViT-S，64 register tokens），冻结视觉编码器</td></tr><tr><td style="text-align:left;">记忆表示</td><td style="text-align:left;">每帧 64 token + 全局位姿；注入时压到 8 token/记忆</td></tr><tr><td style="text-align:left;">检索</td><td style="text-align:left;"><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.03148em;">k</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">10</span></span></span></span>，半径 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">20</span></span></span></span> m，每条 traversal 至多 1 条</td></tr><tr><td style="text-align:left;">ego 输入</td><td style="text-align:left;">NAVSIM：2D 速度 + 2D 加速度 + 4D 命令 one-hot；Bench2Drive：1D 速度 + 6D 命令</td></tr><tr><td style="text-align:left;">训练</td><td style="text-align:left;">NAVSIM 5 epoch；Bench2Drive 20 epoch（从 DrivoR 复现权重出发）</td></tr><tr><td style="text-align:left;">评测</td><td style="text-align:left;">NAVSIM v1/v2、Bench2Drive、HUGSIM-nuScenes、RealEngine</td></tr></tbody></table></div>
+<h2 id="pipeline">Pipeline<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#pipeline" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p>（原论文无 HTML 版，架构图见 PDF 图 2：pose-indexed memory bank 与两阶段注入流程。）</p>
+<ol>
+<li><strong>建库</strong>：训练集每帧过冻结 ViT 得 scene tokens，与绝对位姿一起入库。</li>
+<li><strong>检索</strong>：当前帧只需 ego 位姿（不需要相机），在 20 m 半径内取 ≤10 条不同 traversal 的记忆。</li>
+<li><strong>位姿编码</strong>：算 <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.1em;vertical-align:-0.2458em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.13889em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8542em;"><span style="top:-2.4542em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span><span style="top:-3.1031em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2458em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.13889em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">m</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>，归一化平移 + 正弦编码 + MLP，加到记忆 token 上。</li>
+<li><strong>压缩</strong>：resampler 把每条记忆压到 8 token，过滤过期动态信息。</li>
+<li><strong>注入</strong>：拼接后的记忆作为 planner 两个 decoder 的 K/V，替换原本的相机 scene tokens。</li>
+<li><strong>规划</strong>：proposal decoder 生成候选、scoring decoder 打分，取最高分轨迹；无记忆时可跳过 cross-attention。</li>
+<li><strong>审计</strong>：在 NAVSIM / Bench2Drive / HUGSIM / RealEngine 上比较”仅有 ego 状态&quot;&quot;ego + 记忆&quot;&quot;ego + 相机”三档，量化静态信息的贡献。</li>
+</ol>
+<h2 id="key-results">Key Results<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#key-results" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p><strong>1) NAVSIM v1 navtest（Table 1，PDMS）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Method</th><th style="text-align:center;">相机</th><th style="text-align:center;">记忆</th><th style="text-align:right;">NC</th><th style="text-align:right;">DAC</th><th style="text-align:right;">TTC</th><th style="text-align:right;">EP</th><th style="text-align:right;">PDMS</th></tr></thead><tbody><tr><td style="text-align:left;">Human driver</td><td style="text-align:center;">–</td><td style="text-align:center;">–</td><td style="text-align:right;">100.0</td><td style="text-align:right;">100.0</td><td style="text-align:right;">100.0</td><td style="text-align:right;">87.5</td><td style="text-align:right;">94.8</td></tr><tr><td style="text-align:left;">DrivoR</td><td style="text-align:center;">✓</td><td style="text-align:center;">×</td><td style="text-align:right;">99.0</td><td style="text-align:right;">98.9</td><td style="text-align:right;">96.7</td><td style="text-align:right;">90.0</td><td style="text-align:right;"><strong>93.7</strong></td></tr><tr><td style="text-align:left;">Ego Status MLP</td><td style="text-align:center;">×</td><td style="text-align:center;">×</td><td style="text-align:right;">93.1</td><td style="text-align:right;">78.3</td><td style="text-align:right;">84.0</td><td style="text-align:right;">63.2</td><td style="text-align:right;">66.4</td></tr><tr><td style="text-align:left;">DrivoR（无相机）</td><td style="text-align:center;">×</td><td style="text-align:center;">×</td><td style="text-align:right;">96.1</td><td style="text-align:right;">85.6</td><td style="text-align:right;">91.1</td><td style="text-align:right;">62.8</td><td style="text-align:right;">72.9</td></tr><tr><td style="text-align:left;"><strong>MemoryDrivoR</strong></td><td style="text-align:center;">×</td><td style="text-align:center;">✓</td><td style="text-align:right;">98.3</td><td style="text-align:right;">98.5</td><td style="text-align:right;">95.3</td><td style="text-align:right;">86.0</td><td style="text-align:right;"><strong>91.1</strong></td></tr></tbody></table></div>
+<ul>
+<li>91.1 已经接近相机版 93.7，远高于只给 ego 状态的 66.4；DAC 几乎不降（98.5 vs 98.9），因为记忆本身就携带稳定的道路几何。</li>
+<li>最值得注意的是 NC 与 TTC 也没有崩：论文的解释是模型在记忆提示的”常态拥堵位置”提前减速，4 s 评测窗口内交互次数减少，于是碰撞自然变少——这是<strong>保守驾驶</strong>而非场景理解。</li>
+</ul>
+<p><strong>2) NAVSIM v2 navhard（Table 2，EPDMS）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Method</th><th style="text-align:center;">相机</th><th style="text-align:center;">记忆</th><th style="text-align:right;">EPDMS</th></tr></thead><tbody><tr><td style="text-align:left;">DrivoR</td><td style="text-align:center;">✓</td><td style="text-align:center;">×</td><td style="text-align:right;">46.7</td></tr><tr><td style="text-align:left;">ZTRS</td><td style="text-align:center;">✓</td><td style="text-align:center;">×</td><td style="text-align:right;">48.1</td></tr><tr><td style="text-align:left;">Ego Status MLP</td><td style="text-align:center;">×</td><td style="text-align:center;">×</td><td style="text-align:right;">14.2</td></tr><tr><td style="text-align:left;">DrivoR（无相机）</td><td style="text-align:center;">×</td><td style="text-align:center;">×</td><td style="text-align:right;">28.3</td></tr><tr><td style="text-align:left;"><strong>MemoryDrivoR</strong></td><td style="text-align:center;">×</td><td style="text-align:center;">✓</td><td style="text-align:right;"><strong>45.0</strong></td></tr></tbody></table></div>
+<ul>
+<li>即使 v2 有反应式交通与偏移的 Stage-2 起点，记忆版仍只比相机版低 1.7；论文称这一结果此前没有被展示过。</li>
+<li>分项上，与静态信息相关的指标（DAC、LK）接近甚至更好，而与动态相关的（NC、TLC）下降但不崩，主要代价落在 EP。</li>
+</ul>
+<p><strong>3) 闭环基准：结论反转（Table 3、4、5）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">Benchmark</th><th style="text-align:left;">指标</th><th style="text-align:right;">DrivoR（相机）</th><th style="text-align:right;">MemoryDrivoR</th></tr></thead><tbody><tr><td style="text-align:left;">Bench2Drive</td><td style="text-align:left;">DS / SR</td><td style="text-align:right;">61.0 / 30.5%</td><td style="text-align:right;">34.7 / 9.5%</td></tr><tr><td style="text-align:left;">RealEngine</td><td style="text-align:left;">open-loop</td><td style="text-align:right;">86.6</td><td style="text-align:right;"><strong>87.1</strong></td></tr><tr><td style="text-align:left;">RealEngine</td><td style="text-align:left;">base closed-loop</td><td style="text-align:right;">88.2</td><td style="text-align:right;">72.3</td></tr><tr><td style="text-align:left;">RealEngine</td><td style="text-align:left;">safety test</td><td style="text-align:right;">53.8</td><td style="text-align:right;">28.1</td></tr><tr><td style="text-align:left;">RealEngine</td><td style="text-align:left;">multi-agent</td><td style="text-align:right;">63.9</td><td style="text-align:right;">43.4</td></tr><tr><td style="text-align:left;">HUGSIM-nuScenes</td><td style="text-align:left;">HD-Score</td><td style="text-align:right;">36.4</td><td style="text-align:right;">32.2</td></tr></tbody></table></div>
+<ul>
+<li>Bench2Drive 上记忆版仍显著优于无相机基线（11.6 DS / 2.4% SR），但离相机版差一倍；成功路线平均约 110 m / 79 s，远超 NAVSIM 的 4 s 窗口。</li>
+<li>RealEngine 的 open-loop 甚至略高于相机版（87.1 vs 86.6），但一进入闭环就掉到 72.3，safety test 掉到 28.1——<strong>开环分数与闭环能力在这里出现明显背离</strong>。</li>
+<li>HUGSIM-nuScenes 差距较小（32.2 vs 36.4），作者归因于该子集只有 12 条基本笔直路线、87 个场景，动态交互本就少。</li>
+</ul>
+<p><strong>4) HD map 对照（Table 6）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">输入</th><th style="text-align:right;">NAVSIM v1 PDMS</th><th style="text-align:right;">NAVSIM v2 EPDMS</th></tr></thead><tbody><tr><td style="text-align:left;">Ego + 相机</td><td style="text-align:right;">93.7</td><td style="text-align:right;">46.7</td></tr><tr><td style="text-align:left;">Ego only</td><td style="text-align:right;">72.9</td><td style="text-align:right;">28.3</td></tr><tr><td style="text-align:left;">Ego + HD map</td><td style="text-align:right;">86.6</td><td style="text-align:right;">40.8</td></tr><tr><td style="text-align:left;">Ego + 记忆</td><td style="text-align:right;"><strong>91.1</strong></td><td style="text-align:right;"><strong>45.0</strong></td></tr></tbody></table></div>
+<ul>
+<li>HD map 能补上大部分差距（72.9 → 86.6），但仍低于记忆；作者认为记忆额外携带了”地点相关的常态”（如通常拥堵程度），这是结构化地图没有的。</li>
+<li>这一行同时说明：<strong>结构化的静态信息本身就是很强的评测捷径</strong>，不需要记忆这种形式。</li>
+</ul>
+<p><strong>5) 地理切分排除”位置记忆”（Table 7）</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="table-container"><table><thead><tr><th style="text-align:left;">设置</th><th style="text-align:right;">NAVSIMv2（Pittsburgh 留出）</th><th style="text-align:right;">Bench2Drive（Town11+13 留出）</th></tr></thead><tbody><tr><td style="text-align:left;">原始训练集</td><td style="text-align:right;">39.0 EPDMS</td><td style="text-align:right;">61.0 DS / 24.1% SR</td></tr><tr><td style="text-align:left;">去掉测试地点</td><td style="text-align:right;"><strong>42.7</strong></td><td style="text-align:right;"><strong>61.2 DS / 27.7% SR</strong></td></tr></tbody></table></div>
+<ul>
+<li>把测试地点从训练集中删掉后，分数没有下降反而略升，说明相机版 DrivoR 的高分不是靠”记住地理位置”，而是靠测试时仍然能看到的静态信息。</li>
+<li>这条对照很关键：它把”基准可被静态信息刷分”与”模型过拟合训练地点”两个解释分开了。</li>
+</ul>
+<h2 id="strengths--weaknesses">Strengths &amp; Weaknesses<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#strengths--weaknesses" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<p><strong>Strengths</strong></p>
+<ul>
+<li>实验设计干净：唯一被替换的是 planner 的 K/V 来源，架构、权重初始化、训练目标、评测协议全部不变，因此 91.1 与 93.7 的差距可以直接归因于”当前场景的动态信息”。</li>
+<li>三档对照（ego only / ego + memory / ego + camera）给出了连续的剂量-反应曲线，而不是只有一个”有/无感知”的对比；72.9 → 91.1 → 93.7 让”静态信息贡献了多少”变成可读的数字。</li>
+<li>结论有跨基准的反证：同一个干预在 NAVSIM 上几乎不掉、在 Bench2Drive/RealEngine 上腰斩，说明这不是”方法不够好”，而是<strong>基准对动态反应的要求不同</strong>。</li>
+<li>主动排除了最自然的替代解释：地理切分实验显示去掉测试地点后分数不降，把”位置记忆”从解释里剔除。</li>
+<li>HD map 对照回答了”是不是只要有静态信息就行”：地图能补上大半差距但仍不及记忆，界定了记忆的独特成分。</li>
+<li>对机制的解读具体：ego 状态本身已包含”是否在刹车”的信息，记忆补的是道路上下文；短窗口下保守驾驶即可减少交互，这解释了为什么 NC/TTC 不崩而 EP 下降。</li>
+<li>论文明确不 overclaim：反复说明这只说明基准可被静态信息刷分，不说明感知对真实驾驶不重要；也承认 91.1 不是该方法的上限。</li>
+</ul>
+<p><strong>Weaknesses</strong></p>
+<ul>
+<li><strong>探针依赖”同一地点有重复行驶记录 + 高精度相对位姿”</strong>：记忆库来自训练集同一路段的多次经过，NAVSIM 还需要额外补绝对位姿；在只有单次轨迹或定位噪声大的数据集上（如 WOD-E2E）无法直接套用。作者在 limitation 中承认。</li>
+<li><strong>记忆与相机不是信息对等的比较</strong>：记忆库覆盖整个 navtrain，相当于把训练集的所有静态快照都给了模型，而相机只给当前帧；因此”记忆接近相机”里有一部分来自”记忆的覆盖更全”，不是纯粹的静态/动态之分。</li>
+<li><strong>结论受评测窗口长度强烈影响</strong>：NAVSIM 只评 4 s，初始 ego 状态几乎泄漏了当前机动；Bench2Drive 从静止起步、路线长达百米，ego 状态不再有信息量。因此”NAVSIM 高分不代表会开车”这一结论成立，但”静态信息能拿多少分”的数值不能外推到其他窗口长度。</li>
+<li><strong>RealEngine 上 open-loop 高于相机版（87.1 vs 86.6）却没有解释</strong>：可能是记忆让轨迹更平滑、更贴合静态路线，但论文只用”与 NAVSIM 结果一致”带过，没有分析这个反超。</li>
+<li><strong>Bench2Drive 的相机版是作者复现</strong>（DrivoR* 61.0），与官方榜单其他方法不可直接比；记忆版也基于同一复现，比较公平但绝对数值参考价值有限。</li>
+<li><strong>resampler 过滤动态信息的能力没有单独验证</strong>：论文说它会学过滤过期动态信息（引 App. A.6），但正文没有给”记忆里放一辆已离开的车”这类对照，机制解释停留在定性。</li>
+<li><strong>检索参数与记忆规模没有敏感性分析</strong>：<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.03148em;">k</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">10</span></span></span></span>、<span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">20</span></span></span></span> m、每条 traversal 一条，都是固定值；在更密或更稀的采集条件下，这些参数会直接决定”记忆够不够用”。</li>
+<li><strong>没有分析失败类型</strong>：Bench2Drive 上 9.5% SR 具体失败在哪些场景（cut-in、环岛、行人）只给了 HighwayCutIn 的成功案例，缺少失败拆解。</li>
+<li><strong>对基准设计的建议较笼统</strong>：提出”更长路线 + 反事实参与者”，但没有给出可操作的指标或协议草案。</li>
+</ul>
+<h2 id="notes">Notes<a role="anchor" aria-hidden="true" tabindex="-1" data-no-popover="true" href="#notes" class="internal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></a></h2>
+<ul>
+<li>
+<p><strong>论文定位</strong>：不是记忆增强方法，而是<strong>用记忆做基准审计</strong>。它把”从前的行驶记录”当作静态信息的可控代理，从而在不改模型的前提下测试”当前场景的动态信息值多少分”。这一点与 MomAD / MomADv2（短期 planning-state 记忆，为性能服务）和 DriveVLA-M0（失败案例记忆 + TTT）不同：那两篇把记忆当能力，这篇把记忆当尺子。</p>
+</li>
+<li>
+<p><strong>可迁移点</strong>：</p>
+<ul>
+<li><strong>“只给静态信息”是一个通用的基准探针</strong>：任何有重复采集的场景数据都可以构造 pose-indexed memory bank，用来检验高分是否依赖当前观测。</li>
+<li><strong>三档剂量对照</strong>（ego only / +静态记忆 / +相机）比单一”有/无感知”对比更有解释力，能给出各信息源的边际贡献。</li>
+<li><strong>地理切分是排除位置记忆的标准做法</strong>：留出测试城市/城镇重训，若分数不降即可排除”背地图”解释。</li>
+<li><strong>短窗口 + 初始 ego 状态的组合会泄漏机动意图</strong>：任何 4 s 级评测都应检查”初始 ego 状态是否已经暗示了正确答案”，否则 NC/TTC 的高分可能来自保守减速而非场景理解。</li>
+</ul>
+</li>
+<li>
+<p><strong>待跟进</strong>：</p>
+<ul>
+<li>在 NAVSIM 上做窗口长度扫描（2 / 4 / 8 / 12 s），看记忆版的优势随窗口如何衰减，定位”ego 状态泄漏”的具体时间尺度。</li>
+<li>构造”记忆里含过期动态”的对照（同一地点、不同时刻的交通），检验 resampler 是否真的学会过滤，而不是简单平均。</li>
+<li>把同样的探针用到 plan-based 闭环基准（HUGSIM 全量、Bench2Drive 长路线）上，给出”静态信息贡献率”这一可比较的指标。</li>
+<li>若换成无重复轨迹的数据集，能否用”离线街景 + 单次采集”替代记忆库（作者提到的 spatial retrieval 变体），量化定位误差与域差对审计信号的削弱。</li>
+</ul>
+</li>
+</ul></article><hr/><div class="page-footer"></div></div><div class="right sidebar"><div class="toc desktop-only"><button type="button" class="toc-header" aria-controls="toc-18" aria-expanded="true"><h3>Table of Contents</h3><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fold"><polyline points="6 9 12 15 18 9"></polyline></svg></button><ul id="list-1" class="toc-content overflow"><li class="depth-0"><a href="#summary" data-for="summary">Summary</a></li><li class="depth-0"><a href="#problem--motivation" data-for="problem--motivation">Problem &amp; Motivation</a></li><li class="depth-0"><a href="#method" data-for="method">Method</a></li><li class="depth-0"><a href="#pipeline" data-for="pipeline">Pipeline</a></li><li class="depth-0"><a href="#key-results" data-for="key-results">Key Results</a></li><li class="depth-0"><a href="#strengths--weaknesses" data-for="strengths--weaknesses">Strengths &amp; Weaknesses</a></li><li class="depth-0"><a href="#notes" data-for="notes">Notes</a></li><li class="overflow-end"></li></ul></div></div><footer class><p>Created with <a href="https://quartz.jzhao.xyz/">Quartz v4.5.2</a> © 2026</p><ul><li><a href="https://github.com/Changjin-Li/Paper_Reading">GitHub</a></li></ul></footer></div></div></body><script type="application/javascript" data-persist="true">function n(){let t=this.parentElement;t.classList.toggle("is-collapsed");let e=t.getElementsByClassName("callout-content")[0];if(!e)return;let l=t.classList.contains("is-collapsed");e.style.gridTemplateRows=l?"0fr":"1fr"}function c(){let t=document.getElementsByClassName("callout is-collapsible");for(let e of t){let l=e.getElementsByClassName("callout-title")[0],s=e.getElementsByClassName("callout-content")[0];if(!l||!s)continue;l.addEventListener("click",n),window.addCleanup(()=>l.removeEventListener("click",n));let o=e.classList.contains("is-collapsed");s.style.gridTemplateRows=o?"0fr":"1fr"}}document.addEventListener("nav",c);
+</script><script type="module" data-persist="true">function E(a,e){if(!a)return;function t(o){o.target===this&&(o.preventDefault(),o.stopPropagation(),e())}function n(o){o.key.startsWith("Esc")&&(o.preventDefault(),e())}a?.addEventListener("click",t),window.addCleanup(()=>a?.removeEventListener("click",t)),document.addEventListener("keydown",n),window.addCleanup(()=>document.removeEventListener("keydown",n))}function f(a){for(;a.firstChild;)a.removeChild(a.firstChild)}var m=class{constructor(e,t){this.container=e;this.content=t;this.setupEventListeners(),this.setupNavigationControls(),this.resetTransform()}isDragging=!1;startPan={x:0,y:0};currentPan={x:0,y:0};scale=1;MIN_SCALE=.5;MAX_SCALE=3;cleanups=[];setupEventListeners(){let e=this.onMouseDown.bind(this),t=this.onMouseMove.bind(this),n=this.onMouseUp.bind(this),o=this.onTouchStart.bind(this),r=this.onTouchMove.bind(this),i=this.onTouchEnd.bind(this),s=this.resetTransform.bind(this);this.container.addEventListener("mousedown",e),document.addEventListener("mousemove",t),document.addEventListener("mouseup",n),this.container.addEventListener("touchstart",o,{passive:!1}),document.addEventListener("touchmove",r,{passive:!1}),document.addEventListener("touchend",i),window.addEventListener("resize",s),this.cleanups.push(()=>this.container.removeEventListener("mousedown",e),()=>document.removeEventListener("mousemove",t),()=>document.removeEventListener("mouseup",n),()=>this.container.removeEventListener("touchstart",o),()=>document.removeEventListener("touchmove",r),()=>document.removeEventListener("touchend",i),()=>window.removeEventListener("resize",s))}cleanup(){for(let e of this.cleanups)e()}setupNavigationControls(){let e=document.createElement("div");e.className="mermaid-controls";let t=this.createButton("+",()=>this.zoom(.1)),n=this.createButton("-",()=>this.zoom(-.1)),o=this.createButton("Reset",()=>this.resetTransform());e.appendChild(n),e.appendChild(o),e.appendChild(t),this.container.appendChild(e)}createButton(e,t){let n=document.createElement("button");return n.textContent=e,n.className="mermaid-control-button",n.addEventListener("click",t),window.addCleanup(()=>n.removeEventListener("click",t)),n}onMouseDown(e){e.button===0&&(this.isDragging=!0,this.startPan={x:e.clientX-this.currentPan.x,y:e.clientY-this.currentPan.y},this.container.style.cursor="grabbing")}onMouseMove(e){this.isDragging&&(e.preventDefault(),this.currentPan={x:e.clientX-this.startPan.x,y:e.clientY-this.startPan.y},this.updateTransform())}onMouseUp(){this.isDragging=!1,this.container.style.cursor="grab"}onTouchStart(e){if(e.touches.length!==1)return;this.isDragging=!0;let t=e.touches[0];this.startPan={x:t.clientX-this.currentPan.x,y:t.clientY-this.currentPan.y}}onTouchMove(e){if(!this.isDragging||e.touches.length!==1)return;e.preventDefault();let t=e.touches[0];this.currentPan={x:t.clientX-this.startPan.x,y:t.clientY-this.startPan.y},this.updateTransform()}onTouchEnd(){this.isDragging=!1}zoom(e){let t=Math.min(Math.max(this.scale+e,this.MIN_SCALE),this.MAX_SCALE),n=this.content.getBoundingClientRect(),o=n.width/2,r=n.height/2,i=t-this.scale;this.currentPan.x-=o*i,this.currentPan.y-=r*i,this.scale=t,this.updateTransform()}updateTransform(){this.content.style.transform=`translate(${this.currentPan.x}px, ${this.currentPan.y}px) scale(${this.scale})`}resetTransform(){let t=this.content.querySelector("svg").getBoundingClientRect(),n=t.width/this.scale,o=t.height/this.scale;this.scale=1,this.currentPan={x:(this.container.clientWidth-n)/2,y:(this.container.clientHeight-o)/2},this.updateTransform()}},T=["--secondary","--tertiary","--gray","--light","--lightgray","--highlight","--dark","--darkgray","--codeFont"],y;document.addEventListener("nav",async()=>{let e=document.querySelector(".center").querySelectorAll("code.mermaid");if(e.length===0)return;y||=await import("https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.esm.min.mjs");let t=y.default,n=new WeakMap;for(let r of e)n.set(r,r.innerText);async function o(){for(let s of e){s.removeAttribute("data-processed");let c=n.get(s);c&&(s.innerHTML=c)}let r=T.reduce((s,c)=>(s[c]=window.getComputedStyle(document.documentElement).getPropertyValue(c),s),{}),i=document.documentElement.getAttribute("saved-theme")==="dark";t.initialize({startOnLoad:!1,securityLevel:"loose",theme:i?"dark":"base",themeVariables:{fontFamily:r["--codeFont"],primaryColor:r["--light"],primaryTextColor:r["--darkgray"],primaryBorderColor:r["--tertiary"],lineColor:r["--darkgray"],secondaryColor:r["--secondary"],tertiaryColor:r["--tertiary"],clusterBkg:r["--light"],edgeLabelBackground:r["--highlight"]}}),await t.run({nodes:e})}await o(),document.addEventListener("themechange",o),window.addCleanup(()=>document.removeEventListener("themechange",o));for(let r=0;r<e.length;r++){let v=function(){let g=l.querySelector("#mermaid-space"),h=l.querySelector(".mermaid-content");if(!h)return;f(h);let w=i.querySelector("svg").cloneNode(!0);h.appendChild(w),l.classList.add("active"),g.style.cursor="grab",u=new m(g,h)},M=function(){l.classList.remove("active"),u?.cleanup(),u=null},i=e[r],s=i.parentElement,c=s.querySelector(".clipboard-button"),d=s.querySelector(".expand-button"),p=window.getComputedStyle(c),L=c.offsetWidth+parseFloat(p.marginLeft||"0")+parseFloat(p.marginRight||"0");d.style.right=`calc(${L}px + 0.3rem)`,s.prepend(d);let l=s.querySelector("#mermaid-container");if(!l)return;let u=null;d.addEventListener("click",v),E(l,M),window.addCleanup(()=>{u?.cleanup(),d.removeEventListener("click",v)})}});
+</script><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/copy-tex.min.js" type="application/javascript" data-persist="true"></script><script src="../postscript.js" type="module" data-persist="true"></script></html>

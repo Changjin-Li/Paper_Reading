@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>Driving on Memory</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2608-DrivingOnMemory</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2608-DrivingOnMemory</guid>
+    <description><![CDATA[ Summary 这篇不是提出更强的规划器，而是对评测做一次压力测试：把被评测场景的相机输入整个删掉，换成”同一位置、过去行驶记录”里的场景 token。检索到的记忆只含静态信息（道路布局、地点相关规律），拿不到当前交通状态。结果相当反直觉——在 NAVSIM v1 上 MemoryDrivoR 拿到 91.1 PDMS，接近相机版 DrivoR 的 93.7；NAVSIM v2 navhard 上 45.0 EPDMS 对 46.7。也就是说，不观察当前场景也能接近榜首。但在 Bench2Drive 上同样替换只得到 34.7 DS / 9.5% SR（相机版 61.0 / 30.5），Rea... ]]></description>
+    <pubDate>Thu, 26 Nov 2026 04:45:46 GMT</pubDate>
+  </item><item>
     <title>DriveVLA-M0: Failure-Aware Memory Augmentation for Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2608-DriveVLAM0</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2608-DriveVLAM0</guid>
@@ -59,12 +65,6 @@
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-RFWorld</guid>
     <description><![CDATA[ Summary 候选轨迹评估是候选式端到端规划的核心环节，而 model-based evaluator 的主流做法是”为每条候选轨迹分别预测未来状态”，即 rollout。RFWorld 的论点是这个做法与规划的真实需求错配：rollout 的推理代价随预测时域与候选数同时增长，递归预测还会累积误差，而规划真正需要的只是可供比较的未来相关信息，不是为每条候选重建一整个未来场景。于是它把评估重构成”构建一次共享场景记忆 + 各候选稀疏读取”：当前 BEV 特征经 Transformer 潜世界模型得到轨迹无关的共享记忆 \mathcal{M}_t；训练时用轻量的时间读出分支（时间嵌入做通道门控... ]]></description>
     <pubDate>Mon, 16 Nov 2026 03:21:55 GMT</pubDate>
-  </item><item>
-    <title>DriftingPlanner: Drifting Generative Models for One-Step Trajectory Planning in End-to-End Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-DriftingPlanner</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-DriftingPlanner</guid>
-    <description><![CDATA[ Summary Drifting model 把扩散的”迭代”从推理搬到训练：生成器 g_\theta 一次前向就把噪声映射成样本，训练时用一个核场把生成样本拉向正样本、推离其他生成样本，收敛后 q_\theta = p。DriftingPlanner 是这套框架在轨迹规划上的第一次适配，它必须解决两个规划特有的困难。第一，图像生成里有离散类别，同一类的多张图共享目标分布；规划里每个 scene 就是自己的条件，只有一个 GT 轨迹，所以场必须逐 scene 计算。第二，逐 scene 计算只剩一个正样本，吸引项把 N 条生成轨迹拉向同一点、互斥项把它们推开，结果它们停在一个以 GT 为球心的... ]]></description>
-    <pubDate>Sun, 15 Nov 2026 02:57:22 GMT</pubDate>
   </item>
     </channel>
   </rss>
