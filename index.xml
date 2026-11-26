@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>MomADv2: Reliable Temporal Memory for End-to-End Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2608-MomADv2</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2608-MomADv2</guid>
+    <description><![CDATA[ Summary MomAD 把上一帧的 planning query 无条件传给当前帧，这在场景突变、时序断裂或导航命令切换时会把无效意图带进来。MomADv2 把”是否复用历史”做成一个显式的可靠性判定：维护一个以（命令，时序连续性 token）为键的记忆库，只保留命令一致、时序连续且非空的条目；再用按时间偏移对齐的轨迹距离在每个候选上找到历史对应项，按相似度与时间衰减加权，最后用一个可靠性门控把 SSM 输出的残差裁剪后注入当前 query。轨迹侧另加 Flow-Matching Trajectory Residual Refiner（FM-Ref）：把 planner 输出当作流匹配的起... ]]></description>
+    <pubDate>Thu, 26 Nov 2026 03:48:33 GMT</pubDate>
+  </item><item>
     <title>Don&#039;t Shake the Wheel: Momentum-Aware Planning in End-to-End Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2503-MomAD</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2503-MomAD</guid>
@@ -59,12 +65,6 @@
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2610-DriveMLP</guid>
     <description><![CDATA[ Summary DriveMLP 的核心发现是一个反直觉的结论：训练策略比模型复杂度对自动驾驶规划的闭环性能影响更大。作者通过同一 MLP 架构下四种训练方法的受控对照实验，证明 Expert-Guided RL（EGRL）——把 RL 当作优化工具、用 expert trajectory distance reward 在 non-reactive simulator 里训练——在 nuPlan Val14 Reactive 上达到 86.51，比 BC 高出 54 个点，比 BC-RL 高 8.46 个点。EGRL 的关键设计是：其他 agent 按日志回放（保证 expert traje... ]]></description>
     <pubDate>Tue, 10 Nov 2026 07:12:47 GMT</pubDate>
-  </item><item>
-    <title>VPFlow: Value-Predictive Planning with Imperfect World Models for Offline Goal Reaching</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2610-VPFlow</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2610-VPFlow</guid>
-    <description><![CDATA[ Summary Offline goal-conditioned RL 里有一个被普遍忽略的结构：在 hindsight relabeling 下，任意状态到同一轨迹上未来 goal 的稀疏奖励 Monte Carlo return 有闭式解，只取决于两者之间的时间距离 d。VPFlow 把这个闭式 return 当作 latent world model 的唯一监督——observation encoder、latent dynamics、goal-conditioned value head 联合训练，imagined latent 被要求预测 goal-reaching value 而不... ]]></description>
-    <pubDate>Mon, 02 Nov 2026 03:57:39 GMT</pubDate>
   </item>
     </channel>
   </rss>
