@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>Spatial Retrieval Augmented Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2512-SpatialRetrievalAD</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2512-SpatialRetrievalAD</guid>
+    <description><![CDATA[ Summary 车载传感器的感知距离与视线都被限制，遮挡、逆光、夜间、雨雾下会明显退化；而人类司机可以”想起”这条路长什么样。论文把这种”回忆”做成一个新模态：按 ego 位姿从离线地理数据库（Google Maps 街景 + 卫星图）检索当前位置的图像，作为额外输入喂给模型。为了系统评估，作者用 Google Maps API 扩展 nuScenes 得到 nuScenes-Geography，并设计一个 model-agnostic 的 Spatial Retrieval Adapter（BEV 特征做 query、带 3D 位置编码的地理特征做 K/V 的 cross-attention... ]]></description>
+    <pubDate>Thu, 26 Nov 2026 04:52:52 GMT</pubDate>
+  </item><item>
     <title>Driving on Memory</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2608-DrivingOnMemory</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2608-DrivingOnMemory</guid>
@@ -59,12 +65,6 @@
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-RiSEDrive</guid>
     <description><![CDATA[ Summary 候选式端到端规划里，评估器把候选质量压成一个确定性标量，于是”名义分数接近、但其中一条藏着灾难性尾部”的情况无法被区分。RiSE-Drive 只改评估阶段：先用未来条件生成器给出 L=4 条分支，对每个候选-分支对做潜空间后果传播（GRU 式逐步更新，把逐时刻结果与终止结果按 \gamma=0.99 折扣累加成一条长期结果样本），用 M=10 个有序分位数估计该候选的结果分布，最后按均值 − 尾部缺口 − 跨条件波动排序。在完全对齐的 DrivoR 管线上，只增加 0.1M 可训练参数（18.8M → 18.9M）就把 NAVSIM-v1 navtest PDMS 从 93.1... ]]></description>
     <pubDate>Mon, 16 Nov 2026 03:36:28 GMT</pubDate>
-  </item><item>
-    <title>Trajectory Evaluation via Rollout-Free World Model for End-to-end Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-RFWorld</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-RFWorld</guid>
-    <description><![CDATA[ Summary 候选轨迹评估是候选式端到端规划的核心环节，而 model-based evaluator 的主流做法是”为每条候选轨迹分别预测未来状态”，即 rollout。RFWorld 的论点是这个做法与规划的真实需求错配：rollout 的推理代价随预测时域与候选数同时增长，递归预测还会累积误差，而规划真正需要的只是可供比较的未来相关信息，不是为每条候选重建一整个未来场景。于是它把评估重构成”构建一次共享场景记忆 + 各候选稀疏读取”：当前 BEV 特征经 Transformer 潜世界模型得到轨迹无关的共享记忆 \mathcal{M}_t；训练时用轻量的时间读出分支（时间嵌入做通道门控... ]]></description>
-    <pubDate>Mon, 16 Nov 2026 03:21:55 GMT</pubDate>
   </item>
     </channel>
   </rss>
