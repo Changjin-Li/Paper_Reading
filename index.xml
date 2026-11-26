@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>DriveVLA-M0: Failure-Aware Memory Augmentation for Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2608-DriveVLAM0</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2608-DriveVLAM0</guid>
+    <description><![CDATA[ Summary VLA 驾驶模型会在相似场景上反复犯同样的错，因为训练完就没有”记住上次失败”的机制。DriveVLA-M0 建一个离线失败案例潜记忆库：用 oracle PDM 打分筛出低分场景，把检索键（静态地图特征 + 动态 agent 特征）、动作解码器的中间特征（语言嵌入、ego 嵌入、候选轨迹簇）与监督标签（专家轨迹 + 各候选的 oracle 子分数）一起存进去。检索键由一个专门训练的 Retrieve Model 产生，它用解耦的双 LoRA 分支分别学道路结构与 agent 布局，而不是直接用 VLM 的语言特征。推理时按地图与 agent 两路分别检索 top-k，命中相似... ]]></description>
+    <pubDate>Thu, 26 Nov 2026 03:55:57 GMT</pubDate>
+  </item><item>
     <title>MomADv2: Reliable Temporal Memory for End-to-End Autonomous Driving</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2608-MomADv2</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2608-MomADv2</guid>
@@ -59,12 +65,6 @@
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-DriftingPlanner</guid>
     <description><![CDATA[ Summary Drifting model 把扩散的”迭代”从推理搬到训练：生成器 g_\theta 一次前向就把噪声映射成样本，训练时用一个核场把生成样本拉向正样本、推离其他生成样本，收敛后 q_\theta = p。DriftingPlanner 是这套框架在轨迹规划上的第一次适配，它必须解决两个规划特有的困难。第一，图像生成里有离散类别，同一类的多张图共享目标分布；规划里每个 scene 就是自己的条件，只有一个 GT 轨迹，所以场必须逐 scene 计算。第二，逐 scene 计算只剩一个正样本，吸引项把 N 条生成轨迹拉向同一点、互斥项把它们推开，结果它们停在一个以 GT 为球心的... ]]></description>
     <pubDate>Sun, 15 Nov 2026 02:57:22 GMT</pubDate>
-  </item><item>
-    <title>DriveMLP: When Training Strategy Outperforms Model Complexity in Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2610-DriveMLP</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2610-DriveMLP</guid>
-    <description><![CDATA[ Summary DriveMLP 的核心发现是一个反直觉的结论：训练策略比模型复杂度对自动驾驶规划的闭环性能影响更大。作者通过同一 MLP 架构下四种训练方法的受控对照实验，证明 Expert-Guided RL（EGRL）——把 RL 当作优化工具、用 expert trajectory distance reward 在 non-reactive simulator 里训练——在 nuPlan Val14 Reactive 上达到 86.51，比 BC 高出 54 个点，比 BC-RL 高 8.46 个点。EGRL 的关键设计是：其他 agent 按日志回放（保证 expert traje... ]]></description>
-    <pubDate>Tue, 10 Nov 2026 07:12:47 GMT</pubDate>
   </item>
     </channel>
   </rss>
