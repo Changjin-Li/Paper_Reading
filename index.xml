@@ -6,6 +6,12 @@
       <description>Last 10 notes on Paper Reading</description>
       <generator>Quartz -- quartz.jzhao.xyz</generator>
       <item>
+    <title>Don&#039;t Shake the Wheel: Momentum-Aware Planning in End-to-End Autonomous Driving</title>
+    <link>https://changjin-li.github.io/Paper_Reading/Papers/2503-MomAD</link>
+    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2503-MomAD</guid>
+    <description><![CDATA[ Summary 端到端规划普遍采用 one-shot 多模态轨迹预测：每一帧独立生成候选、按分数取最高，缺少时间维度的约束，于是相邻帧会选到不同机动，表现为方向盘抖动。MomAD 把”动量”引入规划，拆成两层：trajectory momentum 用 Topological Trajectory Matching（TTM）在候选集中挑出与上一帧轨迹 Hausdorff 距离最小的一条，保证路径连续；perception momentum 用 Momentum Planning Interactor（MPI）把被选中的 planning query 与上一帧的多模态 planning quer... ]]></description>
+    <pubDate>Thu, 26 Nov 2026 03:38:16 GMT</pubDate>
+  </item><item>
     <title>Reinforcing End-to-End Autonomous Driving Safety via Negative-Aware Planning in a Unified World-Action Model</title>
     <link>https://changjin-li.github.io/Paper_Reading/Papers/2611-NegWAM</link>
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2611-NegWAM</guid>
@@ -59,12 +65,6 @@
     <guid>https://changjin-li.github.io/Paper_Reading/Papers/2610-VPFlow</guid>
     <description><![CDATA[ Summary Offline goal-conditioned RL 里有一个被普遍忽略的结构：在 hindsight relabeling 下，任意状态到同一轨迹上未来 goal 的稀疏奖励 Monte Carlo return 有闭式解，只取决于两者之间的时间距离 d。VPFlow 把这个闭式 return 当作 latent world model 的唯一监督——observation encoder、latent dynamics、goal-conditioned value head 联合训练，imagined latent 被要求预测 goal-reaching value 而不... ]]></description>
     <pubDate>Mon, 02 Nov 2026 03:57:39 GMT</pubDate>
-  </item><item>
-    <title>DiffusionDriveV2: Reinforcement Learning-Constrained Truncated Diffusion Modeling in End-to-End Autonomous Driving</title>
-    <link>https://changjin-li.github.io/Paper_Reading/Papers/2512-DiffusionDriveV2</link>
-    <guid>https://changjin-li.github.io/Paper_Reading/Papers/2512-DiffusionDriveV2</guid>
-    <description><![CDATA[ Summary DiffusionDrive 的 anchored truncated diffusion 用 GMM 先验保证多模态，但 imitation learning 每个场景只监督离 GT 最近的单个 anchor，负模态完全无约束，生成器因此产出大量碰撞轨迹并把筛选压力推给弱 selector。本文在预训练 DiffusionDrive 上做轨迹级 RL：把去噪链当作 MDP 用 REINFORCE 优化，探索噪声改为两个标量的乘性高斯，advantage 在单个 anchor 组内做 GRPO 标准化（Intra-Anchor），再用截断负 advantage 的方式引入跨 a... ]]></description>
-    <pubDate>Tue, 20 Oct 2026 13:06:07 GMT</pubDate>
   </item>
     </channel>
   </rss>
